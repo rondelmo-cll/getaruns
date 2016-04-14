@@ -1,0 +1,2922 @@
+﻿:- style_check(-singleton).
+
+non_quantif(Ante) :- 
+       nodo(N)::indice::Ante,
+       notnodspart(N),
+       !.
+
+non_quantif(Ante) :- 
+       nodo(N)::indice::Ante,
+       nodo(N)::spec::part::X,
+       (X = '-'),    
+       nodo(N)::spec::def::'+'.
+
+non_quantif(Ante) :- 
+       nodo(N)::indice::Ante,
+       nodo(N)::spec::part::X,
+       (X = '+'),    
+       nodo(N)::spec::def::'+'.
+
+quantificato(Ante) :- 
+    nodo(N)::indice::Ante,
+       notnodspard(N),
+    nodo(N)::spec::part::_,
+    nodo(N)::spec::def:: Def,
+    nonvar(Def).
+
+
+
+/* ************************************************************************* */
+/* AGGIUNGI_FUNZIONE/2 - trasforma gli elementi della lista di tutti gli sn
+           di frase da Nodo/Tab a Nodo/Funzione/Tab */
+aggiungi_funzione([],[]):-!.
+aggiungi_funzione([n1/Tab|Rest],[n1/nil/Tab|Rest1]) :-
+    aggiungi_funzione(Rest,Rest1).
+aggiungi_funzione([Nodo/Tab|Rest],[Nodo/Funz/Tab|Rest1]) :-
+    nodo(Nodo)::indice::Ind,
+    f_struttura(Ind,Funz/_,_),
+    aggiungi_funzione(Rest,Rest1).
+aggiungi_funzione([Nodo/Tab|Rest],[Nodo/Funz/Tab|Rest1]) :-
+    nodo(Nodo)::indice::Ind,
+    f_struttura(Ind,Funz,_),
+    aggiungi_funzione(Rest,Rest1).   
+aggiungi_funzione([Nodo/Tab|Rest],[Nodo/Funz/Tab|Rest1]) :-
+    nodo(Nodo)::indice::Ind,
+    f_sec_str(Ind,Funz,_),
+    aggiungi_funzione(Rest,Rest1).   
+aggiungi_funzione([Nodo/Tab|Rest],[Nodo/Funz/Tab|Rest1]) :-
+    aggiungi_funzione(Rest,Rest1).   
+
+/* DA_RISOLVERE/3
+== Individua gli sn in cerca di antecedente, cioe` quelli
+che sono +pro o +ana 
+*/
+da_risolvere([],L,L) :-!.
+da_risolvere([Nodo/Funz/Reftab|Altri],Lista,ListaOut) :- 
+   member(Tratto,[+pro, +ana]),
+   member(Tratto,Reftab),
+   nodo(Nodo)::indice::Indice,
+   nodo(N)::Funz/R::nodo(Nodo),
+   verifycontroller_antecendentheadrole(Indice,Reftab),
+   !,
+   np_description(Indice, Pred, FunRole),
+   da_risolvere(Altri,[Indice/Funz/Reftab|Lista],ListaOut).
+da_risolvere([_|Altri],Lista,ListaOut) :- 
+   da_risolvere(Altri, Lista, ListaOut).
+
+verifycontroller_antecendentheadrole(Contr,Reftab):-
+    gr(english),
+    Reftab = [+ref,+pro,-ana,+class],
+    verifycontroller_antecendent_head_role(Pred, Contr, R),
+     R=tema_bound,
+     Pred\=reason,Pred\=way,                      
+     !.
+verifycontroller_antecendentheadrole(Contr,Reftab):-
+    gr(english),
+    Reftab \= [+ref,+pro,-ana,+class],
+     !.
+
+verifycontroller_antecendentheadrole(Contr,Reftab):-
+gr(italiano).
+
+/* CONTROLLATI/3 - individua i riferimenti controllati, cioe` gia` risolti
+     e legati a livello lessicale */
+
+controllati([], L, L) :-!.
+controllati([Ind / Funz / Tab | Altri], List, LContr) :-
+   nodo(N) :: indice :: Ind,
+   (
+   nodo(N) :: controllore :: Contr
+   ;
+   nodo(N) :: sogg / nil :: controllore :: Contr
+   ),
+   Contr \= indefinito,
+   !,
+   np_description(Ind, PredInd, FunRoleInd),
+   np_description(Contr, PredContr, FunRoleContr),
+   asserta(controllato(Ind,Contr)),
+/*   writeseqnl(
+      [FunRoleInd:PredInd:Ind, controlled, by, 
+      FunRoleContr:PredContr:Contr]),
+*/   controllati(Altri, [controllato(Ind, Contr) / Tab | List], LContr).
+
+controllati([_ | Altri], List, LContr) :-
+   controllati(Altri, List, LContr).
+
+/* originale
+controllati([],L,L) :- nl.
+controllati([Ind/Funz/Tab|Altri], List, LContr) :-  
+      nodo(N)::indice::Ind,
+      (nodo(N)::controllore::Contr;
+       nodo(N)::sogg/nil::controllore::Contr),
+      Contr \= indefinito,
+      write(controllato(Ind,Contr)),
+      asserta(controllato(Ind,Contr)),
+      tab(3),
+      controllati(Altri,[controllato(Ind,Contr)/Tab|List],LContr)
+      ;
+      controllati(Altri,List,LContr).
+*/
+
+/* DEITTICI/3 - individua i riferimenti deittici (si intende quelli di prima
+  e seconda persona), che, in quanto tali, non dovranno essere
+  risolti */
+/* deittici([],L,L) :- nl.
+deittici([Ind/Funz/Tab|Altri],List,LDei) :-  
+      nodo(N)::indice::Ind,
+      (nodo(N)::pers::Persona,
+      (Persona = 1 ; Persona = 2),
+      write(deittico(Ind)),
+      tab(3),
+      deittici(Altri,[deittico(Ind)/Tab|List],LDei))
+      ;
+      (deittici(Altri,List,LDei)).
+*/
+/*********
+ PULISCI/3
+== Toglie dalla lista degli elementi da risolvere ritornata da DA_RISOLVERE eventuali elementi controllati o deittici 
+*********/
+pulisci_controllati(Tutti,[],Tutti):-!.
+pulisci_controllati(Tutti,[Primo/Tab|Altri],Risulta) :- 
+        Primo = controllato(Sn1,Type),
+        Type\=arbitrario,
+        elimina(Sn1/Funz/Tab,Tutti,Out),
+        pulisci_controllati(Out,Altri,Risulta).
+
+pulisci_controllati(Tutti,[Primo/Tab|Altri],Risulta) :- 
+        Primo = controllato(Ind,Type),
+        Type=arbitrario,
+        riferisci_esterno(Ind, esterno(Rete,Ind)),
+        assert(esterno(Rete,Ind,arbitraria)),
+        elimina(Sn1/Funz/Tab,Tutti,Out),
+        pulisci_controllati(Out,Altri,Risulta).
+
+
+/* PULISCI2/3 - toglie dalla lista degli elementi da risolvere gia' ordinata
+  le funzioni introdotte per l'ordinamento */
+pulisci_funzioni([],[]):-!.
+pulisci_funzioni([Ind/Funz/Tab|Altri],[Ind/Tab|Altri2]) :- 
+        pulisci_funzioni(Altri,Altri2).
+          
+
+
+/********
+ ordina_ana_pro(+List, -SortedList) 
+== Ordina gli elementi da riferire in base alla loro tabella dei tratti: prima gli anaforici e poi i pronominali 
+*********/
+
+ordina_ana_pro(List, Sorted) :-
+  scambia(List,List1),
+  !,
+  ordina_ana_pro(List1,Sorted).
+ordina_ana_pro(Sorted,Sorted):-!.
+
+scambia([X,Y|Rest],[Y,X|Rest]) :-
+    gt(X,Y).
+scambia([Z|Rest],[Z|Rest1]) :-
+    scambia(Rest,Rest1),!.
+
+gt(SN1 / Funz1 / L1, SN2 / Funz2 / L2) :-
+   member(+ pro, L1),
+   member(+ ana, L2),
+   \+ (
+      member(+ ana, L1),
+      member(+ pro, L2)
+      ).
+
+/* ORDINA2/2 - ordina gli elementi da riferire in base alla loro tabella dei tratti e alla loro funzione gramm.: prima i soggetti +me e poi gli altri  */
+ordina_fun_me(List,Sorted) :-
+  scambia2(List,List1), !,
+  ordina_fun_me(List1,Sorted).
+ordina_fun_me(Sorted,Sorted):-!.
+
+scambia2([X,Y|Rest],[Y,X|Rest]) :- gt2(Y,X),!.
+scambia2([Z|Rest],[Z|Rest1]) :- scambia2(Rest,Rest1),!.
+
+gt2(SN1/Funz/[_,_,_,X],SN2/Funz/[_,_,_,X]) :-
+  !,
+  fail.
+gt2(SN1/sogg/L1,SN2/Funz/L2) :- 
+      Funz \= sogg.
+gt2(SN1/sogg/[_,_,_,+me],SN2/sogg/[_,_,_,-me]).
+
+catena_x(Snx,Start,Catena) :-
+       (antecedente(_,Snx,Sny,_) ;
+        antecedente(_,Sny,Snx,_) ;  
+        controllato(Snx,Sny) ;
+        controllato(Sny,Snx)),   
+       \+ nogen_member(Sny,Start),
+       catena_x(Sny,[Sny|Start],Catena).
+     
+pos_legal_ante(Ind, Tratti, Gen, Num, Ante/Liv) :- 
+   sisters_of(indice:Ante,
+      [cat:TrattiAnte, gen:GenAnte,
+      num:NumAnte, tab_ref:TabRef]),
+   tratti(TrattiAnte, Tratti),
+   match(Gen, GenAnte),
+   match_num(Num, NumAnte, Ante),
+   poss_legal_ante(TabRef, Ind, Ante, Liv).
+
+poss_legal_ante(TabRef, Index, Ante, Liv) :-
+   poss_ante(Index, Ante, TabRef),
+   poss_non_riferito_in(Index, Ante, Liv).
+
+/* NON_RIFERITO_IN/2 - serve per scartare un antecedente che compaia
+   gia' nella frase minima in cui si trova il riferimento: bisogna percio'
+   controllare che non ci sia una catena di riferimenti tra gli elementi 
+   della frase minima e l'antecedente in questione.    */
+     
+non_riferito_x(Indice,Ante) :-
+          \+ riferiment(Ante,Indice,_),!.
+
+non_riferito_in(Indice,Ante) :-
+  non_riferito_in1(Indice,Ante),
+  non_riferito_in2(Ante,Indice).
+
+non_riferito_in1(Indice,Ante) :-
+          Indice\=Ante,
+          pari_livello(Indice,ListaPari),
+          maplist(trova_ind,ListaPari,ListaInd),
+          \+ riferimento(Ante,[],ListaInd).
+
+poss_non_riferito_in(Indice,Ante, Liv):-
+          Liv<2,
+          Indice\=Ante,
+          pari_livello(Indice,ListaPari),
+          maplist(trova_ind,ListaPari,ListaInd),
+          \+ poss_riferimento(Ante,[],ListaInd).
+
+poss_non_riferito_in(Indice,Ante, Liv):-
+          2=<Liv,
+          Indice\=Ante,
+          pari_livello(Indice,ListaPari),
+          maplist(trova_ind,ListaPari,ListaInd).
+
+non_riferito_in2(Ante, Indice):-
+          nodo(n1)::Main/prop::coord::F/R::indice::Ante,
+          !,
+          Indice\=Ante,
+          pari_livello(Indice,ListaPari),
+          maplist(trova_ind,ListaPari,ListaInd),
+          \+ riferimento(Ante,[],ListaInd),
+          (ListaInd\=[],
+           member(Ante,ListaInd)
+           ;
+            ListaInd=[],
+            \+ nodo(n1)::Main/prop::coord::F/R::indice::Indice
+           ;
+           \+ in_catena_semp(Indice, Ante)
+            ),!.
+non_riferito_in2(Indice, Ante):-!.
+
+riferiment(Snx,Percorso,ListaPari) :- 
+   antecedente(_,Snx,Sn1,_),
+   Sn1=Percorso.
+
+
+poss_riferimento(Ante,Percorso,ListaInd):-
+    poss_rif(Ante, Percorso, ListaInd),!.
+
+poss_rif(Snx, Percorso, ListaPari) :-
+   in_catena_semp(Snx, Sn1),
+   (
+   Sn1\=Snx,
+   member(Sn1, Percorso) 
+   -> 
+   true
+   ;
+   poss_riferimento(Sn1, [Snx|Percorso], ListaPari)
+   ).
+
+in_catena_semp(Snx, Sn1) :-
+   antecedente(_,Snx,Sn1,_),
+   \+ subord(Snx, Sn1).
+
+in_catena_semp(Snx, Sn1) :-
+   antecedente(_,Sn1,Snx,_),
+   \+ subord(Sn1, Snx).
+
+in_catena_semp(Snx, Sn1) :-
+   controllato(Snx,Sn1).
+
+in_catena_semp(Snx, Sn1) :-
+   controllato(Sn1,Snx).
+
+check_ante_pro_struct(Sn1,Snx):-
+   nodo(N1)::main/prop::F1/R1::indice::Sn1,
+   nodo(N)::adj::sub/prop::F/R::indice::Snx.
+
+check_ante_pro_struct(Sn1,Snx):-
+   nodo(n1)::F1/R1::indice::Sn1,
+   nodo(N)::adj::sub/prop::F/R::indice::Snx.
+
+check_ante_pro_struct(Sn1,Snx):-
+   nodo(n1)::F1/R1::indice::Sn1,
+   nodo(N)::_/prop::F/R::indice::Snx.
+
+
+riferimento(Snx, Percorso, ListaPari) :- 
+  notnodcoordf(Snx),
+   (
+   ( 
+   antecedente(_,Snx,Sn1,_)
+   ;
+   \+ gr(english),
+   controllato(Snx,Sn1)
+   ),
+   \+ nogen_member(Sn1,Percorso),
+   check_ante_pro_struct(Sn1,Snx)
+   -> 
+   true
+   ;
+
+   ( 
+   antecedente(_,Sn1,Snx,_)
+   -> 
+   true
+   ;
+   \+ gr(english),
+   controllato(Sn1,Snx)
+   ),
+   (\+ nogen_member(Sn1, Percorso)
+    ;
+    nodo(N1)::main/prop::F1/R1::indice::Snx,
+    nodo(N)::adj::sub/prop::F/R::indice::Sn1
+    )
+   ),
+   riferimento(Sn1, [Snx|Percorso], ListaPari).
+
+
+riferimento(Snx, Percorso, ListaPari) :-
+  notnodcoordf(Snx),
+   in_catena_semplice(Snx, Sn1),
+   (
+   Sn1\=Snx,
+   member(Sn1, Percorso) 
+   -> 
+   true
+   ;
+   riferimento(Sn1, [Snx|Percorso], ListaPari)
+   ).
+/*
+riferimento(Snx, Percorso, ListaPari) :-
+   catena_x(Snx,Sn1,Catena),
+   riferimento(Sn1, [Snx|Percorso], ListaPari)
+   .
+*/
+riferimento(N, Percorso, ListaPari) :- 
+   member(N, ListaPari),
+   !,
+   write('Antecedente gia` utilizzato'),
+   nl.
+
+
+/*** abbiamo eliminato le catene ascendenti ! meglio di no***/
+
+subord(Snx, Sn1):-
+    nodo(N1)::main/prop::F1/R1::indice::Sn1,
+    nodo(N)::adj::sub/prop::F/R::indice::Snx.
+
+subord(Snx, Sn1):-
+    nodo(N1)::mods::relativa::topic::indice::Sn1.
+subord(Snx, Sn1):-
+    nodo(N1)::mods::relativa::topic::controllore::Sn1.
+
+in_catena_semplice(Snx, Sn1) :-
+   antecedente(_,Snx,Sn1,_),
+   Snx\=Sn1,
+   \+ subord(Snx, Sn1).
+
+in_catena_semplice(Snx, Sn1) :-
+   controllato(Snx,Sn1),
+   \+ subord(Snx, Sn1).
+
+in_catena_semplice(Snx, Sn1) :-
+   antecedente(_,Sn1,Snx,_),
+    Snx\=Sn1,
+  \+ subord(Sn1, Snx).
+
+in_catena_semplice(Snx, Sn1) :-
+   controllato(Sn1,Snx).
+
+trova_ind(Nodo/_,Ind):- nodo(Nodo)::indice::Ind, !.
+trova_ind(Nodo/_,nil).
+
+
+/* POSS_ANTE/3 -  guarda se l'antecedente e' referenziale (+ref) oppure,nel caso del pro grande, se questo ha un controllore referenziale o se e'gia' stato legato con un antecedente referenziale o se il riferimentoe' costituito da un riflessivo di qualsiasi tipo (per poter risolvere 
+   correttamente frasi del tipo "Lavarsi e` necessario
+esclude il Progrande ma accetta i clitici e i riflessivi   */
+
+
+poss_ante(Indice, Ante, Tabella) :- 
+   member(+ref,Tabella),
+   (
+   member(+me,Tabella)
+   -> true
+   ;
+   member(-me,Tabella),
+   \+ on(+ana, Tabella)
+   -> true
+   ;
+   \+ nogen_member(+me, Tabella)
+   ).
+
+poss_ante_rifl(Indice, Ante, Tabella) :-
+   nodo(N)::indice::Ante,
+   nodo(N)::pred::Pred,
+   Pred\=form, Pred\=vbl, 
+   member(+ref,Tabella).
+
+
+/* ************************************************************************* */
+
+/* risoluzione di un pro soggetto di una frase subordinata
+
+risolvi_pro_in_sub(Rete,Ind,Nprinc,Nsub,ListaRef):-
+% prende gli args della principale 
+    bagof(Nante/F/R,arco(Nprinc,Nante,F/R,Rete),ListaAnte1),
+    write(ListaAnte1),nl,
+% pers,gen,num,tratti del pro 
+    trova_pers_gen_num_tratti(Rete,indice(Ind),Pers,Gen,Num,Tratti),
+% concordanza fra antecedente e pro 
+    filtra_pro_in_sub(Rete,Ind,Pers,Gen,Num,Tratti,ListaAnte1,ListaAnte2),
+    log_pronome(ListaAnte2),
+    (ListaAnte2=[X],ListaRef=[X];
+     ListaAnte2=[X,Y],write('caso ambiguo'),nl,
+     disambigua_pro_in_sub(Rete,Ind,Nprinc,Nsub,ListaAnte2,ListaRef)).
+*/
+
+/***********
+risolvi_pro_in_sub(+Rete, +IndicePro, +NodoPrinc, -NodoSub,-ListaRef)
+== risoluzione di un pro soggetto di una frase subordinata
+1. Prende gli args della principale 
+2. Trova pers,gen,num,tratti del pro
+3. Filtra i possibili antecedenti nella principale sulla base dei tratti
+4. Se è rimasto più di un antecedente possibile lo disambigua
+***********/
+risolvi_pro_in_sub(Rete, Ind, Nprinc, Nsub, ListaRef) :-
+   bagof(Nante / F / R, 
+      arco(Nprinc, Nante, F / R, Rete), 
+      ListaAnte1),
+   log_pronome(ListaAnte1),
+   trova_pers_gen_num_tratti(
+      Rete, 
+      indice(Ind), 
+      Pers, Gen, Num, Tratti),
+   filtra_pro_in_sub(
+      Rete, Ind, Pers, Gen, Num, 
+      Tratti, ListaAnte1, ListaAnte2),
+   write(ListaAnte2),
+   nl,
+   (
+   ListaAnte2 = [X],
+   ListaRef = [X]
+   ;
+   ListaAnte2 = [X, Y],
+   write('caso ambiguo'),
+   nl,
+   disambigua_pro_in_sub(
+      Rete, Ind, Nprinc, Nsub, ListaAnte2, 
+      ListaRef)
+   ).
+
+
+/* filtra tenendo conto delle concordanze in pers,gen,num,tratti */
+
+filtra_pro_in_sub(_Rete,_,_,_,_,_,[],[]) :- !.
+
+filtra_pro_in_sub(Rete,Ind,Pers,Gen,Num,Tratti,[Nante/F/R|C],[Ante|C1]) :-
+       F \= adjs,
+       nodo(Nante)::tab_ref::[+ref|_],
+       trova_pers_gen_num_tratti(Rete,nodo(Nante),PA,GA,NA,TA),
+       match(Pers,Pa),
+       match(Gen,GA),
+       match(Num,NA),
+       tratti(Tratti,TA),
+       nodo(Nante)::indice::IndAnte,
+       non_riferito_in(Ind,IndAnte),
+       Ante=IndAnte/Nante/F/R,
+       !,
+       filtra_pro_in_sub(Rete,Ind,Pers,Gen,Num,Tratti,C,C1).
+filtra_pro_in_sub(Rete,Ind,Pers,Gen,Num,Tratti,[_T|C],C1) :-
+       filtra_pro_in_sub(Rete,Ind,Pers,Gen,Num,Tratti,C,C1).
+
+
+/* uso uno stereotipo */
+disambigua_pro_in_sub(
+   Rete, _Ind, _Nprin, Nsub, [I1 / N1 / F1 / R1, I2 / N2 / F2 / R2], LisRef) 
+   :-
+   arco(Nsub, NNlex, lex_form, Rete),
+   foglia(NNlex, LexForm, Rete),
+   arco(Nsub, NNv, pred, Rete),
+   foglia(NNv, PredV, Rete),
+   costruisci_forma_pred(
+      Rete, Nsub, PredV, LexForm, Form, Var),
+   arco(N1, NN1, pred, Rete),
+   foglia(NN1, Pred1, Rete),
+   arco(N2, NN2, pred, Rete),
+   foglia(NN2, Pred2, Rete),
+   (
+   Var = Pred1,
+   stereotipo(Form),
+   LisRef = [I1 / N1 / F1 / R1],
+   write(Form),
+   nl
+   ;
+   Var = Pred2,
+   stereotipo(Form),
+   LisRef = [I2 / N2 / F2 / R2],
+   write(Form),
+   nl
+   ),
+   !.
+/* disambigua sulla base delle categorie dei verbi nella princ. e sub. */
+disambigua_pro_in_sub(
+   Rete, Ind, Nprinc, Nsub, [I1 / N1 / F1 / R1, I2 / N2 / F2 / R2], LisRef) 
+   :-
+   arco(Nprinc, NN1, cat, Rete),
+   foglia(NN1, CatPrinc, Rete),
+   arco(Nsub, NN2, cat, Rete),
+   foglia(NN2, CatSub, Rete),
+   arco(Nsub, NN3, aspetto, Rete),
+   foglia(NN3, AspettoSub, Rete),
+   arco(Nx, Nsub, sub / prop, Rete),
+   arco(Nx, Nxx, sem_mark, Rete),
+   foglia(Nxx, SemMark, Rete),
+   disambigua_pro_in_sub_1(
+      SemMark, Ind, CatPrinc, CatSub, AspettoSub, 
+      [I1 / N1 / F1 / R1, I2 / N2 / F2 / R2], LisRef),
+   !.
+
+/* non si sa cosa fare !!!!! */
+disambigua_pro_in_sub(_Rete,_Ind,_Nprinc,_Nsub,LisRef,LisRef):-
+       write('impossibile risolvere ambiguità'), nl,  !.
+
+
+costruisci_forma_pred(_Rete,_Nsub,PredV,LexForm,Form,Var):-
+       LexForm=[_],
+       Form =.. [PredV,Var].
+
+costruisci_forma_pred(Rete,Nsub,PredV,LexForm,Form,Var):-
+       LexForm=[_,Y],
+       (Y=sn/F/R/_;Y=sp/F/R/_/_),
+       arco(Nsub,N1,F/R,Rete),
+       arco(N1,N2,pred,Rete),foglia(N2,Pred,Rete),
+       Form =.. [PredV,Var,Pred].
+costruisci_forma_pred(Rete,Nsub,PredV,LexForm,Form,Var):-
+       LexForm=[_,Y],
+       Y=sp/F/R/_/_,
+       arco(Nsub,N1,F/R,Rete), foglia(N1,Fstr,Rete),
+       Fstr=indefinito, Pred=R,
+       Form =.. [PredV,Var,Pred].
+
+/************
+disambigua_pro_in_sub_1(
+      +SemMark, +Ind, +CatPrinc, +CatSub, +AspettoSub, 
+      +AtecedentiPossibili, -LisRef)
+AtecedentiPossibili=[+I1 / +N1 / +F1 / +R1, +I2 / +N2 / +F2 / +R2]
+LisRef=[-I / -N / -F / -R]
+************/
+
+/*** 
+cat princ = valutativo
+aspetto subordinata = stato 
+subordinatore = poiché o perché
+==>
+antecedente=soggetto
+***/
+
+disambigua_pro_in_sub_1(
+   SemMark, _, valutativo, _, stato, 
+   Ants, [I/N/sogg/R]) 
+   :-
+   on(SemMark, [perche_, poiche_, because]),
+   on(I/N/sogg/R, Ants).
+
+
+/*** 
+cat princ = risultato
+aspetto subordinata = stato
+subordinatore = poiché o perché
+ruolo del pro =  tema_bound
+==>
+se
+cat del prop dipendente dal tema_bound = valutativo
+il secondo argomento non è un soggetto
+allora
+l'antecedente è il secondo argomento
+altrimenti
+è il primo argomento
+***/
+
+disambigua_pro_in_sub_1(
+   SemMark, Ind, risultato, _CatSub, stato, 
+   [I1 / N1 / F1 / R1, I2 / N2 / F2 / R2], LisRef) 
+   :-
+   on(SemMark, [perche_, poiche_, because]),
+   f_struttura(Ind, Fun / R, N),
+   R = tema_bound,
+   nodo(N) :: Fu / Ruo1 :: nodo(N0),
+   Ruo1 = prop,
+   nodo(N0) :: cat :: Cat,
+   (
+   member(valutativo, Cat),
+   F2 \= sogg,
+   LisRef = [I2 / N2 / F2 / R2]
+   ;
+   LisRef = [I1 / N1 / F1 / R1]
+   ).
+
+
+/***
+cat princ = valutativo 
+aspetto subordinata = non stato
+subordinatore = poiché o perché
+==>
+l'antecedente è il tema affetto (se c'è)
+***/
+disambigua_pro_in_sub_1(
+   SemMark, _Ind, valutativo, _CatSub, AspettoSub, 
+   Ants, [I/N/F/tema_aff]) 
+   :-
+   on(SemMark, [perche_, poiche_, because]),
+   AspettoSub \= stato,
+   on(I/N/F/tema_aff, Ants).
+
+/*** 
+cat princ = comunicativo 
+aspetto subordinata = soggettivo
+subordinatore = poiché o perché
+==>
+l'antecedente è actor
+***/
+disambigua_pro_in_sub_1(
+   SemMark, _Ind, comunicativo, soggettivo, _, 
+   Ants, [I/N/F/actor]) 
+   :-
+   on(SemMark, [perche_, poiche_, because]),
+   on(I/N/F/actor, Ants).
+
+/***
+subordinatore = poiché o perché
+==>
+l'antecedente è l'arg con lo stesso ruolo del pro
+***/
+disambigua_pro_in_sub_1(
+   SemMark, Ind, _, _, _, 
+   Ants, [I/N/F/Ruo]) 
+   :-
+   on(SemMark, [perche_, poiche_, because]),
+   f_struttura(Ind, _/Ruo, _),
+   on(I/N/F/Ruo, Ants).
+
+disambigua_pro_in_sub_1(
+   SemMark, Ind, _, _, _, 
+   Ants, [I/N/F/Ruo]) 
+   :-
+   on(SemMark, [perche_, poiche_, because]),
+   f_struttura(Ind, _/Ruo, _),
+   sem_roles(Ruo,Ruo1),
+   on(I/N/F/Ruo1, Ants).
+
+/*** 
+cat princ= esistenza
+subordinatore = mentre o quando
+==>
+l'antecedente è il tema_bound
+***/
+disambigua_pro_in_sub_1(
+   SemMark, Ind, esistenza, _, _, 
+   Ants, [I/N/F/tema_bound]) 
+   :-
+   on(SemMark, [mentre, quando, while, when, als]),
+   on(I/N/F/tema_bound, Ants).
+
+/*** 
+subordinatore = mentre, quando
+==>
+l'antecedente è il soggetto (deve essere il primo arg)
+***/
+disambigua_pro_in_sub_1(
+   SemMark, _, _, _, _, 
+   [I1/N1/sogg/ R1, _],  [I1 / N1 / sogg / R1]) 
+   :-
+   on(SemMark, [mentre, cosi_, quando, while, when, als]).
+
+sem_roles(tema_eff,tema_aff).
+sem_roles(esperiente,agente).
+sem_roles(actor,tema_aff).
+
+
+trova_pers_gen_num_tratti(X,Pers,Gen,Num,Tratti):-
+   rete(Rete),
+   trova_pers_gen_num_tratti(Rete,X,Pers,Gen,Num,Tratti).
+
+trova_pers_gen_num_tratti(Rete,indice(Ind),Pers,Gen,Num,Tratti):-
+   foglia(N1,Ind,Rete),
+   arco(Nodo,N1,indice,Rete),
+   trova_pers_gen_num_tratti(Rete,nodo(Nodo),Pers,Gen,Num,Tratti).
+
+trova_pers_gen_num_tratti(Rete,nodo(Nodo),Pers,Gen,Num,Tratti):-
+       (arco(Nodo,N3,pers,Rete),foglia(Nodo,N3,Rete),!;Pers=nil),
+       (arco(Nodo,N4,gen,Rete),foglia(N4,Gen,Rete),!;Gen=nil),
+       (arco(Nodo,N5,num,Rete),foglia(N5,Num,Rete),!;Num=nil),
+       arco(Nodo,N6,cat,Rete),foglia(N6,Tratti,Rete).
+
+trova_tabref(Indice, TabRef) :-
+   nodo(Nodo)::indice::Indice,
+   nodo(Nodo)::tab_ref::TabRef.  
+
+/* Regole per trovare genere e numero di un costituente quando non e' detto
+   che questo li abbia: in caso contrario torna nil            */
+
+trova_genere(Nodo,Genere):-
+  nodo(Nodo)::gen::Genere, !.
+trova_genere(Nodo,nil):-!.
+
+trova_genere(Nodo,FR,Genere):-
+  nodo(Nodo)::FR::gen::Genere, !.
+trova_genere(Nodo,FR,nil):-!.
+
+trova_numero(Nodo,Numero):-
+  nodo(Nodo)::num::Numero, !.
+trova_numero(Nodo,nil):-!.
+
+trova_numero(Nodo,FR,Numero):-
+  nodo(Nodo)::FR::num::Numero, !.
+trova_numero(Nodo,FR,nil):-!.
+
+/* trova_tratti(+Ind, -Tratti) */
+trova_tratti(Ind, Tratti):-
+   nodo(Nodo)::indice::Ind,
+   nodo(Nodo)::cat::Tratti.
+
+sisters_of(Label:Leaf, Sisters) :-
+   rete(Rete),
+   foglia(LeafNode,Leaf,Rete),
+   arco(Node, LeafNode, Label, Rete),
+   node_leaves(Node, Sisters).
+
+node_leaves(_, []).
+node_leaves(Node, [LeafLabel:Leaf | Leaves]) :-
+   arco(Node, LeafNode, LeafLabel, Rete),
+   foglia(LeafNode, Leaf, Rete),
+   !,
+   node_leaves(Node, Leaves).
+node_leaves(Node, [LeafLabel:nil | Leaves]) :-
+   node_leaves(Node, Leaves).
+
+/* PRONOMI/2
+== per risolvere i riferimenti interni di una frase e salvare i risultati su grafo */
+
+
+pronome(Rete,DaRisolvere) :-
+%   rete(Rete),
+   ordina_anafore(DaRisolvere),
+   risolvi(Rete, DaRisolvere), 
+   findall(Ind/Ante/Int,antecedente(Rete,Ind,Ante,Int),List),
+   findall(Ind/Int,esterno(Rete,Ind,Int),List1),
+   add_archi(Rete,List),
+   add_archi(Rete,List1),
+   !.
+
+/* PRONOMI/1
+== per risolvere i riferimenti interni di una frase in memoria 
+
+pronome(File,DaRisolvere) :-
+   ordina_anafore(File,Rete,DaRisolvere),
+   risolvi(Rete,DaRisolvere),
+   abolish(lista_fcs/1).*/
+         
+/******************************
+ordina_anafore(-AnaforeOrdinate)
+== Produce una lista degli elementi da risolvere ordinata secondo un particolare criterio (relativa al grafo corrente)
+******************************/
+ordina_anafore(AnafOrd2) :-
+   init_pronomi,
+   bagof(No / Tr, nodo(No) :: tab_ref :: Tr, NodesTabRef),
+   aggiungi_funzione(NodesTabRef, Tutti),
+   da_risolvere(Tutti, Lis, ToSolve),
+   controllati(ToSolve, App, ListCont),
+   tomem(ListCont),
+   pulisci_controllati(ToSolve, ListCont, Anafore),
+   ordina_ana_pro(Anafore, AnafOrd),
+   ordina_fun_me(AnafOrd, AnafOrd1),
+   pulisci_funzioni(AnafOrd1, AnafOrd2),
+   !.
+
+write_antecedents([]):-!.
+write_antecedents([Ante| Others]) :-
+   !,
+   ante_description(Ante, AnteDescription, Peso),
+   tab(5),
+   write(AnteDescription),
+   write_peso(Peso),
+   write_antecedents(Others),!.
+
+write_peso(none) :-
+   !, nl.
+write_peso(Peso) :-
+   tab(3),
+   writenl(weigth:Peso).
+
+ante_description(Ind/Peso, FunRole:Pred:Ind, Peso) :-
+   np_description(Ind, Pred, FunRole),!.
+ante_description(nessuno, none, none).
+
+write_pronominals(_, []) :-
+   !.
+write_pronominals(Heading, List) :-
+   writenl(Heading),
+   write_prons(List).
+
+write_prons([Ind/_/TabRef | Others]) :-
+   np_description(Ind, Pred, FunRole),
+   write(FunRole:Pred:Ind),
+   write_tab_ref(TabRef),
+   write_prons(Others),!.
+write_prons([]):-!.
+
+write_tab_ref(TabRef) :-
+   tab(3),
+   writeseqnl(['tab_ref:', TabRef]).
+
+
+tomem([]):-!.
+tomem([A/B|Altri]) :- 
+   assert(A),
+   tomem(Altri).
+
+/* RISOLVI/2 - trova i possibili antecedenti di ogni elemento presente nella
+               lista ritornata da ordina_anafore/3, calcola i punteggi di
+               referenzialita` e asserisce come antecedente prescelto il
+               primo della lista degli antecedenti possibili ordinata
+               mediante un algoritmo di bubble sort */
+risolvi(_,[]).
+
+
+/**********
+== pro come soggetto di una subordinata (-me)
+Es.: "Gino picchiò l'asino perché non gli ubbidiva" 
+
+ nodo(N3)::sub/prop::sogg/_::indice::Indice
+ nodo(NdPrin)::adjs::adj::nodo(N3)
+**********/
+risolvi(Rete,[Indice/TabRef | Altri]) :-
+   strap(pron),
+   pro_soggetto_di_subordinata(TabRef, Indice, NdPrin, NdSub),
+   !,   
+   risolvi_pro_in_sub(Rete, Indice, NdPrin, NdSub, ListaRef),
+   possibili_antecedenti(Indice, ListaRef, Rete),
+   risolvi(Rete,Altri).
+
+/* caso generale per i soggetti pro*/
+risolvi(Rete, [Indice/TabRef]) :-
+    nodo(n1)::sogg/Role::indice::Indice,
+    Role\=esperiente,
+    possibili_antecedenti(Indice, [esterno(Rete, Indice)], Rete),
+    !.
+
+/* caso generale */
+risolvi(Rete, [Indice/TabRef | Altri]) :-
+    bagof(OutRef,riferisci(Rete,Indice,TabRef,OutRef),ListaRef),
+    togli_doppi(ListaRef, ListaOrd),
+    possibili_antecedenti(Indice, ListaOrd, Rete),
+    risolvi(Rete,Altri).
+
+
+pro_soggetto_di_subordinata([+ref, +pro, +ana, +me], Indice, NdPrin, NdSub) :-
+    gr(english),
+    nodo(n1)::main/prop::Ind,
+    Ind\=[],
+    !,
+    nodo(NdSub)::sogg/Role::indice::Indice,
+    Role \= poss,
+    nodo(NdPrin)::adjs::adj::sub/prop::nodo(NdSub).
+
+pro_soggetto_di_subordinata([+ref, +pro, +ana, +me], Indice, NdPrin, NdSub) :-
+    gr(english),
+    !,
+    nodo(NdSub)::sogg/Role::indice::Indice,
+    Role \= poss,
+    nodo(NdPrin)::adjs::adj::sub/prop::nodo(NdSub).
+
+pro_soggetto_di_subordinata([+ref,+pro,-ana, ME], Indice, NdPrin, NdSub) :-
+    nodo(n1)::main/prop::Ind,
+    Ind\=[],
+    on(ME, [-me, +me]),
+    !,
+    nodo(NdSub)::sogg/Role::indice::Indice,
+    Role \= poss,
+    nodo(NdPrin)::adjs::adj::sub/prop::nodo(NdSub).
+
+pro_soggetto_di_subordinata([+ref,+pro,-ana, ME], Indice, NdPrin, NdSub) :-
+    on(ME, [-me, +me]),
+    !,
+    nodo(NdSub)::sogg/Role::indice::Indice,
+    Role \= poss,
+    nodo(NdPrin)::adjs::adj::sub/prop::nodo(NdSub).
+
+possibili_antecedenti(Indice, ListaRef, Rete) :-
+    maplist(punteggio,ListaRef,ListaP),
+%    writenl('Possible Antecedents of '),
+    np_description(Indice, Pred, Fun),
+    Pred\=exist,
+%    writenl(Fun:Pred:Indice),
+    bubblesort(ListaP,ListaPOrd),
+%    write_antecedents(ListaPOrd),nl,
+    prob_ante(Rete,Indice,ListaPOrd).
+
+prob_ante(Rete, Ind, [nessuno|_]) :- 
+    interpretazione(Ind, nessuno, Int),
+    !,  
+    assert(esterno(Rete,Ind,Int)).
+      
+prob_ante(Rete,Ind,[Primo/_|_]) :- 
+   interpretazione(Ind, Primo, Int),
+   assert(antecedente(Rete, Ind, Primo, Int)).
+        
+add_archi(_,[]):-!.
+
+/**********************
+Se all'indice è associato un controllore indefinito cancella dal grafo 'controllore:indefinito' e sostituiscilo con 'antecedente:Ante' e 'interpretazione:Int'
+**********************/
+
+add_archi(Net,[Ind/Ante/Int | Altri]) :- 
+    nodo(Nodo)::indice::Ind,
+    nodo(Nodo)::controllore::indefinito,
+    retract(arco(Nodo,N1,controllore,Net)),
+    retract(foglia(N1,indefinito,Net)),
+    current_num(_,_),
+    w_arco(Nodo, ToNodo1, antecedente,Net),
+    w_foglia(ToNodo1, Ante, Net),
+    w_arco(Nodo, ToNodo2, interpretazione,Net),
+    w_foglia(ToNodo2, Int, Net),
+    add_archi(Net, Altri).
+
+/**********************
+Se all'indice non è associato un controllore indefinito aggiungi 'antecedente:Ante' e 'interpretazione:Int'
+**********************/
+add_archi(Net,[Ind/Ante/Int|Altri]) :- 
+    nodo(Nodo)::indice::Ind,
+    current_num(_,_),
+    w_arco(Nodo,ToNodo1,antecedente,Net),
+    w_foglia(ToNodo1,Ante,Net),
+    w_arco(Nodo,ToNodo2,interpretazione,Net),
+    w_foglia(ToNodo2,Int,Net), 
+    add_archi(Net,Altri).
+
+/**********************
+Se all'indice non è associato un controllore indefinito aggiungi 'antecedente:Ante' e 'interpretazione:Int'
+**********************/
+add_archi(Net,[Ind/Int|Altri]) :- 
+    nodo(Nodo)::indice::Ind,
+    nodo(Nodo)::controllore::indefinito,
+    retract(arco(Nodo,N1,controllore,Net)),
+    retract(foglia(N1,indefinito,Net)),
+    current_num(_,_),
+    w_arco(Nodo,ToNodo1,antecedente,Net),
+    w_foglia(ToNodo1,esterno,Net),
+    w_arco(Nodo,ToNodo2,interpretazione,Net),
+    w_foglia(ToNodo2,Int,Net), 
+    add_archi(Net,Altri).
+
+add_archi(Net,[Ind/Int|Altri]) :- 
+    nodo(Nodo)::indice::Ind,
+    current_num(Rad,Num),
+    w_arco(Nodo,ToNodo1,antecedente,Net),
+    w_foglia(ToNodo1,esterno,Net),
+    w_arco(Nodo,ToNodo2,interpretazione,Net),
+    w_foglia(ToNodo2,Int,Net), 
+    add_archi(Net,Altri).
+
+/******************************************* 
+RIFERISCI/3 
+riferisci(Rete, Ind, TabRef, Ante/N)
+== regole specifiche per la risoluzione dei riferimenti interni alla frase 
+*******************************************/
+
+riferisci(_, Ind, [-ref,-pro,+ana,+me,-subj], Ante):-
+   !,
+   riferisci_riflessivo_corto(Ind, Ante).  
+
+riferisci(_, Ind, [+ref,-pro,+ana,+me,-subj], Ante):-
+   !,
+   riferisci_riflessivo_corto(Ind, Ante).  
+
+riferisci(_,Ind, [-ref,+pro,+ana,+me,+subj], Ante):-
+   !,
+   riferisci_riflessivo_lungo(Ind, Ante).
+    
+riferisci(_,Ind, [-ref,+pro,+ana,+me,-subj], Ante) :-
+   !,
+   riferisci_proprio(Ind, Ante).
+  
+riferisci(_,Ind, [+ref,+pro,+ana,+me], Ante):-
+   !,
+   riferisci_clitico(Ind, Ante).
+
+riferisci(_, Ind, [+ref,+pro,-ana,+class], Ante):-
+   !,
+   riferisci_deittico(Ind, Ante).
+
+riferisci(_,Ind, [+ref,+pro,-ana,+me], Ante):-
+   !,
+   riferisci_libero_poss(Ind,  Ante).
+
+riferisci(_,Ind, [+ref,+pro,-ana,-me], Ante):-
+   !,
+   nodo(IndNode)::indice::Ind,
+   riferisci_pro_piccolo(Ind, IndNode, Ante).
+  
+riferisci(_,Ind, [+ref,+pro,+ana,-me], Ante):-
+   !,
+   nodo(IndNode)::indice::Ind,
+   riferisci_Pro_grande(Ind, IndNode, Ante).
+
+/**********************
+ESTERNO: 
+se non viene trovato un antecedente accettabile 
+per il momento viene soltanto segnalato in output.  
+*********************/  
+riferisci_esterno(Ind, esterno(Rete,Ind)):-
+  rete(Rete),
+  nodo(_)::indice::Ind,
+  !.        
+
+
+/*************************
+PRONOME ANAFORICO (PROPRIO). L'antecedente f-comanda e deve essere un soggetto nella frase minima o qualsiasi se sopra (-SUBJ), con accordo dei tratti semantici.
+Per i verbi psicologici privilegia l'oggetto/esperiente
+[-ref,+pro,+ana,+me,-subj]
+*************************/
+
+/* Quando PROPRIO si trova nel soggetto di un dominio opaco non
+puo' uscirne e pertanto genera un'interpretazione arbitraria 
+  Gianni crede che la propria moglie sia malata ≠ Che la propria moglie sia malata Gianni lo crede */
+riferisci_proprio(SnX, nessuno) :-
+   f_struttura(SnX, sogg/poss, Nodo),
+   nodo(N1)::sogg/_::nodo(Nodo),
+   nodo(NN)::sogg/prop::nodo(N1),
+   nodo(NN)::sogg/prop::modo::cong,
+   nodo(NN)::sogg/prop::tempo::pres/semp,
+   !.
+
+/*
+ verbi psicologici 
+ex: la propria salute preoccupa ognuno
+*/
+riferisci_proprio(SnX, Ante/N):-
+  f_struttura(SnX, sogg/poss, Nodo),   
+  nodo(N1)::sogg/tema_emot::nodo(Nodo),
+  nodo(N1)::ogg/esperiente::indice::Ante,
+  nodo(N1)::ogg/esperiente::tab_ref::TabRef,
+  quantificato(Ante),
+  poss_ante_rifl(SnX, Ante, TabRef),
+%  write(bene),nl,
+  !.    
+
+/* 
+l'antecedente e` il soggetto della frase minima 
+*/
+
+riferisci_proprio(SnX, Ante/N):-
+  nodo(Nodo)::indice::SnX,
+  nodo(Nodo)::cat::Tratti,
+  f_comanda(Ante,F_ante,SnX,N,N_ante),
+  (N=0; 0<N, F_Ante=sogg/_; 1<N),
+  nodo(N_ante)::F_ante::indice::Ante,
+  nodo(N_ante)::F_ante::cat::Cat,
+  tratti(Cat,Tratti),
+  nodo(N_ante)::F_ante::tab_ref::Lista,  
+  poss_ante_rifl(SnX,Ante,Lista),
+  !.    
+
+/* l'antecedente si trova fuori dalla frase minima e non e' necessariamente un soggetto */
+
+riferisci_proprio(Ind, Ante) :-
+   riferisci_esterno(Ind, Ante).
+
+/******************
+riferisci_riflessivo_corto(+Indice, -Ante/-Livello)
+== RIFLESSIVO CORTO (SE STESSO e SI) se nella f_struttura in cui è contenuto trova un soggetto questo è obbligatoriamente l'antecedente, altrimenti si sale nella struttura superiore e l'antecedente non deve piu' essere  necessariamente un soggetto (-SUBJ)
+[-ref,-pro,+ana,+me,-subj] OK
+*********************/
+
+riferisci_riflessivo_corto(Ind, Ante/0):-
+   (nodo(_)::mods::adj/Rol::indice::Ind;
+    nodo(N)::adjs::adj/Rol::F/Rol::indice::Ind;
+    nodo(N)::adjs::adj::Adj/Rol::indice::Ind),
+   nodo(N)::F1/R1::indice::Ante,
+   sisters_of(indice:Ind, [gen:Gen, num:Num, cat:Tratti]),
+   sisters_of(indice:Ante,
+      [cat:TrattiAnte, gen:GenAnte, 
+      num:NumAnte, tab_ref:TabRef]),
+   tratti(TrattiAnte, Tratti), %EP 93.06.09
+%   tratti(TrattiAnte, Tratti),
+   match(Gen, GenAnte),
+   match(Num, NumAnte),
+   poss_ante_rifl(Ind, Ante, TabRef).
+
+riferisci_riflessivo_corto(Ind, Ante/0):-
+   sisters_of(indice:Ind, [gen:Gen, num:Num, cat:Tratti]),
+   f_comanda(Ante, F_ante, Ind, 0, N_ante),
+   legal_ante_of(riflessivo_corto, 0, F_ante),
+   sisters_of(indice:Ante,
+      [cat:TrattiAnte, gen:GenAnte, 
+      num:NumAnte, tab_ref:TabRef]),
+   tratti(TrattiAnte, Tratti), %EP 93.06.09
+%   tratti(TrattiAnte, Tratti), soluzioni ridondanti
+   match(Gen, GenAnte),
+   match(Num, NumAnte),
+   poss_ante_rifl(Ind, Ante, TabRef).
+
+riferisci_riflessivo_corto(Ind, Ante):-
+   gr(germanic),
+   riferisci_esterno(Ind, Ante).
+
+/**********************
+RIFLESSIVO LUNGO (SE') l'antecedente f-comanda e deve essere un soggetto sia che si trovi nella frase minima o sopra (+SUBJ) con accordo dei tratti semantici 
+[-ref,+pro,+ana,+me,+subj]
+***********************/
+
+riferisci_riflessivo_lungo(Ind, Ante/Liv) :-
+  trova_tratti(Ind, Tratti),
+  f_comanda(Ante, F_ante, Ind, Liv, N_ante),
+  legal_ante_of(riflessivo_lungo, Liv, F_ante),
+  trova_tratti(Ante, Cat),
+  tratti(Cat,Tratti),
+  trova_tabref(Ante, TabRef),
+  poss_ante_rifl(Ind,Ante,TabRef),
+  (
+  Liv=1 
+  ->
+  non_riferito_in(Ind,Ante)
+  ;
+  true
+  ).
+
+riferisci_riflessivo_lungo(Ind, Ante) :-
+   riferisci_esterno(Ind, Ante).
+
+/*************************
+ PRONOME LIBERO O POSSESSIVO: il possessivo viene riferito dalla prima regola in cui ho posto funz=soggetto e ruolo=possessore (non l'ho inglobata nelle altre regole perche' il comportamento e' il medesimo ma le concordanze sono molto diverse: concorda solo i tratti semantici).
+Il pronome libero se non e' soggetto deve cercare nella frase che sovrasta la frase minima nella quale si trova; nelle regole vecchie: se e' soggetto deve escludere dalla ricerca anche i nodi definiti nella frase che sovrasta immediatamente quella dove e' inserito ed in una eventuale subordinata della frase minima.  Concorda genere numero e tratti semantici 
+[+ref,+pro,-ana,+me]
+*****************************/
+riferisci_libero_poss(Ind, Ante) :-
+   f_struttura(Ind, sogg/Role, _),
+      nonvar(Role),
+   \+ nogen_member(Role, [tema_bound]),
+   sisters_of(indice:Ind, [gen:Gen, num:Num, pred:Pred]), 
+   isa_proposs(Pred, Num),
+   !,
+   riferisci_possessivo(Ind, Gen, Num, Pred, Ante).
+
+riferisci_libero_poss(Ind, Ante) :-
+   f_struttura(Ind, ogg/Role, _),
+   sisters_of(indice:Ind, [gen:Gen, num:Num, pred:Pred]), 
+   isa_proposs(Pred, Num),
+   !,
+   riferisci_possessivo(Ind, Gen, Num, Pred, Ante).
+
+riferisci_libero_poss(Ind, Ante/Liv) :-
+   sisters_of(indice:Ind, 
+      [cat:Tratti, gen:Gen, num:Num]),
+   !,
+   riferisci_libero(Ind, Gen, Num, Ante/Liv),
+   legal_ante(Ind, Tratti, Gen, Num, Ante).
+
+
+/* possessivo */
+riferisci_possessivo(Ind, Gen, Num, Pred, Ante/N):-
+  findall_fc(Ind, Fcs),
+  riferisci_poss(Fcs, Ind, Gen, Num, Ante/N,  Cutting),
+  (
+  Cutting=cut,
+  !
+  ;
+  true
+  ).
+
+riferisci_possessivo(Ind, _, _, _, Ante) :-
+   riferisci_esterno(Ind, Ante).
+
+
+
+riferisci_poss(Fcs, Ind, Gen, Num, Ante/Liv, cut)
+  :-
+  on(Ante-FcFun/FcRole-Liv-N_ante, Fcs),
+  FcRole \= poss,
+  FcRole \= temporale,
+  FcRole \= prop,
+  FcRole \= result,
+  0<Liv,
+  (gr(italiano),not(quantificato(Ante))
+   ;
+   gr(english)),
+   (
+    nodo(N)::indice::Ante,
+    nodo(N)::pred::pPro,
+    nodo(N)::tab_ref::TabRef
+   ->
+   true
+   ;
+   sisters_of(indice:Ante, 
+      [cat:CatAnte, gen:GenAnte, num:NumAnte, tab_ref:TabRef]),
+   match_tratti_poss(Pred, Gen, Num, GenAnte, NumAnte, CatAnte)
+   ),
+   nodo(N)::indice::Ante,
+   notnodposs(N),
+   poss_ante(Ind, Ante, TabRef),
+  pos_legal_ante(Ind, Tratti, _, _, Ante/Liv).
+
+/* 
+pronome libero con apposizione subito dopo
+ES.: lui, Avveduti, ... 
+*/
+riferisci_libero(Ind, _, _, Ante/0):-
+  nodo(Nodo)::indice::Ind,
+  nodo(Nodo)::adjs::nadj/tema::indice::Ante.
+
+
+riferisci_libero(Ind, Gen, Num, Ante/Liv):-
+  findall_fc(Ind, Fcs),
+  riferisci_lib(Fcs, Ind, Gen, Num, Ante/Liv,  Cutting),
+  (
+  Cutting=cut
+  ;
+  true
+  ).
+
+riferisci_libero(Ind, Gen, Num, Ante/Liv):-
+   riferisci_esterno(Ind, Ante).
+
+/* 
+pronome soggetto non possessivo, cerca l'antecedente in un livello > 1, e controlla i tratti*/
+riferisci_lib(Fcs, Ind, Gen, Num, Ante/N,  cut):-
+  notnodcoordf(Ind),
+  on(Ante-FcFun/FcRole-Liv-N_ante, Fcs),
+  1<Liv, 
+  \+ adjpost(Ante,FcFun/FcRole,Liv),
+  notnodpat(N_ante, Ind).                         
+
+riferisci_lib(Fcs, Ind, Gen, Num, Ante/N,  cut):-
+   riferisci_esterno(Ind, Ante).
+
+adjpost(Ante,FcFun/FcRole,Liv):-
+   3<Liv,
+   nodo(n1)::adj::sub/prop::FcFun/FcRole::indice::Ante.
+
+isa_proposs(Pred, Num) :-
+   gr(romance),
+   on(Pred-Num, [suo-sing, suo-plur, loro-sing, loro-_, loro-plur, mio-sing, tuo-sing, nostro-plur, vostro-plur]).
+
+isa_proposs(Pred, Num) :-
+   gr(germanic), 
+   on(Pred-Num, [her-sing, its-sing, his-sing, their-plur]).
+
+
+sogg_non_possessivo(Ind) :-
+  nodo(Nodo)::indice::Ind,
+  f_struttura(Ind, sogg/Role,_),
+  Role \= poss.
+
+/***********************
+ riferisci i deittici - questo, questi 
+[+ref,+pro,-ana,+class]
+************************/
+
+riferisci_deittico(Ind, Ante/N):-
+  nodo(Nodo)::indice::Ind,
+  f_struttura(Ind,F/R,_),
+  F = nadj,
+  !.
+
+riferisci_deittico(Ind, Ante/N):-
+  nodo(Nodo)::indice::Ind,
+  f_struttura(Ind,sub/compar,_),
+  nodo(N1)::sogg/_::indice::Ante,
+  !.
+
+riferisci_deittico(Ind, Ante/N):-
+  nodo(Nodo)::indice::Ind,
+  f_struttura(Ind,F/R,_),
+  F = sogg,
+  nodo(Nodo)::cat::Tratti,
+  nodo(Nodo)::gen::Genere,
+  nodo(Nodo)::num::Numero,
+  f_comanda(Ante,F_ante,Ind,N,FcNode), 1<N,
+  notnodpat(FcNode, Ind),
+  nodo(FcNode)::F_ante::cat::Cat,    
+  tratti(Cat,Tratti),
+  nodo(FcNode)::F_ante::gen::Gen_Ante,
+  nodo(FcNode)::F_ante::num::Num_Ante,
+  Genere = Gen_Ante,
+  Numero = Num_Ante,
+  nodo(FcNode)::F_ante::tab_ref::Lista,  
+  poss_ante(Ind,Ante,Lista),
+  non_riferito_in(Ind,Ante),
+  !.
+
+riferisci_deittico(Ind, Ante) :-
+   riferisci_esterno(Ind, Ante).
+
+/***********************
+ PRO GRANDE - non so se il fatto che sia anche +ana significa che
+l'antecedente puo` essere nella frase minima (nelle vecchie regole comunque cercava fuori dalla frase). L'antecedente deve concordare i tratti semantici e se non e' disponibile un +ref puo` essere un +pro. Essendo un soggetto deve cercare fuori per l'f_comando.  +ana significa che puo' essere arbitrario e che se esiste un antecedente nella frase deve assumere quello e non puo'averne uno esterno.Il PRO puo' essere legato solo dal soggetto o dall'oggetto e non ad esempio dall'ogg2. Tutti quelli segnati +ana possono assumere solo un antecedente nella lista, il primo, diversamente dai clititi che sono +ana ma anche +ref. Un +ref,-ana non puo'mai essere +ARBITRARIO  
+[+ref,+pro,+ana,-me] OK
+***********************/
+
+/* Pro controllato */
+riferisci_Pro_grande(Ind, Nodo, Ante/0):-
+  nodo(Nodo)::controllore::Ante,
+  Ante \= indefinito,
+  !.
+
+
+riferisci_Pro_grande(Ind, IndexNode, Ante):-
+  nodo(IndexNode)::cat::Tratti,
+  findall_fc(Ind, Fcs),
+  riferisci_Pro_grande1(Fcs, Ind, Tratti, Ante, Cutting),
+  (
+  Cutting=cut,
+  !
+  ;
+  true
+  ).
+
+riferisci_Pro_grande(Ind, Nodo, Ante/0):-
+   riferisci_esterno(Ind, Ante), !.
+
+
+
+
+/* Pro in un costrutto principale + sub */
+riferisci_Pro_grande1(Fcs, Ind, Tratti, Ante/FcLiv, no_cut)
+  :-
+  on(FcInd-_-FcLiv-FcNode, Fcs),
+  0<FcLiv,
+  \+ contiene(FcInd, Ind),
+  nodo(FcNode)::_::nodo(N2),
+  nodo(N2)::F/R::indice::Ante,
+  nodo(N2)::F/R::cat::Cat,    
+  tratti(Cat, Tratti),
+  notnodpat(N2, Ind),
+  \+ in_catena_semp(Ind, Ante),
+  nodo(N2)::F/R::tab_ref::Lista,  
+  (
+  poss_ante(Ind, Ante, Lista)
+  -> true
+  ;
+  \+ nogen_member(+ref, Lista),
+  member(+pro, Lista)
+  ),
+  !.
+
+/* caso generale: usa f_comando e non prende gli aggiunti */
+riferisci_Pro_grande1(Fcs, Ind, Tratti, FcInd/Liv, cut)
+  :-
+  on(FcInd-sogg/FcRole-Liv-_, Fcs),
+  FcRole \= poss,
+  0<Liv,
+  legal_ante(Ind, Tratti, _, _, FcInd).
+
+riferisci_Pro_grande1(Fcs, Ind, Tratti, FcInd/Liv, cut)
+  :-
+  on(FcInd-FcFunz/FcRole-Liv-_, Fcs),
+%  (FcFunz=ogg;FcFunz=ogg2;FcFunz=obl),
+  FcRole \= poss,
+  0<Liv,
+  legal_ante(Ind, Tratti, _, _, FcInd).
+
+riferisci_Pro_grande1(_,Ind, _, Ante, cut) :-
+   riferisci_esterno(Ind, Ante), !.
+
+/******************
+ PRO PICCOLO - se non e' controllato, e quindi gia' risolto, il suo antecedente deve essere fuori dalla frase minima,  deve concordare numero e tratti semantici, il genere, ove esso sia disponibile (verbi composti con participio o copulative), e deve essere +ref 
+[+ref,+pro,-ana,-me] 
+******************/
+
+/* pro controllato */
+riferisci_pro_piccolo(Ind, Nodo, Ante/0):-
+  nodo(Nodo)::controllore::Ante,
+  Ante \= indefinito,
+  !.
+
+riferisci_pro_piccolo(Ind, Nodo, Ante/N):-
+  nodo(Nodo)::pers::2,
+  nodo(N1)::Fun/tema::indice::Ante,
+  on(Fun, [nadj, ncomp]),
+  !.
+
+
+/* i suoi sono i più grandi */
+riferisci_pro_piccolo(Ind, Nodo, Ante/N):-
+  f_struttura(Ind, ncomp/prop, N1),
+  nodo(N1)::sogg/Tema::indice::Ante,
+  !.
+
+riferisci_pro_piccolo(Ind, Nodo, Ante/N):-
+  notnodmain(Ind),
+  notnodcoordf(Ind),
+  recupera_tratti(Nodo, Tratti, Gen, Num),
+  nodo(n1)::adjs::adj::sub/prop::coord::nodo(Nod),
+  f_struttura(Ante,F_ante,Nod),
+  legal_ante(Ind, Tratti, Gen, Num, Ante),
+  (F_ante \= adjs/_
+  -> true
+  ;  !).
+
+riferisci_pro_piccolo(Ind, Nodo, Ante/N):-
+  notnodcoordf(Ind),
+  recupera_tratti(Nodo, Tratti, Gen, Num),
+  nodo(n1)::fcomp/_::nodo(Nod),
+  f_struttura(Ante,F_ante,n1),
+  legal_ante(Ind, Tratti, Gen, Num, Ante),
+  (F_ante \= adjs/_
+  -> true
+  ;  !).
+
+riferisci_pro_piccolo(Ind, Nodo, Ante/N):-
+  notnodcoordf(Ind),
+  recupera_tratti(Nodo, Tratti, Gen, Num),
+  nodo(n1)::adj::sub/prop::nodo(Nod),
+  f_struttura(Ante,F_ante,Nod),
+  legal_ante(Ind, Tratti, Gen, Num, Ante),
+  (F_ante \= adjs/_
+  -> true
+  ;  !).
+
+riferisci_pro_piccolo(Ind, Nodo, Ante/N):-
+  notnodcoordf(Ind),
+  recupera_tratti(Nodo, Tratti, Gen, Num),
+  nodo(n1)::adj::sub/prop::sogg/R::nodo(Nodo),
+  nodo(n1)::main/prop::nodo(Nod),
+  f_struttura(Ante,F_ante,Nod),
+  legal_ante(Ind, Tratti, Gen, Num, Ante),
+  (F_ante \= adjs/_
+  -> true
+  ;  !).
+
+riferisci_pro_piccolo(Ind, Nodo, Ante/N):-
+  notnodcoordf(Ind),
+  recupera_tratti(Nodo, Tratti, Gen, Num),
+  nodo(n1)::adjs::adj::sub/prop::nodo(Nod),
+  f_struttura(Ante,F_ante,n1),
+  legal_ante(Ind, Tratti, Gen, Num, Ante),
+  (F_ante \= adjs/_
+  -> true
+  ;  !).
+
+riferisci_pro_piccolo(Ind, Nodo, Ante/N):-
+   nodo(n1)::dir_speech/prop::nodo(N2),
+   nodo(N2)::sogg/_::indice::Ante,
+   recupera_tratti(Nodo, Tratti, Gen, Num),
+   non_quantif(Ante),
+   legal_ante(Ind, Tratti, Gen, Num, Ante).
+
+/* pro piccolo in frasi coordinate */
+
+riferisci_pro_piccolo(Ind, Nodo, Ante/2):-
+  nodo(N)::main/prop::coord::adjs::adj/modal::pred::insieme,
+  nodo(N)::main/prop::coord::nodo(N2),
+  nodo(N2)::F1/R1::indice::Ante1,
+  nodo(NN)::adj::sub/prop::nodo(N3),
+  N3\=N2, 
+  nodo(N3)::F/R::indice::Ante2,
+  Ante2\=Ind,
+  legal_ante1(F1/R1, Ind, Tratti1, _, _, Ante1), 
+  legal_ante1(F/R, Ind, Tratti, _, _, Ante2), 
+  Ante=[Ante1, Ante2],
+  !.
+
+riferisci_pro_piccolo(Ind, Nodo, Ante):-
+  nodo(n1)::main/prop::coord::F/R::indice::Ind,
+  nodo(Nodo)::cat::Tratti,
+  (gr(romance),
+  nodo(Nodo)::num::Num,
+  trova_genere(Nodo,Gen);
+  gr(english)),
+  findall_fc(Ind, Fcs),
+  riferisci_pro_piccolo1(Fcs,
+      Ind, Num,Tratti,Gen,
+      NAnte,F_ante,N,N_ante, Ante, Cutting),
+  Ante=Ant/_,
+  not_antecedente(Ant,Ind),
+  (
+  Cutting=cut,
+  !
+  ;
+  true
+  ).
+
+riferisci_pro_piccolo(Ind, Nodo, Ante):-
+  nodo(n1)::adj::sub/prop::coord::F/R::indice::Ind,
+  nodo(Nodo)::cat::Tratti,
+  (gr(romance),
+  nodo(Nodo)::num::Num,
+  trova_genere(Nodo,Gen);
+  gr(english)),
+  findall_fc(Ind, Fcs),
+  riferisci_pro_piccolo1(Fcs,
+      Ind, Num,Tratti,Gen,
+      NAnte,F_ante,N,N_ante, Ante, Cutting),
+  Ante=Ant/_,
+  not_antecedente(Ant,Ind),
+  (
+  Cutting=cut,
+  !
+  ;
+  true
+  ).
+
+riferisci_pro_piccolo(Ind, Nodo, Ante):-
+   notnodo1(Ind),
+  findall_fc(Ind, Fcs),
+  recupera_tratti(Nodo, Tratti, Gen, Num),
+  riferisci_pro_piccolo1(Fcs,
+      Ind, Num,Tratti,Gen,
+      NAnte,F_ante,N,N_ante, Ante, Cutting),
+  Ante=Ant/_,
+  not_antecedente(Ant,Ind),
+  (
+  Cutting=cut,
+  !
+  ;
+  true
+  ).
+
+riferisci_pro_piccolo(Ind, Nodo, Ante):-
+   riferisci_esterno(Ind, Ante), !.
+
+
+non_referential(N, Ind, Ant):-
+  f_struttura(Ind, sogg/Tema, N1),
+  nodo(N)::ncomp/prop::indice::Ant,
+  !.
+
+recupera_tratti(Nodo, Tratti, Gen, Num):-
+  nodo(Nodo)::cat::Tratti,
+  trova_genere(Nodo,Gen),
+  nodo(Nodo)::num::Num,
+  !.
+
+notnodo1(Sn1):-
+  findall(F,
+      nodo(n1)::F/R::indice::Sn1,Inds),
+   Inds = [],!.
+
+riferisci_pro_piccolo1([],Ind, _, _, _, _, _, _, _, Ante, cut)
+   :- 
+   riferisci_esterno(Ind, Ante), !.
+
+riferisci_pro_piccolo1(Fcs,
+   Ind, Numero,Tratti,_,
+   _,F_ante,N,N_ante, Ante/N, cut)
+   :-
+   on(NAnte-F_ante-N-N_ante, Fcs),
+   0 < N,
+   F_ante= main/prop,
+   nodo(N_ante)::main/prop::coord::vcomp/prop::nodo(N2),
+   nodo(N2)::F/R::indice::Ante,    
+   legal_ante1(F/R, Ind, Tratti, _, Numero, Ante), 
+   !.
+
+/*  pro in una frase coordinata */
+
+riferisci_pro_piccolo1(Fcs,
+   Ind, Numero,Tratti,_,
+   _,F_ante,N,N_ante, Ante/N, cut)
+   :-
+   on(NAnte-F_ante-N-N_ante, Fcs),
+   0<N,
+   F_ante= ncomp/prop,
+   (
+   nodo(N_ante)::main/prop::coord::nodo(N2)
+   ;
+   nodo(N_ante)::main/prop::main/prop::coord::nodo(N2)
+   ),
+   nodo(N2)::F/R::indice::Ante,
+   notnodpat(N2, Ind),
+   legal_ante1(F/R, Ind, Tratti, _, Numero, Ante), 
+   !.
+
+% pro in una frase coordinata 
+riferisci_pro_piccolo1(Fcs,
+   Ind, Numero,Tratti,_,
+   _,F_ante,N,N_ante, Ante/N, cut)
+   :-
+   on(NAnte-F_ante-N-N_ante, Fcs),
+   0<N,
+   nodo(N_ante)::sub/prop::coord::nodo(N2),
+   nodo(N2)::F/R::indice::Ante,
+   notnodpat(N2, Ind),
+   legal_ante1(F/R, Ind, Tratti, _, Numero, Ante), 
+   !.
+
+% pro in un costrutto principale + sub 
+
+riferisci_pro_piccolo1(Fcs,
+   Ind, Numero,Tratti,_,
+   _,F_ante,N,N_ante, Ante/N, cut)
+   :-
+   on(NAnte-F_ante-N-N_ante, Fcs),
+   0<N,
+   \+ contiene(NAnte,Ind),
+   nodo(N_ante)::F_sup::nodo(N2),
+   nodo(N2)::F/R::indice::Ante,    
+   notnodpat(N2, Ind),
+   legal_ante1(F/R, Ind, Tratti, _, Numero, Ante), 
+   !.
+
+
+/* caso generale: usa f_comando e non prende gli aggiunti */
+
+riferisci_pro_piccolo1(Fcs,
+   Ind, Numero,Tratti,_,
+   _,F_ante,N,N_ante, Ante/N, Cut)
+   :-
+   on(Ante-F_ante-N-N_ante, Fcs),
+   0<N,
+   legal_ante1(F_ante,Ind, Tratti, _, Numero, Ante), 
+   (\+ F_ante = adjs/_,
+   Cut=no_cut
+   ;
+   !,
+   Cut=cut).
+
+riferisci_pro_piccolo1(_,Ind, _, _, _, _, _, _, _, Ante, cut):- 
+   riferisci_esterno(Ind, Ante).
+
+node_of_predicative_modifier(Node, Fun, PredicNode) :-
+   nodo(Node)::Fun::mods::mod/predic::nodo(PredicNode).
+
+node_of_predicative_modifier(Node, Fun, PredicNode) :-
+   nodo(Node)::Fun::adjs::adj/predic_avv::nodo(PredicNode).
+
+node_of_predicative_modifier(Node, Fun, PredicNode) :-
+   nodo(Node)::Fun::adjs::adj/predic::nodo(PredicNode).
+
+
+findall_fc(Ind, Fcs) 
+   :-
+   !,
+   abolish(lista_fcs/1),
+   bagof(Liv-Ante-F_ante-N_ante,
+         f_comanda(Ante,F_ante,Ind,Liv,N_ante),
+           Fc),
+   recompose(Ind, Fc, Fcc),
+   erase_double(Ind, Fcc, Fc1),
+   copy_list(Fc1, Fcs), !.
+%   writenl(Fcs), nl, !.
+%   findall(F, lista_fcs(F), Fcs). 
+%   assert(lista_fcs(Fcs)).
+
+copy_list([],[]):-!.
+copy_list([Liv-Ante-F_ante-N_ante|L1], L3)
+   :-
+   asserta(lista_fcs(Ante-F_ante-Liv-N_ante)),
+   copy_list(L1, L2),
+   append(L2,[Ante-F_ante-Liv-N_ante], L3).
+
+not_cl_fclist(F_ante):-
+   findall(F_ante, clean_fclist(F_ante), All),
+   All=[],!.
+
+clean_fclist(F_ante) :-
+    on(F_ante, [mod_a, mod_d, mod_r, adjs, topic, focus, sub/compar, adj/gerund, adj/predic_avv, adj/temporale, sogg/propint, ogg/nil, sogg/nil]), !.
+
+cl_fclist(F_ante) :-
+    on(F_ante, [mod_a, mod_d, mod_r, adjs, topic, focus, coord, pcomp/prop, acomp/prop, vcomp/_, fcomp/_, sogg/prop, _/predic, mods, sub/_, main/prop, adj/partic, adj/gerund, adj/predic_avv, adj/temporale, sogg/propint, ogg/nil, sogg/nil]), !.
+
+erase_doubs(Ind, Liv-Ante-F_ante-N_ante, [], Fcc):- !.
+
+erase_doubs(Ind, Liv-Ante-F_ante-N_ante, Fcs, Fc1):-
+   on(_-Ante-F_ante-N_ante, Fcs),
+   remove(_-Ante-F_ante-N_ante, Fcs, Fcc),
+   erase_doubs(Ind, Liv-Ante-F_ante-N_ante, Fcc, Fc1).
+
+erase_doubs(Ind, Liv-Ante-F_ante-N_ante, Fcs, Fcs):- !.
+
+erase_double(Ind, Fcs, Fcc):-
+   on(Liv-Ind-_-_, Fcs),
+   remove(Liv-Ind-_-_, Fcs, Fcc), !.
+
+erase_double(Ind, Fcc, Fcc):- !.
+
+recompose(Ind, [], LL):-!.
+recompose(Ind, [Liv-Ante-F_ante-N_ante|Fcs],L2) 
+   :-
+   (not_cl_fclist(F_ante),
+    recompose(Ind, [Liv-Ante-F_ante-N_ante|Fcs], [], L2)
+    ;
+    recompose(Ind, Fcs, [], L2)).
+
+recompose(Ind, [], LL, LL):-!.
+recompose(Ind, [Liv-Ante-F_ante-N_ante|Fcs], L1, L2) 
+   :-
+   (not_cl_fclist(F_ante),
+    erase_doubs(Ind, Liv-Ante-F_ante-N_ante, Fcs, Fcc),
+    append([Liv-Ante-F_ante-N_ante], L1, L3),
+    recompose(Ind, Fcc, L3, L2)
+     ;
+    recompose(Ind, Fcs, L1, L2)).
+
+findall_sl(Ind, Fcs) :-
+   findall(Ante-F_ante-Liv-N_ante,
+           f_struttura(Ante,F_ante,N_ante),
+           Fcs).
+
+erase_low_lev(Ind, Node, [], []):-!.
+
+erase_low_lev(Ind, Node, [Ind-F_ante-Liv-Node|Rest], Fcout):-
+   erase_low_lev(Ind, Node, Rest, Fcout),!.
+
+erase_low_lev(Ind, Node, [Ante-F_ante-Liv-N|Rest], Fcout):-
+   cont_fstrct(Ind,Ante),
+   erase_low_lev(Ind, Node, Rest, Fcout).
+
+erase_low_lev(Ind, Node, [Ante-F_ante-Liv-N|Rest], [Ante-F_ante-Liv-N|Fcout])
+   :-
+   \+ cont_fstrct(Ind,Ante),
+   erase_low_lev(Ind, Node, Rest, Fcout).
+
+legal_ante_of(riflessivo_corto, 0, ogg2/_).
+legal_ante_of(riflessivo_corto, 0, sogg/_).
+legal_ante_of(riflessivo_corto, 1, _).
+legal_ante_of(riflessivo_corto, 0, foc/_).
+
+legal_ante_of(riflessivo_lungo, 0, ogg2/_).
+legal_ante_of(riflessivo_lungo, 0, ogg/_).
+legal_ante_of(riflessivo_lungo, 0, sogg/_).
+legal_ante_of(riflessivo_lungo, 1, sogg/_).
+legal_ante_of(riflessivo_lungo, 2, sogg/_).
+
+/*******
+L'antecedente di un pronome di seconda persona contenuto in una yes/no_question non può essere il soggetto della principale da cui la domanda dipende 
+*******/
+legal_ante_of(second_person_pro, NodeAnte, Ind) :-
+   sisters_of(indice:Ind, [pred:Pro]),
+   pr(clitico,_,Pro,2,_,_,_),
+   !,
+   notnodfcomp(NodeAnte).
+
+legal_ante_of(second_person_pro, _, _).
+
+debug_pronomi(off).
+log_pronome(Pro) :-
+   debug_pronomi(on),
+   write('STO ESAMINANDO'),
+   tab(3),
+   write(Pro),
+   nl,
+   !.
+
+log_pronome(_).
+
+
+
+
+/* TRATTI/2 - verifica la compatibilita` dei tratti semantici tra riferimento
+              ed antecedente  */
+
+tratti(Tratto,_) :-
+   nonvar(Tratto), Tratto=nil,
+   !.
+tratti(_,Tratto) :-
+   nonvar(Tratto), Tratto=nil,
+   !.
+tratti([],_) :-
+   !.
+tratti(_,[]) :-
+   !.
+tratti(Tratto, ListTratti):-
+   nonvar(Tratto), Tratto\=[],
+   nonvar(ListTratti), ListTratti\=[],
+   interp_cat(Tratto, ListTratti).
+
+tratti([Tratto], ListTratti):-
+   !,
+   nonvar(Tratto), Tratto\=[],
+   nonvar(ListTratti), ListTratti\=[],
+   nogen_member(Tratto, ListTratti).
+tratti([Primo | Altri], ListTratti):-
+   nonvar(Primo), Primo\=[],
+   nonvar(ListTratti), ListTratti\=[],
+  nogen_member(Primo, ListTratti),
+  !.
+tratti([_ | Altri], ListTratti):-
+   nonvar(Altri), Altri\=[],
+   nonvar(ListTratti), ListTratti\=[],
+   tratti(Altri, ListTratti).
+
+
+match_tratti_poss(Pred, Gen, Num, GenAnte, NumAnte, CatAnte) 
+   :-
+   match_cat_poss(CatAnte,Gen),
+   match_gen_num_poss(Pred, Gen, Num, GenAnte, NumAnte).
+
+match_gen_num_poss(suo, Gen, _, _, NumAnte) 
+   :-
+   gr(romance),
+   match(sing, NumAnte).
+
+match_gen_num_poss(loro, Gen, _, _, NumAnte) 
+   :-
+   gr(romance),
+   match(plur, NumAnte).
+
+
+match_gen_num_poss(_, Gen, Num, GenAnte, NumAnte) :-
+   gr(germanic),
+   match(Gen, GenAnte),
+   match(Num, NumAnte).
+
+match_gen_num_poss(_, Gen, Num, [], NumAnte) :-
+   gr(english),
+   Gen\=neu,
+   match(Num, NumAnte).
+
+match_cat_poss(CatAnte, Gen):-
+   var(CatAnte),
+   !.
+
+match_cat_poss(CatAnte, Gen):-
+   member(animato, CatAnte),
+   \+ nogen_member(oggetto, CatAnte),
+   !.
+
+match_cat_poss(CatAnte, neu):-
+   !,
+   \+ nogen_member(umano,CatAnte).
+
+match_cat_poss(CatAnte, Gen):-
+   (var(Gen); Gen\=neu),
+   member(umano,CatAnte),!.
+
+match_cat_poss(CatAnte, Gen):-
+   \+ intersect(CatAnte,[misura,istituzione,oggetto,stato,informa,luogo,evento,attivita,legale,astratto]),
+   !.
+
+match_num(Num, NumAnte, _) :-
+   match(Num, NumAnte),
+   !.
+
+match_num(plur, _, Ante) :-
+   sisters_of(Ante, [interpretazione:quantificata]).
+   
+
+match(nil,_) :-
+   !.
+match(_,nil) :-
+   !.
+match(X,X).
+
+/***********
+••
+Trovare gli sn quantificati  (quant nello spec)
+Per ognuno
+   -aggiungere un q_marker a livello del pred nominale
+   -salire nella f_struttura segnando il primo qop possibile (la prima q-barrier)
+
+Trovare gli sn indefiniti. (-def nello spec)
+Per ognuno
+   -aggiungere un q_marker a livello del pred nominale
+   -salire nella f_struttura segnando tutti i qop possibili
+•
+:- quantifiers_raising
+***********/
+quantifiers_raising(QDescs) :-
+   gen_sym(q, 0),
+   init_gen_sym(n, 1000), % provvisorio
+   sn_quantificati(QDescs),
+   sort(QDescs, Qdescs),
+   add_qmarks(Qdescs, NewQDescs),
+   raise_quantifiers(NewQDescs),
+   sn_indefiniti(IndefDescs),
+   sort(IndefDescs, Indefdescs),
+   add_qmarks(Indefdescs, NewIndefDescs),
+   raise_indefinites(NewIndefDescs),
+   solve_same_level_scope(QDescs),
+   mark_quantified_interpretation,!.
+  
+/***********
+• 
+raise_indefinites(+quantDescriptions). 
+raise_indefinite(+fromNode, +type, +qmark). 
+•
+Sale nella F-struttura marcando il primo qop possibile
+•
+***********/
+raise_quantifiers([q(_, _, Nodo, Type, Qmark) | QDescs]) :-
+   raise_quantifier(Nodo, Type, Qmark),
+   !,
+   raise_quantifiers(QDescs).
+raise_quantifiers([]).
+   
+raise_quantifier(Nodo, Type, Qmark) :-
+   nodo(NodoTo)::_::nodo(Nodo),
+   (
+   q_barrier(Type, NodoTo)
+   ->
+   add_qop(NodoTo, Qmark, Type)
+   ;
+   raise_quantifier(NodoTo, Type, Qmark)
+   ).
+   
+/***********
+• 
+raise_indefinites(+quantDescriptions). 
+raise_indefinite(+fromNode, +type, +qmark). 
+•
+Sale nella F-struttura marcando tutti i qop possibili
+•
+***********/
+raise_indefinites([q(_, _, Nodo, Type, Qmark) | QDescs]) :-
+   raise_indefinite(Nodo, Type, Qmark),
+   !,
+   raise_indefinites(QDescs).
+raise_indefinites([]).
+   
+raise_indefinite(n1, _, _) :-
+   !.
+raise_indefinite(Nodo, Type, Qmark) :-
+   nodo(UpNodo)::_::nodo(Nodo),
+   mark_qop(UpNodo, Type, Qmark).
+
+mark_qop(Nodo, Type, Qmark) :-
+   opaque_q_barrier(Type, Nodo),
+   !,
+   add_qop(Nodo, Qmark, Type),
+   raise_indefinite(Nodo, Type, Qmark).
+
+mark_qop(Nodo, Type, Qmark) :-
+   q_barrier(Type, Nodo),
+   !,
+   add_qop(Nodo, Qmark, Type).
+
+mark_qop(Nodo, Type, Qmark) :-
+   raise_indefinite(Nodo, Type, Qmark).
+
+/**************
+• q_barrier(+quantType, +fstrNode). ••
+**************/
+/* modo indicativo */
+q_barrier(_, Nodo) :-
+   nodo(Nodo)::modo::ind.
+
+/* modo congiuntivo (-> prop intensionale):
+solo nessuno e niente possono salire */
+q_barrier(Type, Nodo) :-
+   nodo(Nodo)::modo::cong,
+   \+ on(Type, [nessuno, niente]).
+
+/* subordinata aggiunta infinitiva */
+q_barrier(_, Nodo) :-
+   nodo(Nodo)::modo::inf,
+   nodo(_)::adjs::adj::sub/prop::nodo(Nodo).
+
+/* gerundiva aggiunta */
+q_barrier(_, Nodo) :-
+   nodo(Nodo)::modo::ger,
+   nodo(_)::adjs::adj::nodo(Nodo).
+
+/* gerundiva anteposta */
+q_barrier(_, Nodo) :-
+   nodo(Nodo)::modo::ger,
+   nodo(_)::Funz/Role::nodo(Nodo).
+
+/* aggiunto comparativo */
+q_barrier(_, Nodo) :-
+   nodo(N1)::adjs::adj::nodo(Nodo),
+   nodo(N1)::adjs::adj::sub/compar::nodo(N).
+
+/* aggiunto ellittico */
+q_barrier(_, Nodo) :-
+   nodo(Nodo)::ip_ell/prop::F/R::nodo(N1).
+
+/**************
+• opaque_q_barrier(+quantType, +fstrNode). ••
+**************/
+/* infinito complemento di un verbo intensionale */
+opaque_q_barrier(indefinito, Nodo) :-
+   nodo(Nodo)::modo::inf,
+   nodo(_)::vcomp/propint::nodo(Nodo).
+
+
+
+/***********
+••
+Risolvere le ambiguità
+
+- ordinando qop allo stesso livello sulla base 
+   - della forza relativa 
+   - della funzione grammaticale
+     -se un indefinito ha una interpretazione arbitraria
+     ha scopo più ampio altrimenti no-
+
+- eliminando i qop doppi (da qop potenziale a qop effettivo)
+
+•
+?? solve_same_level_scope
+***********/
+solve_same_level_scope([]) :-!.
+
+solve_same_level_scope(G) :-
+   nodo(_)::qops::nodo(Nodo),
+   findall(Q, retract_qop(Nodo, Q), Qs),
+   quant_sort(Qs, SortQs),
+   convert_quant_desc(SortQs, QsList),
+   assert_Ks(Nodo, QsList),!.
+
+assert_Ks(Nodo, []):-!.
+assert_Ks(Nodo, [K|List]):-
+   rete(Rete),
+   w_foglia(Nodo, K, Rete),
+   assert_Ks(Nodo, List).
+
+retract_qop(Nodo, Q) :-
+   rete(Rete),
+   retract(arco(Nodo, Nodo1, qop, Rete)),
+   retract(foglia(Nodo1, Q, Rete)).   
+
+
+convert_quant_desc([q(QMark, _) | Qs], [QMark | QMarks]) :-
+   convert_quant_desc(Qs,  QMarks).
+convert_quant_desc([], []).
+
+quant_sort(Qs, Sorted) :-
+  quant_swap(Qs, Qs1),
+  !,
+  quant_sort(Qs1, Sorted).
+quant_sort(Sorted,Sorted).
+
+quant_swap([Q1, Q2 | Qs],[Q2, Q1 | Qs]) :-
+   weaker_quant(Q1, Q2),
+   !.
+quant_swap([Q | Qs],[Q | SortQs]) :-
+   quant_swap(Qs, SortQs).
+
+weaker_quant(q(QMark1, QType1), q(QMark2, QType2)) :-
+   classe(QType1, QStrength1),     
+   classe(QType2, QStrength2),     
+   QStrength2 < QStrength1.
+
+/********
+Assegna interpretazione quantificata agli sn indefiniti (vedi. definizione) che si trovano nello scope di un quantificatore
+********/
+mark_quantified_interpretation :-
+   sn_indefinito(_, _, Nodo, _),
+   nodo(Nodo)::qmark::QM,
+   nello_scope(QM, _),
+   rete(Rete),
+   w_ramo(Nodo, interpretazione, quantificata, Rete),
+   fail; true.
+
+nello_scope(QMark1 , QMark2) :-
+%   nodo(Nodo)::qops::QMs,
+   findallqops(J),
+   sort(J,QMs),
+   precede(QMs,  QMark2, QMark1).
+   
+nello_scope(QMark1 , QMark2) :-
+   nodo(Nodo)::qops::QMs,
+   on(QMark1, QMs),
+   nodo(UpNodo)::path(_)::nodo(Nodo),
+   nodo(UpNodo)::qops::QMsUp,
+   on(QMark2, QMsUp).
+   
+precede(List, El1 , El2) :-
+   append(_, [El1 | Rest], List),
+   on(El2, Rest).
+
+findallqops(J):-
+   nodo(Nodo)::qops::QM,
+   assert(qm(QM)),
+   fail;true,
+   findall(QM, qm(QM), J).
+
+/********
+Interazione tra quantificatori e negazione
+
+-un quantificatore negativo viene attaccato alla negazione se sono nello stesso ambito (non conosco nessuno)
+
+-In presenza di altri quantificatori vale quanto detto 
+degli indefiniti soggetti (senza interpretazione arbitraria).
+"molte frecce non hanno colpito il bersaglio" molti è fuori dello scope della neg.
+"molti studenti non sono stati promossi" molti è fuori dello scope della neg.
+"non sono stati promossi molti studenti" molti è nello scope della neg.
+********/
+
+/**********
+Se un indefinito è nello scope di un quantificatore distributivo (ciascuno) oppure universale (ogni, tutti, ecc.) il suo numero viene dummificato (:nil) per consentire il legamento (nella frase) di un pronome con numero sing o plur.
+
+Se l'indefinito è nello scope di un quant. e la frase ha interpretazione generica allora viene aggiunto l'attributo interpretazione:arbitraria. (ad es. ogni contadino che possiede un asino, lo picchia).
+
+Un indefinito soggetto focalizzato o topicalizzato è specifico (non ammette interpretazione plurale): nello stesso luogo viveva un terribile lupo.
+**********/
+
+
+/***********
+• sn_quantificati(-list).
+arg_ list_of(fun/index/pred).
+••
+:- sn_quantificati(List)
+***********/
+sn_quantificati(List) :-
+   findall(
+      q(Fun, SnX, Nodo, Quant), 
+      sn_quantificato(Fun, SnX, Nodo, Quant), 
+      List).
+
+sn_quantificato(Fun, Index, Nodo, Quant) :-
+   nodo(Nodo)::tab_ref::[+ ref, -pro, -ana, Att],
+   on(Att, [+class, +me]),
+   spec_quantificato(Nodo, Quant), 
+   nodo(Nodo)::indice::Index,
+   nodo(_)::Fun/Role::nodo(Nodo),
+   quantifiable_function(Fun, Role).
+  
+spec_quantificato(Nodo, Quant) :-
+   nodo(Nodo)::spec::quant::Quant,
+   Quant \= exist,!.
+
+spec_quantificato(Nodo, card) :-
+   nodo(Nodo)::spec::def::'0',
+   nodo(Nodo)::spec::card::_,!.
+
+spec_quantificato(Nodo, card) :-
+   nodo(Nodo)::spec::def::'+',
+   nodo(Nodo)::spec::card::_,!.
+
+/* quantificatori fluttuani */
+quantifiable_function(adj, quantitativo).
+
+/* funzioni argomentali (non predicative) */
+quantifiable_function(Fun, Role) :-
+   grammatical_function(Fun, argumental),
+   Role \= nil.
+   
+/***********
+• sn_indefiniti(-list).
+arg_ list=list_of(q(fun,index,nodo,type)).
+•
+nomi non soggetto con spec def:'-', privi di modificatori, di aggiunti e di argomento 
+•
+:- sn_indefiniti(List)
+***********/
+sn_indefiniti(List) :-
+   findall(
+      q(Fun, SnX, Nodo, Pred), 
+      sn_indefinito(Fun, SnX, Nodo, Pred), 
+      List).
+
+sn_indefinito(Fun, Index, Nodo, indefinito) :-
+   nodo(Nodo)::tab_ref::[+ ref, -pro, -ana, +class],
+   nodo(Nodo)::spec::def::'-',
+   nodo(Nodo)::indice::Index,
+   nodo(_)::Fun/_::nodo(Nodo),
+   Fun \= sogg,
+   Fun \= sogg_top,
+   Fun \= sogg_foc,
+   \+ sn_specifico(Nodo).
+
+/* relativa */
+sn_specifico(Nodo) :-   
+   nodo(Nodo)::mods::mod/predic::topic::tipo_topic::relativo,
+   nodo(Nodo)::mods::mod/predic::modo::ind.
+sn_specifico(Nodo) :-   
+   nodo(Nodo)::adjs::adj/predic::topic::tipo_topic::relativo.
+
+/* modificatore deittico (stesso) */
+sn_specifico(Nodo) :-   
+   nodo(Nodo)::mods::mod_d::_.
+
+/* possessore corrispondente a un riflessivo */
+sn_specifico(Nodo) :-   
+   nodo(Nodo)::sogg/poss::pred::Pred,
+   Pred \= pPro.
+
+/* la casa di mattoni */
+sn_specifico(Nodo) :-   
+   nodo(Nodo)::ogg/_::nodo(_).
+
+/* argomento di una proposizione participiale */
+sn_specifico(Nodo) :-   
+   nodo(Nodo1)::adj/_::nodo(Nodo),
+   nodo(Nodo1)::modo::part.
+sn_specifico(Nodo) :-   
+   nodo(Nodo1)::adjs::adj/_::nodo(Nodo),
+   nodo(Nodo1)::modo::part.
+
+sn_specifico(Nodo) :-
+   sn_quantificato(_, _, Nodo, _). 
+
+sn_specifico(Nodo) :-
+   nodo(Nodo)::spec::quant::exist. 
+
+
+/***********
+• add_qmark(-quantDescription, +newQuantDescription).
+arg_ quantDescription=q(fun, index, node, type).
+arg_ newQuantDescription=q(fun, index, node, type, qmark).
+••
+***********/
+add_qmark(q(Fun, Index, Nodo, Type) , q(Fun, Index, Nodo, Type, Qmark)) :-
+   gen_sym(q, Qmark),
+   rete(Rete),
+   w_ramo(Nodo, qmark, Qmark, Rete).   
+
+add_qmarks([], []) :-
+   !.
+add_qmarks([QDesc | Others], [NewQDesc | NewOthers]) :-
+   add_qmark(QDesc, NewQDesc),
+   add_qmarks(Others, NewOthers).   
+
+add_qop(Nodo, Qmark, Type) :-
+   nodo(Nodo)::qops::nodo(NodoTo),
+   !,
+   rete(Rete),
+   w_ramo(NodoTo, qop, q(Qmark, Type), Rete). 
+  
+add_qop(Nodo, Qmark, Type) :-
+   rete(Rete),
+   w_arco(Nodo, ToNodo, qops, Rete),
+   w_ramo(ToNodo, qop, q(Qmark, Type), Rete).  
+
+/****************
+CLITICO l'antecedente f_comanda, non si trova nella frase minima e concorda genere numero e tratti semantici. Se l'elemento che f_comanda ha sotto una relativa il clitico puo` scendere e cercare dentro 
+[+ref,+pro,+ana,+me]   
+********************/
+
+riferisci_clitico(Index, Ante):-
+   sisters_of(indice:Index,
+      [cat:Tratti, gen:Gen, num:Num, pred: Pred]),
+   findall_fc(Index, Fcs),
+   riferisci_clitico1(Fcs,
+      Index, Tratti, Gen, Num, Pred, Ante, Cutting),
+   (Cutting=cut, 
+   ! ; true).
+
+riferisci_clitico(Index, Ante):-
+   riferisci_esterno(Index, Ante).
+
+/**
+Il pronome è vi o ci, la principale è dir_speech, l'antecedente è il soggetto del dir_speech, se l'antecedente non è quantificato, se non c'è path dal nodo del dir_speech al pronome, se il numero del pronome corrisponde a quello dell'antecedente 
+**/
+
+riferisci_clitico1(Fcs,
+   Index, _, Gen, Num, Pred, Ante/Liv, cut) % era no_cut
+   :-
+   on(Pred, [vi, ci, it]),
+   nodo(n1)::dir_speech/prop::nodo(N2),
+   nodo(N2)::sogg/_::indice::Ante,
+   non_quantif(Ante),
+   log_pronome(Ante),
+   notnodpat(N2, Index),
+   legal_ante(Index, _, _, Num, Ante).
+
+/* ad hoc  ??? */
+riferisci_clitico1(Fcs,
+   Index, _, Gen, Num, Pred, Ante/N, no_cut)
+   :-
+   gr(italiano),
+   on(Pred, [vi, ci]),
+   (
+   nodo(FcNode)::main/prop::coord::nodo(N2)
+   ;
+   nodo(FcNode)::main/prop::coord::vcomp/prop::nodo(N2)
+   ),
+   nodo(N2)::ogg/_::indice::Ante,
+   non_quantif(Ante),
+   notnodpat(N2, Index),
+   nodo(N2)::ogg/_::cat::Cat,    
+   nonvar_member(luogo, Cat),
+   legal_ante(N2, F/R, Index, Ante),
+   N=1.
+
+riferisci_clitico1(Fcs,
+   Index, _, Gen, Num, Pred, Ante/N, no_cut)
+   :-
+   gr(english),
+   on(Pred, [it]),
+   (
+   nodo(FcNode)::main/prop::coord::nodo(N2)
+   ;
+   nodo(FcNode)::main/prop::coord::vcomp/prop::nodo(N2)
+   ),
+   nodo(N2)::ogg/R::indice::Ante,
+   non_quantif(Ante),
+   notnodpat(N2, Index),
+   log_pronome(Ante/N),
+   legal_ante(N2, ogg/R, Index, Ante),
+   N=1.
+
+
+/* ad hoc  ???
+l'antecedente è una funzione di una subordinata della frase principale con i tratti corrispondenti */
+riferisci_clitico1(_,
+   Index, Tratti, Gen, Num, Pred, Ante/N, no_cut)
+   :-
+   nodo(n1)::adj::sub/prop::nodo(N2),
+   nodo(N2)::F/R::indice::Ante,
+   F/R\=ncomp/prop,
+   legal_ante(Index, Tratti, Gen, Num, Ante).
+
+riferisci_clitico1([],Index, _, _, _, _, Ante, cut) :-
+   riferisci_esterno(Index, Ante), !.
+
+
+/************
+L'antecedente è un f_commander di livello superiore a 0 con i tratti adeguati
+EX: she knew that she had been given a present
+EX: maria sapeva che lei non l'avrebbe mai fatto
+EX: maria le disse che stava bene con quel vestito
+************/
+% EP 93.02.26
+riferisci_clitico1(Fcs,
+   Index, Tratti, Gen, Num, _, IndAnte/Liv, no_cut)
+   :-
+   \+ gr(english),
+   on(IndAnte-FunAnte-Liv-NodeAnte, Fcs),
+   calc_liv(Index,Liv),
+   log_pronome(IndAnte/Liv),
+   non_quantif(IndAnte),
+   notnodpat(NodeAnte, Index),
+   FunAnte\= mod/tema,
+   legal_ante(Index, Tratti, Gen, Num, IndAnte).
+
+/************
+L'antecedente è un soggetto non possessivo di un f_comander di livello superiore a 0
+************/
+riferisci_clitico1(Fcs,
+   Index, Tratti, Gen, Num, Pred, Ante/Liv, no_cut)
+   :-
+   on(IndAnte-FunAnte-Liv-NodeAnte, Fcs),
+   0<Liv,
+   log_pronome(IndAnte/Liv),
+   \+ contiene(IndAnte, Index),
+   nodo(NodeAnte)::F_sup::nodo(N2),
+   nodo(N2)::F/R::indice::Ante,
+   F = sogg,
+   R \=poss,
+   non_quantif(Ante),
+   notnodpat(N2, Index),
+   legal_ante(Index, Tratti, Gen, Num, Ante).
+
+
+riferisci_clitico1(Fcs,
+   Index, Tratti, Gen, Num, Pred, NAnte/N, no_cut)
+   :-
+   on(NAnte-F_ante-N-N_ante, Fcs),
+   N = 0,
+   nodo(N_ante)::F_ante::adjs::adj/_::nodo(N2),
+   nodo(N2)::ogg/nil::indice::Ante,
+   legal_ante(Index, Tratti, Gen, Num, NAnte).
+
+riferisci_clitico1(Fcs,
+   Ind, Tratti, Gen, Num, _, Ante/Liv, Cut)
+   :-
+   gr(english),
+   on(Ante-F/R-Liv-NodeAnte, Fcs),
+   0<Liv,
+   F/R \= adjs/_,
+   F/R \=ncomp/prop,
+   legal_ante(Ind, Tratti, Gen, Num, Ante), 
+   (
+   Cut=no_cut
+   ;
+   !,
+   Cut=cut),!.
+
+riferisci_clitico1(Fcs,
+   Ind, Tratti, Gen, Num, _, Ante/Liv, cut)
+   :-
+   on(Ante-F/R-Liv-NodeAnte, Fcs),
+   (F=obl, R\=goal; F=ogg, R\=temporale; F\=obl, F\=ogg,    F/R \=ncomp/prop),
+   (0<Liv,
+    nodo(N2)::F2/prop::F1/R1::indice::Ind,
+    !,
+    N2 \= NodeAnte
+    ;
+    0<Liv),
+   legal_ante(Ind, Tratti, Gen, Num, Ante),
+   legal_ante_of(second_person_pro, NodeAnte, Ind),
+   notnodpat(NodeAnte, Ind).
+
+riferisci_clitico1(_,Index, _, _, _, _, Ante, cut) :-
+   riferisci_esterno(Index, Ante).
+
+calc_liv(Index,Liv) :-
+nodo(N)::F1/R1::F/R::indice::Index,
+  (R1=prop,
+    ( F1=fcomp, 0<Liv;
+        1<Liv);
+   R1\=prop).
+
+calc_liv(Index,Liv) :-
+nodo(N)::F1/R1::coord::F/R::indice::Index,
+  (R1=prop,
+    ( F1=fcomp, 0<Liv;
+        Liv=1);
+   R1\=prop).
+
+calc_liv(Index,Liv) :-
+  1<Liv.          
+
+
+
+grammatical_function(sogg, argumental).
+grammatical_function(sogg_foc, argumental).
+grammatical_function(sogg_top, argumental).
+grammatical_function(foc, argumental).
+grammatical_function(ogg, argumental).
+grammatical_function(ogg_avv, argumental).
+grammatical_function(ogg2, argumental).
+grammatical_function(obl1, argumental).
+grammatical_function(obl, argumental).
+grammatical_function(obl2, argumental).
+grammatical_function(ncomp, predicative).
+grammatical_function(acomp, predicative).
+grammatical_function(vcomp, predicative).
+grammatical_function(pcomp, predicative).
+
+/*DEFINIZIONE DEI QUANTIFICATORI */
+
+quantifier(event).
+quantifier(q).
+quantifier(q1).
+quantifier(q2).
+quantifier(some).
+quantifier(set).
+quantifier(every).
+quantifier(most).
+quantifier(a_few).
+quantifier(each).
+quantifier(only).
+quantifier(all).
+quantifier(many).
+quantifier(the).
+quantifier(exist).
+quantifier(mass).
+quantifier(nessuno).
+quantifier(niente).
+quantifier(nobody).
+quantifier(nothing).
+quantifier(no).
+quantifier(ogni).
+quantifier(tutto).
+quantifier(tutti).
+quantifier(indefinito).
+quantifier(definito).
+quantifier(quale).
+quantifier(pPro).
+quantifier(ciascuno).
+quantifier(ciascuna).
+quantifier(ognuno).
+quantifier(ognuna).
+quantifier(arbitraria).
+quantifier(focus).
+quantifier(molti).
+quantifier(molto).
+quantifier(plural).
+quantifier(qualche).
+quantifier(ovunque).
+
+classe(plural,2).
+classe(card,2).
+classe(event,3).
+classe(state,4).
+classe(some,2).
+classe(someone,2).
+classe(focus,0).
+classe(set,2).
+classe(every,2).
+classe(ovunque,2).
+classe(most,2).
+classe(a_few,2).
+classe(each,2).
+classe(only,2).
+classe(many,2).
+classe(the,-1).
+classe(exist,1).
+classe(mass,1).
+classe(nessuno,3).
+classe(niente,3).
+classe(ogni,3).
+classe(tutto,4).
+classe(tutti,4).
+classe(tutte,4).
+classe(no,4).
+classe(all,4).
+classe(definito,0).
+classe(quale,0).
+classe(arbitraria,2).
+classe(ciascuno,1).
+classe(ciascuna,1).
+classe(ognuno,1).
+classe(ognuna,1).
+classe(molto,2).
+classe(molti,2).
+classe(molte,2).
+classe(indefinito,3).
+classe(pPro,2).
+classe(qualche,2).
+
+/* PREDICATI CON ARGOMENTI OPACHI */
+opaque(not,1).
+opaque(vint,1).
+opaque(tense,1).
+opaque(solo,1).
+opaque(isola,1).
+opaque(isola1,1).
+
+
+nomi(Rete) :-
+   ordina_referenti(DaRisolvere),
+   coriferisci(Rete, DaRisolvere), 
+   findall(Ind/Ante/Int,coreferent(Rete,Ind,Ante,Int),List),
+   findall(Ind/Ante/Int,cospecified(Rete,Ind,Ante,Int),List1),
+   findall(Ind/Int,libero(Rete,Ind,Int),List2),
+   n_add_archi(Rete,coreferent,List),
+   n_add_archi(Rete,cospecified,List1),
+   n_add_archi(Rete,free,List2).
+%   salva_xml_rete(Rete, Rete).         
+
+nomi(Rete, []) :-!.
+nomi(Rete, All) :-
+   ordina_referenti(DaRisolvere),
+   coriferisci(Rete, DaRisolvere), 
+   findall(Ind/Ante/Int,coreferent(Rete,Ind,Ante,Int),List),
+   findall(Ind/Ante/Int,cospecified(Rete,Ind,Ante,Int),List1),
+   findall(Ind/Int,libero(Rete,Ind,Int),List2),
+   n_add_archi(Rete,coreferent,List,L1),
+   n_add_archi(Rete,cospecified,List1,L2),
+   n_add_archi(Rete,free,List2,_),
+   append(L1,L2,All).
+%   salva_xml_rete(Rete, Rete).         
+
+ordina_referenti(ToSolve) :-
+   init_nomi,
+   bagof(No / Tr, nodo(No) :: tab_ref :: Tr, NodesTabRef),
+   da_riferire(NodesTabRef, Lis, ToSolve),
+   !.
+
+da_riferire([],L,L) :-!.
+da_riferire([Nodo/Reftab|Altri],Lista,ListaOut) :- 
+   member(Tratto,[-pro, +ref]),
+   member(Tratto,Reftab),
+   member(TrattoC,[-class, +class]),
+   member(TrattoC,Reftab),
+   !,
+   nodo(Nodo)::indice::Indice,
+   np_description(Indice, Pred, FunRole),
+   da_riferire(Altri,[Indice/Reftab|Lista],ListaOut).
+da_riferire([_|Altri],Lista,ListaOut) :- 
+   da_riferire(Altri, Lista, ListaOut).
+
+coriferisci(Rete,[]).
+coriferisci(Rete, [Indice/TabRef | Altri]) :-
+    bagof(OutRef,corefer(Rete,Indice,TabRef,OutRef),ListaRef),
+    togli_doppi(ListaRef, ListaOrd),
+    coriferisci(Rete,Altri).
+coriferisci(Rete, [Indice/TabRef | Altri]) :-
+    coriferisci(Rete,Altri).
+
+corefer(Rete, Ind, [+ref,-pro,-ana,-class], Ante):-
+   !,
+   riferisci_nome_proprio(Ind, Ante),
+   Ante=Primo/_,
+   assert(coreferent(Rete, Ind, Primo, definito)).  
+
+corefer(Rete, Ind, [+ref,-pro,-ana,+class], Ante):-
+   !,
+   riferisci_nome_comune(Ind, Ante),
+   Ante=Primo/_,
+   assert(cospecified(Rete, Ind, Primo, definito)).  
+
+riferisci_nome_comune(Ind, Ante/N):-
+  findall_super_fc(Ind, Fcs),
+  riferisci_n(Fcs, Ind, Gen, Num, Ante/N,  Cutting),
+  (
+  Cutting=cut,
+  !
+  ;
+  true
+  ).
+
+riferisci_nome_comune(Ind, Ante/N):-
+   riferisci_free(Ind, Ante).
+
+riferisci_n(Fcs, Ind, Gen, Num, Ante/Liv,  cut):-
+  nodo(Nodo)::F/R::indice::Ind,
+  nodo(Nodo)::F/R::spec::def::Def,
+  nodo(Nodo)::F/R::spec::mod::Deit,
+  deictic(Deit),
+  nodo(Nodo)::F/R::cat::Cat,
+  on(Ante-FcFun/FcRole-Liv-N_ante, Fcs),
+  nodo(N_ante)::FcFun/FcRole::indice::Ante,
+  nodo(N_ante)::FcFun/FcRole::cat::CatAnte,
+  (Cat=CatAnte;
+  comune_legal_ante(Cat, Gen, Num, Ante)),  
+  !.
+
+riferisci_n(Ind, Gen, Num, Ante/Liv,_):-
+   riferisci_free(Ind, Ante).
+
+comune_legal_ante(Tratti, Gen, Num, Ante) :- 
+   sisters_of(indice:Ante,
+      [cat:TrattiAnte, gen:GenAnte,
+      num:NumAnte, tab_ref:TabRef]),
+   tratti(TrattiAnte, Tratti),
+   match(Gen, GenAnte),
+   match_num(Num, NumAnte, Ante),
+   !.
+
+findall_super_fc(Ind, Fcs):-
+   findall_fc(Ind, Fcs1),
+   findall_sfc(Ind, Fcs2),
+   append(Fcs1,Fcs2,Fcc),
+   sort(Fcc,Fcs),
+   !.  
+findall_sfc(Ind, Fcs) 
+   :-
+   !,
+   abolish(lista_fcs/1),
+   bagof(Liv-Ante-F_ante-N_ante,
+         sf_comanda(Ante,F_ante,Ind,Liv,N_ante),
+           Fc),
+   erase_double(Ind, Fc, Fc1),
+   ricom(Fc1,Fcs),
+   !.
+
+ricom([], []):-!.
+ricom([Liv-Ante-F_ante-N_ante|Resto], [Ante-F_ante-Liv-N_ante|Fcc]):- 
+   ricom(Resto,Fcc),
+   !.
+
+sf_comanda(Alpha, Alpha_Funz, Beta, Livello, N0) :- 
+   f_struttura(Beta, F, N), 
+   nodo(N0)::Alpha_Funz::indice::Alpha,
+   Alpha\= Beta,
+   f_c(N,N,F,Alpha,Alpha_Funz,0,Livello, N0).
+
+sf_comanda(Alpha, Alpha_Funz, Beta, Livello, N0) :- 
+   f_struttura(Beta, F, N), 
+   nodo(N0)::Alpha_Funz::indice::Alpha,
+   Alpha\= Beta,
+   Alpha_Funz=sub/compar.
+
+deictic(questo).
+deictic(questa).
+deictic(questi).
+deictic(queste).
+deictic(quello).
+deictic(quella).
+deictic(quelli).
+deictic(quelle).
+
+riferisci_nome_proprio(Ind, Ante/N):-
+  findall_super_fc(Ind, Fcs),
+  riferisci_np(Fcs, Ind, Gen, Num, Ante/N,  Cutting),
+  (
+  Cutting=cut,
+  !
+  ;
+  true
+  ).
+
+riferisci_nome_proprio(Ind, Ante/N):-
+   riferisci_free(Ind, Ante).
+
+riferisci_np(Fcs, Ind, Gen, Num, Ante/Liv,  cut):-
+  on(Ante-FcFun/FcRole-Liv-N_ante, Fcs),
+  nodo(N_ante)::FcFun/FcRole::indice::Ante,
+  nodo(N_ante)::FcFun/FcRole::pred::PredAnte,
+  nodo(Nodo)::F/R::indice::Ind,
+  nodo(Nodo)::F/R::pred::PredAnte,
+  !.
+
+riferisci_np(Ind, Gen, Num, Ante,_):-
+   riferisci_free(Ind, Ante).
+
+riferisci_free(Ind, free):-
+  !.        
+
+n_add_archi(_,T,[]):-!.
+n_add_archi(Net,Type,[Ind/free/Int|Altri]) :- 
+    n_add_archi(Net,Type,Altri).
+n_add_archi(Net,Type,[Ind/Ante/Int|Altri]) :- 
+    nodo(Nodo)::indice::Ind,
+    current_num(_,_),
+    w_arco(Nodo,ToNodo1,Type,Net),
+    w_foglia(ToNodo1,Ante,Net),
+    w_arco(Nodo,ToNodo2,interpretazione,Net),
+    w_foglia(ToNodo2,Int,Net), 
+    n_add_archi(Net,Type,Altri,Rest).
+
+/*
+marca dei pronomi (
+interpretazione(+indicePronome,+indiceAntecedente,-Interpret)
+ */
+/* INTERPRETAZIONE /2 - */
+
+interpretazione(Ref,nessuno,definita):-  
+  nodo(N)::indice::Rif,
+  nodo(N)::tab_ref::[+ref,+pro,-ana,ME],
+  nodo(n1)::sogg/R::indice::Rif,!.
+
+interpretazione(Ref,nessuno,definita):- !.
+
+/* Considera soltanto i pronomi inespressi (-me) */
+interpretazione(Rif, Ante, arbitraria) :- 
+  nodo(N)::indice::Ante,
+  nodo(N)::tab_ref::[+ref,+pro,-ana,-me],
+  nodo(N1)::F1/R1::F2/R2::indice::Ante,   % ??
+  (
+  notnodfunc(N1),
+  nodo(N1)::modo::ind
+  ;
+  nodo(N0)::F0/R0::nodo(N1),
+  nodo(N1)::modo::cong
+  ),
+  nodo(N1)::tempo::pres,
+  !.
+
+
+/* il pronome ha un antecedente quantificato e il modo della frase in cui si trova l'antecedente è presente indicativo o congiuntivo */
+interpretazione(Rif,Ante,arbitraria) :-   
+  sn_quantificato(_, Ante, _, _),
+  nodo(N1)::F1/R1::F2/R2::indice::Ante,
+  (
+  notnodfunc(N1),
+  nodo(N1)::modo::ind
+  ;
+  nodo(N0)::F0/R0::nodo(N1),
+  nodo(N1)::modo::cong
+  ),
+  nodo(N1)::tempo::pres,
+  !.
+/* una donna desidera che ogni uomo la ammiri: il pronome è legato ad un antecedente indefinito e si trova in una frase in cui ha scope un quantificatore; a sua volta l'indefinito è in una frase con tempo e modo adeguati all'interpretazione arbitraria */
+
+interpretazione(Rif,Ante,arbitraria) :-   
+  nodo(N)::indice::Ante,
+  nodo(N)::spec::def::'-',
+  \+ sn_specifico(N),
+  nodo(N1)::F1/R1::F2/R2::indice::Rif,
+  (
+  notnodfunc(N1),
+  nodo(N1)::modo::ind
+  ;
+  nodo(N0)::F0/R0::nodo(N1),
+  nodo(N1)::modo::cong
+  ),
+  nodo(N1)::tempo::pres,
+  nodo(N2)::F/R::indice::Rif,
+  nodo(N2)::qops::Qops,
+  !.
+/* il pronome è legato a un antecedente indefinito che è nello scope di un quantificatore quindi ha attr:val=interpretazione:quantificata, e si trova dentro una relativa restrittiva; a sua volta il pronome è in una frase con modo e tempo adeguati per l'interpretazione arbitraria, e nello stesso livello si trova il qop che lega l'interpretazione dell'indefinito*/
+
+interpretazione(Rif,Ante,arbitraria) :-   
+  nodo(N)::indice::Ante,
+  nodo(N)::spec::def::'-',
+  \+ sn_specifico(N),
+  nodo(N1)::mods::mod/predic::F/R::indice::Ante,
+  nodo(N2)::indice::Ante,
+  nodo(N2)::interpretazione::quantificata,
+  nodo(N0)::F0/R0::indice::Rif,
+  (nodo(N0)::modo::ind
+  ;
+   nodo(N0)::modo::cong
+  ),
+  nodo(N0)::tempo::pres,
+  nodo(N0)::qops::Qops,
+  !.
+
+/*  interpretazione generica se l'antecedente di un PRO PICCOLO (???)
+    e' in catena con un quantificatore */
+interpretazione(Rif, Ante, arbitraria) :- 
+  nodo(N)::indice::Rif,
+  nodo(N)::tab_ref::[+ref,+pro,-ana,-me],
+  nodo(N1)::F1/R1::indice::Ante,
+  (
+  notnodfunc(N1),
+  nodo(N1)::modo::ind
+  ;
+  nodo(N0)::F0/R0::nodo(N1),
+  nodo(N1)::modo::cong
+  ),
+  nodo(N1)::tempo::pres,
+  !.
+
+interpretazione(Rif,Ante,Int) :- 
+  nodo(N)::indice::Rif,
+  nodo(N)::tab_ref::[+ref,+pro,-ana,-me],
+  bagof(Snx,catena_x(Ante,[],Snx),Catena),
+  Catena \= [],
+  appiattisci(Catena,Cat1),
+  elimina_doppi(Cat1,Cat2),
+  cerca_quantificati(Cat2,Int).
+
+interpretazione(Rif,nessuno,arbitraria) :- 
+  nodo(N)::indice::Rif,
+  nodo(N)::tab_ref::[-ref,+pro,+ana,+me,-subj],
+  nodo(N1)::F1/R1::F2/R2::indice::Rif,
+  nodo(N1)::modo::ind,
+  nodo(N1)::tempo::pres,
+  !.
+
+interpretazione(Rif,nessuno,arbitraria) :- 
+  nodo(N)::indice::Rif,
+  nodo(N)::tab_ref::[-ref,+pro,+ana,+me,-subj],
+  nodo(n1)::modo::ind,
+  nodo(n1)::tempo::pres,
+  !.
+
+/* il pronome è proprio e si trova in un SN a livello matrice o di frase complemento; nella frase matrice ci deve essere un tempo e modo adeguati e un scope di quantificazione */
+interpretazione(Rif,Ante,arbitraria) :- 
+  nodo(N)::indice::Rif,
+  nodo(N)::tab_ref::[-ref,+pro,+ana,+me,-subj],
+  nodo(n1)::modo::ind,
+  nodo(n1)::tempo::pres,
+  nodo(n1)::qops::Qop,
+  !.
+
+interpretazione(Rif,nessuno,generica) :- 
+  nodo(N)::indice::Rif,
+  nodo(N)::tab_ref::[-ref,+pro,+ana,+me,-subj],
+  f_struttura(Rif,sogg/poss,Nodo),
+  nodo(N1)::sogg/_::nodo(Nodo),
+  nodo(NN)::fcomp/prop::nodo(N1),
+  nodo(NN)::fcomp/prop::modo::cong,
+  nodo(NN)::fcomp/prop::tempo::pres,
+  !.
+
+interpretazione(_Ref,_Ante,definita):-  
+   !.
+  
+cerca_quantificati([],definita) :- 
+   !.
+cerca_quantificati([Sn|Rest],Int) :-
+   \+ quantificato(Sn),
+   cerca_quantificati(Rest,Int).
+cerca_quantificati([Sn|_],arbitraria) :- 
+   nl,
+   !.
+
+stereotipo(scappare(ladro,malef)).
+stereotipo(temere(autorita_,violenza)).
+stereotipo(sostenere(dimostrante,rivoluzione)).
+
+legal_ante1(_/_, _, _, _, _, esterno(Rete,_)) :- 
+   !.
+
+legal_ante1(F/R, Ind, Tratti, Gen, Num, Ante) :- 
+   R\=prop,
+   R\=nil,
+   !,
+   legal_ante(Ind, Tratti, Gen, Num, Ante).
+
+legal_ante(_, _, _, _, esterno(Rete,_)) :- 
+   !.
+
+/* controlla tratti, genere, numero + non_riferito e poss_ante */
+legal_ante(Ind, Tratti, Gen, Num, Ante) :- 
+   sisters_of(indice:Ante,
+      [cat:TrattiAnte, gen:GenAnte, 
+      num:NumAnte, tab_ref:TabRef]),
+   nonvar(TrattiAnte),
+   \+ nogen_member(tempo,TrattiAnte),
+   tratti(TrattiAnte, Tratti),
+   nonvar(GenAnte),
+   match(Gen, GenAnte),
+   match(Num, NumAnte),
+   legal_ante(TabRef, Ind, Ante).
+
+legal_ante(Ind, Tratti, Gen, Num, Ante) :- 
+   sisters_of(indice:Ante,
+      [cat:TrattiAnte, gen:GenAnte,
+      num:NumAnte, tab_ref:TabRef]),
+   var(GenAnte),
+   (gr(english)
+   ;
+   \+ gr(english)
+   ),
+   nonvar(TrattiAnte),
+   \+ nogen_member(tempo,TrattiAnte),
+   tratti(TrattiAnte, Tratti),
+   match(Gen, GenAnte),
+   match_num(Num, NumAnte, Ante),
+   legal_ante(TabRef, Ind, Ante).
+
+legal_ante(TabRef, Index, Ante) :-
+   poss_ante(Index, Ante, TabRef),
+   non_riferito_in(Index, Ante).
+
+/* solo non_riferito e poss_ante  */
+legal_ante(Node, FunRole, Index, Ante) :-
+   nodo(Node)::FunRole::tab_ref::Lista,  
+   poss_ante(Index, Ante, Lista),
+   non_riferito_in(Index, Ante).
+

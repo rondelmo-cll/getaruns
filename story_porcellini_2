@@ -1,0 +1,74 @@
+﻿/*  *******************************************************
+    ***************   testo porcellini2   *****************
+    *******************************************************  */
+
+
+fp(pig01,[questa,è,la,storia,di,tre,porcellini,che,
+andarono,per,il,mondo,a,cercare,fortuna, '.']). 
+fp(pig02,[i,loro,nomi,erano,timmy,',',suonatore,di,flauto,',',e,
+tommy,',',violinista,',',e,jimmy,',',grande,lavoratore, '.']). 
+fp(pig03,[giunti,in,un,bel,bosco,',',decisero,di,costruire,
+ ognuno,una,comoda,casetta, '.']). 
+fp(pig04,[a,timmy,non,piaceva,per,niente,lavorare,
+così,pensò,di,costruirsi,rapidamente,una,capanna,di,paglia, '.']). 
+fp(pig05,[in,breve,la,casetta,fu,pronta,e,timmy,decise,
+allora,di,andare,a,vedere,che,cosa,stavano,facendo,i,suoi,
+fratellini, '.']). 
+
+fp(pig06,[incontrò,dapprima,tommy,il,violinista, '.']). 
+
+fp(pig07,[anche,lui,non,aveva,molta,voglia,di,faticare,così,
+costruiva,con,dei,pezzi,di,legno,una,semplice,casetta, '.']). 
+
+fp(pig08,[ben,presto,anche,la,casa,di,legno,fu,pronta, '.']). 
+
+fp(pig09,[come,quella,di,paglia,',',non,era,certo,molto,
+resistente, '.']). 
+
+fp(pig10,[ma,i,due,porcellini,scansafatiche,se,la,erano,
+sbrigata,in,poco,tempo,ed,ora,potevano,tranquillamente,divertirsi, '.']).
+
+fp(pig11,[mentre,timmy,suonava,il,suo,flauto,',',tommy,
+lo,accompagnava,con,il,suo,violino,e,insieme,se,la,spassavano,
+allegramente, '.']). 
+
+fp(pig12,[poi,stanchi,di,fare,baldoria,decisero,di,
+andare,a,vedere,che,cosa,stava,facendo,il,loro,fratellino, '.']). 
+
+fp(pig13,[si,misero,in,cammino,e,ben,presto,raggiunsero,jimmy, '.']). 
+
+fp(pig14,[il,bravo,porcellino,stava,costruendo,anche,lui,la,sua,
+casetta, '.']).
+
+fp(pig15,[ma,poiché,era,previdente,e,non,aveva,paura,di,
+lavorare,sodo,',',la,costruiva,con,mattoni,e,cemento, '.']).
+
+fp(pig16,[jimmy,voleva,una,casa,robusta,perché,sapeva,che,il,lupo,cattivo,viveva,nel,bosco,vicino, '.']). 
+
+fp(pig17,[quando,i,due,pigri,porcellini,videro,jimmy,impegnato,
+nel,suo,duro,lavoro,',',si,misero,a,ridere,a,crepapelle, '.']). 
+
+fp(pig18,[ma,quei,due,sciocchi,porcellini,non,pensavano,al,pericolo, '.']). 
+
+fp(pig19,[così,continuarono,a,prendere,in,giro,il,saggio,jimmy,
+',',canticchiando,e,suonando,con,il,flauto,e,il,violino, '.']). 
+
+fp(pig20,[i,due,porcellini,',',sempre,suonando,e,ballando,',',tornarono,ciascuno,alla,propria,fragile,casetta, '.']). 
+
+fp(pig21,[ma,appena,timmy,aprì,la,porta,',',sbucò,fuori,dal,bosco,il,lupo,cattivo, '.']). 
+
+fp(pig22,[il,porcellino,lo,vide,e,tremante,di,paura,si,chiuse,immediatamente,in,casa, '.']). 
+
+fp(pig23,[il,lupo,cattivo,cominciò,a,chiamarlo, '.']).
+
+fp(pig24,['"',apri,la,porta,e,fammi,entrare,nella,tua,casetta,di,paglia,'"']). 
+
+fp(pig25,['"', non, mi, passa, neanche, per, la, testa, !, '"', rispose, il, porcellino, .]).
+
+fp(pig26,[detto, fatto]).
+
+fp(pig27,[il, lupo, tirò, un, profondo, respiro, e, puff, ',', come, per, incanto, ',', la, piccola, casa, di, paglia, scomparve, .]).
+
+fp(pig29,[quando, timmy, si, accorse, che, non, era, rimasto, nulla, a, proteggerlo, dal, lupo, ',', scappò, via, velocissimo, e, ',', inseguito, dalla, belva, inferocita, ',', si, diresse, verso, la, casetta, di, legno, del, suo, fratellino, .]).
+
+fp(pig30,[spaventatissimi, i, due, porcellini, corsero, a, perdifiato, verso, la, casetta, del, fratello, .]).

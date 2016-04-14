@@ -1,0 +1,4048 @@
+﻿:- style_check(-singleton).
+
+get_all(X,Y,Z) :- get_luoghi(X),get_man(Y),get_thing(Z).
+ 
+get_luoghi(Pl) :- findall(X, getplace(_,X), Places), sort(Places,Pl).
+
+get_man(X) :- findall(B, (getclass(Man,B), (Man=woman;Man=man;Man=social_role)), X).
+
+get_thing(X) :- findall(B, getclass(thing,B), X).
+
+get_processi(X) :- findall(B, getevents(pr,B), X).
+
+get_stati(X) :- findall(B, getevents(st,B), X).
+
+get_eventi(X) :- findall(B, getevents(ev,B), X).
+
+get_verbo(X, Pred) :- findall(A, (
+                                 (B=pr;B=st;B=ev),
+                                  getevents(B,A), getevents_pred(X,A,C)), Pred).
+
+get_locazione(C,B) :- getplace(C,B).
+
+getall_man_location([],Y,[]):-!.
+getall_man_location([X|Rest],Y,[A|Altri]):-
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, isa, [ind:X, class:B], 1, T1, Y),Fa),
+         getall_man_location(Rest,Y,Altri).
+
+getall_man_location([X|Rest],Y,[A|Altri]):-
+         fatto(Y,X,A),
+         getall_man_location(Rest,Y,Altri).
+
+getall_manlocation([],Y,[]):-!.
+getall_manlocation([X|Rest],Y,[A|Altri]):-
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, isa, [ind:A, class:X], 1, T1, Y),Fa),
+         getall_manlocation(Rest,Y,Altri).
+getall_manlocation([X|Rest],Y,[A|Altri]):-
+         fatto(Y,Z,A),
+         get_ind_des(A,X,T),
+         getall_manlocation(Rest,Y,Altri).
+getall_manlocation([X|Rest],Y,Altri):-
+         getall_manlocation(Rest,Y,Altri).
+
+getclass(A,B) :- 
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, inst_of, [ind:C, class:A], 1, T, S),Fa),
+         on(fact(_, isa, [ind:C, class:B], 1, T1, S1),Fa).
+
+getclass(A,B) :- 
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, inst_of, [ind:C, class:A], 1, T, S),Fa),
+         on(fact(_, name, [B,C], 1, T1, S1),Fa).
+
+getevents(A,B) :- 
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, isa, [arg:C, arg:A], 1, T, S),Fa),
+         on(fact(C, B, Args, 1, T1, S1),Fa).
+
+getevents_pred(C,B,A) :- 
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, isa, [arg:C, arg:A], 1, T, S),Fa),
+         on(fact(C, B, Args, 1, T1, S1),Fa).
+
+getplace(C,B) :- 
+         entity(Type,C,Score,facts(Fa)),
+         on(fact(_, main_sloc, B,1,T,L),Fa).
+
+getplace(C,B) :- 
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, in, [arg:_, locativo:C], 1, T, S),Fa),
+         on(fact(_, isa, [ind:C, class:B], 1, T1, S),Fa).
+
+getplace(C,B) :- 
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, Rel, [Role:_, locativo:C], 1, T, S),Fa),
+         on(fact(_, isa, [ind:C, class:B], 1, T1, S),Fa).
+
+getplace(C,B) :- 
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(_, Rel, [Role:_, locat:C], 1, T, S),Fa),
+         (on(fact(_, isa, [ind:C, class:B], 1, T1, S),Fa);
+         on(fact(_, isa, [arg:C, arg:B], 1, T1, S),Fa)).
+
+get_verbo(X) :- get_verbi(Y),
+                member([X],Y).
+
+fatto(Y,X,Z) :- 
+     entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole).
+
+fatto(Y,X,Z) :- 
+     entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole).
+
+fatto(Y,X,A) :- 
+     entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole).
+
+fatto(Y,X,A) :- 
+     entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole).
+
+/*
+fatto(X,Z) :- 
+    fact(X,Pred,[prop:Z],1,B,_),   
+    fact(Z,Prop,[arg:W],1,_,_). 
+*/
+
+fatto(Y,X,Z) :- 
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(X,Pred,[FRole:Z],1,B,Y),Fa), FRole\=arg. 
+
+
+getinds :- get_thing(A),get_man(B),
+               collect2(A, B, Inds),
+            sort(Inds,Dsc),
+            writenl('LIST OF ENTITIES OF THE DM'),
+            writeseqnl(Dsc).
+
+get_evs :- get_processi(A),get_stati(B),get_eventi(C),
+               collect([A, B, C], Middle,Inds),
+            sort(Inds,Dsc),
+            writenl('LIST OF EVENTS OF THE DM'),
+            writeseqnl(Dsc).
+
+get_evdes(K, Args, Pred, Type):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(_,isa,[arg:K,arg:Type],1,A,B),Fa),
+     on(fact(K,Pred,Args,1,A,B),Fa).
+
+get_ev_des(A, Pred):-
+     entity(Type,Ind,Score,facts(Fa)),
+     (
+     on(fact(_,isa,[arg:K,arg:ev],1,A,B),Fa)
+      ;
+     on(fact(_,isa,[arg:K,arg:st],1,A,B),Fa)
+      ;
+     on(fact(_,isa,[arg:K,arg:pr],1,A,B),Fa))
+     ,
+     on(fact(K,Pred,Args,1,A,B),Fa).
+
+get_ind_des(A, Pred,1):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(loc(_,A,[_:main_sloc,_:Pred]),Fa),!.
+
+get_ind_des(A, Pred,N):-
+     entity(Type,Ind,Score,facts(Fa)),
+      (
+       on(fact(_,isa,[_:A,_:Pred],P,T,S),Fa),
+        Pred \= tloc,Pred \= pr,Pred \= st,Pred \= ev,
+       N=1
+       ;
+       on(fact(_,name,[Pred,A],P,T,D),Fa), N=2),!.
+
+find_descr([],[]):-!.
+find_descr([Ind|Inds],[Des|Desc]):-
+     entity(Type,Ind,Score,facts(Fa)),
+      (on(fact(_,name,[Des,Ind],P,T,D),Fa)
+       ;
+       on(fact(_,isa,[_:Ind,_:Des],P,T,S),Fa)
+       ),
+      find_descr(Inds,Desc),!.
+
+find_descre([],[]):-!.
+find_descre([K|Inds],[Pred|Desc]):-
+     entity(Type,Ind,Score,facts(Fa)),
+     (
+      on(fact(_,isa,[arg:K,arg:ev],1,A,B),Fa)
+      ;
+      on(fact(_,isa,[arg:K,arg:st],1,A,B),Fa)
+      ;
+      on(fact(_,isa,[arg:K,arg:pr],1,A,B),Fa))
+     ,
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      find_descre(Inds,Desc),!.
+
+find_descre([poss|Inds],[poss|Desc]):-
+      find_descre(Inds,Desc),!.
+
+collect1([], []):-!.
+collect1([A|Things], [A|Inds]):-
+         collect1(Things, Inds).
+collect2([], [], []):-!.
+collect2([A|Things], Men, [A|Inds]):-
+         collect2(Things, Men, Inds).
+collect2(Things, [A|Men], [A|Inds]):-
+         collect2(Things, Men, Inds).
+collect([C], A, Inds):-
+   append(C, A, E),
+   collect1(E, M, Inds).
+collect([B,C], A, Inds):-
+   append(B, A, E),
+   append(E, C, D),
+   collect1(D, Inds).
+collect([A, B, C], A, Inds):-
+    collect([B, C], A, Inds).
+
+qrange_first_SROLE(Role):-
+   qfroles(FRoles),
+   on(Role, FRoles).
+
+range_first_SROLE(Role):-
+   froles(FRoles),
+   on(Role, FRoles).
+
+range_second_SROLE(Role):-
+   sroles(FRoles),
+   on(Role, FRoles).
+
+range_third_SROLE(Role):-
+   troles(FRoles),
+   on(Role, FRoles).
+
+qfroles([actor,
+         agent,
+         agente,
+         causante,
+         causer,
+         causer_emot,
+         esperiente,
+         experiencer,
+         goal,
+         locat,
+         locative,
+         locativo,
+         malef,
+         modale,
+         paziente,
+         patient,
+         prop,
+         propint,
+         propq,
+         strumentale,
+         instr,
+         owner,
+         paziente,
+         patient,
+         perceiver,
+         prop,
+         propint,
+         receiver,
+         source,
+         tema_aff,
+         tema_bound,
+         tema_eff,
+         tema_emot,
+         tema_nonaff,
+         theme_bound,
+         theme_eff,
+         theme_emot,
+         theme_nonaff,
+         theme_aff,
+         theme_unaff,
+         form
+         ]).
+
+froles([actor,
+         agent,
+         agente,
+         causante,
+         causer,
+         causer_emot,
+         esperiente,
+         experiencer,
+         goal,
+         owner,
+         paziente,
+         patient,
+         perceiver,
+         prop,
+         propint,
+         receiver,
+         source,
+         tema_aff,
+         tema_bound,
+         tema_eff,
+         tema_emot,
+         tema_nonaff,
+         theme_bound,
+         theme_eff,
+         theme_emot,
+         theme_nonaff,
+         theme_aff,
+         form
+         ]).
+
+sroles([actor,
+         actee,
+         address,
+         agent,
+         agente,
+         causer,
+         esperiente,
+         experiencer,
+         topic,
+         goal,
+         locat,
+         locative,
+         locativo,
+         malef,
+         modale,
+         paziente,
+         patient,
+         prop,
+         propint,
+         propq,
+         result,
+         strumentale,
+         instr,
+         tema,
+         tema_aff,
+         tema_bound,
+         tema_eff,
+         tema_emot,
+         tema_nonaff,
+         theme_aff,
+         theme_bound,
+         theme_eff,
+         theme_emot,
+         theme_nonaff,
+         theme_unaff,
+         form]).
+
+troles([actor,
+         cibo,
+         esperiente,
+         experiencer,
+         goal,
+         locativo,
+         locative,
+         locat,
+         loc_origin,
+         materia,
+         modal,
+         modale,
+         privative,
+         paziente,
+         prop,
+         propint,
+         propq,
+         result,
+         comitat,
+         tempor,
+         temporale,
+         strumentale,
+         instr,
+         tema_aff,
+         tema,
+         tema_eff,
+         tema_nonaff,
+         form]).
+
+selarf(Pred,Fact,Args,Pol,Id):-
+   Fact=fact(Id, Pred, Args, Pol, Time, Place)
+   ;
+   Fact=sit(Id, Pred, Args, Pol, Time, Place).
+selarf1(Pred,Fact,Args,Pol,Id):-
+   Fact=fact(Id, Pred, Args, Pol, Time, Place)
+   ;
+   Fact=sit(Id, Pred, Args, Pol, Time, Place)
+   ;
+   Fact=fact(Id, Pre, Args, Pol, Time, Place)
+   ;
+   Fact=sit(Id, Pre, Args, Pol, Time, Place).
+
+belongsrole(R,R):-!.
+belongsrole(R,R1):-
+   froles(Roles),
+   on(R,Roles),
+   on(R1,Roles)
+   ;
+   sroles(Roles),
+   on(R,Roles),
+   on(R1,Roles)
+   ;
+   troles(Roles),
+   on(R,Roles),
+   on(R1,Roles),
+   !.
+   
+select_allrole_facts(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Id),
+   on(Fact, Fa),
+   isa_role_fatto(Args),
+   ind_role(Args, Inds), 
+   on(Prop-Role1, Inds), 
+   belongsrole(Role,Role1),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+select_allrole_facts(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Id),
+   on(Fact, Fa),
+   on(_:Ind,Args),
+   ind_role(Args, Inds), 
+   on(Prop-Role1, Inds), 
+   belongsrole(Role,Role1),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+select_allrole_facts(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Id),
+%   selarf1(Pred,Fact,Args,Pol),
+   on(Fact, Fa),
+%   on(arg:Pred,Args),
+   on(_:Ind,Args),
+   selarf(Pred1,Fact1,Args1,Pol,Id1),
+   on(Fact1, Fa),
+   on(prop:Ind1,Args1),
+   selarf(Pred2,Fact2,Args2,Pol,Id2),
+   on(Fact2, Fa),
+   on(_:Ind,Args2),   
+   on(_:Ind2,Args2), Ind2\=Ind1,
+   extr_arg(prop, NewP, [Ind2:Z], Facts,PropLoc),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+select_allrole_facts(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Id),
+   on(Fact, Fa),
+   on(_:Ind,Args),
+   selarf(Pred1,Fact1,Args1,Pol,Id1),
+   on(Fact1, Fa),
+   on(prop:Ind1,Args1),
+   selarf(Pred2,Fact2,Args2,Pol,Id2),
+   on(Fact2, Fa),
+   on(_:Ind,Args2),   
+   on(_:Ind2,Args2), Ind2\=Ind,
+   extr_arg(prop, NewP, [Ind2:Z], Facts,PropLoc),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+select_allrole_facts(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Idd),
+   on(Fact, Fa),
+   on(_:Ind,Args),
+   selarf(Pred1,Fact1,Args1,Pol,Id1),
+   on(Fact1, Fa),
+   on(_:Id,Args1),
+   selarf(Pred2,Fact2,Args2,Pol,Id2),
+   on(Fact2, Fa),
+   Id2\=Id, Id2\=Id1,
+   on(_:Ind,Args2),   
+   ind_role(Args2, Inds), 
+   on(Prop-Role1, Inds), 
+   belongsrole(Role,Role1),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+select_allrole_factss(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Id),
+   on(Fact, Fa),
+   isa_role_fatto(Args),
+   ind_role(Args, Inds), 
+   on(Role:Ind,Args),
+   on(Prop-Role1, Inds), 
+   belongsrole(Role,Role1),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+select_allrole_factss(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Id),
+   on(Fact, Fa),
+   on(Role:Ind,Args),
+   ind_role(Args, Inds), 
+   on(Prop-Role1, Inds), 
+   belongsrole(Role,Role1),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+select_allrole_factss(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Id),
+   on(Fact, Fa),
+   on(Role:Ind,Args),
+   selarf(Pred1,Fact1,Args1,Pol,Id1),
+   on(Fact1, Fa),
+   on(prop:Ind1,Args1),
+   selarf(Pred2,Fact2,Args2,Pol,Id2),
+   on(Fact2, Fa),
+   on(_:Ind,Args2),   
+   on(_:Ind2,Args2), Ind2\=Ind1,
+   extr_arg(prop, NewP, [Ind2:Z], Facts,PropLoc),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+select_allrole_factss(Role,Ind,Fa,Pred,PropLoc):-
+   selarf(Pred,Fact,Args,Pol,Id),
+   on(Fact, Fa),
+   on(Role:Ind,Args),
+   selarf(Pred1,Fact1,Args1,Pol,Id1),
+   on(Fact1, Fa),
+   on(_:Id,Args1),
+   selarf(Pred2,Fact2,Args2,Pol,Id2),
+   on(Fact2, Fa),
+   Id2\=Id, Id2\=Id1,
+   on(_:Ind,Args2),   
+   ind_role(Args2, Inds), 
+   on(Prop-Role1, Inds), 
+   belongsrole(Role,Role1),
+   assign_prop_attr(Ind,Fa,PropLoc,Pol, Place),
+   !.
+
+q_buildarg2(locativo, Pred, Tops, [Def1, nil, Num, NProp, Cat, [locat, PropLoc]], Facts,NewP):-
+   var(Pred),
+   on(Ind:Prop, Tops),
+   entity(Type,Ind,Score,facts(Fa)),
+   q_extract_properties(Type,Ind, Fa, Def1, Num, Prop, Cat),
+   select_alllocat_facts(Ind,Fa,Pred,PropLoc),
+   !.
+
+q_buildarg2(Role, Pred, Tops, [Def1, nil, Num, NProp, Cat,PropLoc], Facts,MostDs):-
+   on(Ind:Prop, Tops),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, NProp, Cat),
+   select_allrole_facts(Role,Ind,Facts,Pred,PropLoc),
+   !.
+
+q_buildarg2(Role, Pred, Tops, [Def1, nil, Num, NProp, Cat,PropLoc], Facts,MostDs):-
+   on(Ind:Prop, Tops),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, NProp, Cat),
+   select_allrole_facts(Role,Id,Facts,Pred,PropLoc),
+   !.
+
+extr_properties(Role,Ind, Fa, NewProp):-
+   Fact=fact(Id, Pred, Args, Pol, Time, Place),
+   on(Fact, Fa),
+   on(_:Ind,Args),
+   on(disc_set:Disc,Args),
+   Disc=[Ind1:Pre:[Ro1:Id1, Ro2:Id2]],
+   q_buildarg2(Ro2, NewP, [Id1:Prop], [Def1, nil, Num, NProp, Cat,PropLoc], Facts,MostDs),     
+%   q_buildarg(Ro2, NewP, [Id1:Prop], [Def1, nil, Num, NProp, Cat,PropLoc], Facts,MostDs),     
+   Fact1=fact(Id2, NewP, Args1, Pol1, Time1, Place1),
+   on(Fact1, Facts),
+   on(Ro3:Ind2,Args1), Ind2\=Id1,
+   q_buildarg2(Ro3, What, [Ind2:Prop], [Def2, nil, Num2, NProp2, Cat2,PropLoc2], Facts1,MostDs), 
+%   q_buildarg(Ro3, What, [Ind2:Prop], [Def2, nil, Num2, NProp2, Cat2,PropLoc2], Facts1,MostDs), 
+   Prop_Why=[to,What,NProp2],
+   NewProp=[Pre,[Def1, nil, Num, NProp, Cat,Prop_Why]],
+   !.
+
+extr_properties(Role,Ind, Fa, NewProp):-
+   Fact=fact(Id, Pred, Args, Pol, Time, Place),
+   on(Fact, Fa),
+   on(_:Ind,Args),
+   on(disc_set:Disc,Args),
+   Disc=[Ind1:Pre:[Ro1:Id1, Ro2:Id2]],
+   q_buildarg2(Ro2, NewP, [Id1:Prop], [Def1, nil, Num, NProp, Cat,PropLoc], Facts,MostDs),     
+   entity(Type,Idx,Score,facts(Facts2)),
+   Fact1=fact(Id2, New, Args1, Pol1, Time1, Place1),
+   on(Fact1, Facts2),
+   on(Ro3:Ind2,Args1), Ind2\=Id2,
+   q_buildarg2(Ro3, What, [Ind2:Pro], [Def2, nil, Num2, NProp2, Cat2,PropLoc2], Facts2,MostDs), 
+   Prop_Why=[to,What,NProp2],
+   NewProp=[Pre,[Def1, nil, Num, NProp, Cat,Prop_Why]],
+   !.
+
+   
+extr_arg(Role, Pred, Tops, Fa,NewP):-
+   on(Ind:Prop, Tops),
+   entity(Type,Ind,Score,facts(Fa)),
+   extr_properties(Role,Ind, Fa, NewP),
+   !.
+
+
+assign_prop_attr(Ind,Fa,Prop,Pol, Place):-
+   nonvar(Prop),
+   Fact=fact(Id, Prop, Arg, Pol, Time, Place),
+   on(Fact, Fa),
+   on(_:Ind,Arg),
+   Arg=[A],
+   !.  
+assign_prop_attr(Ind,Fa,Prop,Pol, Place):-!.
+
+/*
+fact(id21, call, [agente:id9, tema_bound:id9], 1, tes(f1_maple_4), id7)
+ind(infon68, id20)
+fact(infon69, inst_of, [ind:id20, class:plant_life], 1, univ, univ)
+fact(infon70, isa, [ind:id20, class:tree], 1, id1, id7)
+in(infon71, id20, id9)
+fact(infon81, in, [arg:id21, nil:id19], 1, tes(f1_maple_4), id7)
+fact(infon83, reason, [nil:id18, arg:id19], 1, id1, id7)
+ent(infon61, id18)
+fact(infon62, prop, [arg:id18, disc_set:[id16:use:[tema_nonaff:id8, prop:id14]]], 1, id1, id7)
+ind(infon63, id19)
+fact(infon64, call, [ind:id19], 1, id1, id7)
+fact(infon65, vbl, [ind:id19], 1, id1, id7)
+fact(infon66, inst_of, [ind:id19, class:thing], 1, univ, univ)
+fact(infon67, isa, [ind:id19, class:reason], 1, id1, id7)
+
+___________________
+class(infon43, id13)
+fact(infon44, inst_of, [ind:id13, class:substance], 1, univ, univ)
+fact(infon45, isa, [ind:id13, class:sugar], 1, id1, id7)
+fact(id14, make, [agente:id8, tema_aff:id13], 1, tes(finf1_maple_3), id7)
+fact(infon48, isa, [arg:id14, arg:ev], 1, tes(finf1_maple_3), id7)
+fact(infon49, isa, [arg:id15, arg:tloc], 1, tes(finf1_maple_3), id7)
+fact(infon50, pres, [arg:id15], 1, tes(finf1_maple_3), id7)
+fact(infon51, time, [arg:id14, arg:id15], 1, tes(finf1_maple_3), id7)
+fact(id16, use, [tema_nonaff:id8, prop:id14], 1, tes(sn5_maple_3), id7)
+
+____________________
+ind(infon19, id8)
+fact(infon20, inst_of, [ind:id8, class:edible_animal], 1, univ, univ)
+fact(infon21, isa, [ind:id8, class:[maple_syrup]], 1, id1, id7)
+*/
+
+get_focus_arg_second(chi, Pred, Ind, D, NewP):-
+     q_getevents(A,Pred),
+     Pred\=essere,
+     q_fact(X,Pred,Args,1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Role),
+     get_prop_arg(Role,Z,NewPred,Temp,Space),
+     get_space_time_loc(Temp,Space,Tloc,Sloc),
+     q_buildarg_new(Pred,Ind,NewRole, NewPred, [Idx:Z], Tloc,Sloc, D, Facts,New),
+     !.
+get_focus_arg_second(quando, Pred, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred=essere,
+     recover_property_when(Z,Prop,Name),
+     q_buildarg_new(Pred,Ind,NewRole, Prop, [Idx:Z], Tloc,Sloc, D, Facts,New),
+     on(Fa,Facts),
+     Fa=fact(_, Prop, Arg, 1, T, _), T\=univ,
+     recover_time_location(T,Time),
+     D1=[Name,Prop,Time],
+     !.
+
+get_focus_arg_second(quando, Pred, Ind, D, NewP):-
+     q_getevents(A,Pred),
+     q_fact(X,Pred,Args,1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Role),
+     get_prop_arg(temporale,Z,NewPred,Temp,Space),
+     get_space_time_loc(Temp,Space,Tloc,Sloc),
+     q_buildarg_new(Pred,Ind,NewRole, NewPred, [Idx:Z], Tloc,Sloc, D, Facts,New),
+     !.
+
+get_focus_arg_second(perché, Pred, Ind, D1, NewP):-
+     q_getevents(A,NewP),
+     NewP\=essere,
+     q_fact(X,NewP,[Role:_|Args],1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Rol),
+     q_buildarg2(Role, NewP, [Idx:Z], D, Facts,New),
+%     q_buildarg(Role, NewP, [Idx:Z], D, Facts,New),
+     select_from_pred222(Idx,NewP,reason,Facts,D1,Pred),
+     !.
+
+
+get_focus_arg_second(perché, Pred, Ind, D1, NewP):-
+     q_getevents(A,NewP),
+     NewP\=essere,
+     q_fact(X,NewP,[Role:_|Args],1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Rol),
+     q_buildarg2(Role, NewP, [Idx:Z], D, Facts,New),
+%     q_buildarg(Role, NewP, [Idx:Z], D, Facts,New),
+     D\=[], D1=D,
+     !.
+
+
+recover_property_when(Z,Prop,Name):-
+     q_fact(_,quando,Args,1,_,L),
+     on(_:Z,Args),
+     q_fact(_,Prop,PArgs,1,_,L),
+     on(nil:Z,PArgs),
+     q_fact(_,isa,NArgs,1,_,L),
+     on(class:Name,NArgs),     
+     !.
+
+recover_time_location(L,Arg):-
+     entity(Type,L,Score,facts(Facts)),
+     on(Tfact,Facts),
+     Tfact=fact(_, main_tloc, Arg, 1, TPred, _), 
+     !.
+
+/*
+ind(infon127, id35)
+fact(infon128, inst_of, [ind:id35, class:tempo], 1, univ, univ)
+fact(infon129, isa, [ind:id35, class:time], 1, id34, id7)
+class(infon130, id36)
+fact(infon131, inst_of, [ind:id36, class:[]], 1, univ, univ)
+fact(infon132, isa, [ind:id36, class:February_and_March], 1, id34, id7)
+fact(infon136, isa, [arg:id38, arg:ev], 1, tes(finf1_maple_7), id7)
+fact(infon137, isa, [arg:id39, arg:tloc], 1, tes(finf1_maple_7), id7)
+fact(infon138, pres, [arg:id39], 1, tes(finf1_maple_7), id7)
+fact(infon139, time, [arg:id38, arg:id39], 1, tes(finf1_maple_7), id7)
+fact(infon142, isa, [arg:id40, arg:st], 1, tes(sn18_maple_7), id7)
+fact(infon143, isa, [arg:id41, arg:tloc], 1, tes(sn18_maple_7), id7)
+fact(infon144, pres, [arg:id41], 1, tes(sn18_maple_7), id7)
+fact(infon145, time, [arg:id40, arg:id41], 1, tes(sn18_maple_7), id7)
+
+loc(infon126, id34, [arg:main_tloc, arg:February_and_March])
+fact(id38, collect, [agent:id31, theme_aff:id28], 1, tes(finf1_maple_7), id7)
+fact(id40, be, [prop:id38, prop:infon141], 1, tes(sn18_maple_7), id7)
+fact(infon141, in, [nil:id35, temporale:id36], 1, id34, id7)
+
+entity(ind,id34,0,facts([
+fact(infon126, main_tloc, 'February_and_March', 1, 'February_and_March', _910086)])).
+
+
+entity(class,id36,1,facts([
+fact(infon131, inst_of, [ind:id36, class:[]], 1, univ, univ),
+fact(infon132, isa, [ind:id36, class:'February_and_March'], 1, id34, id7),
+fact(infon141, in, [nil:id35, temporale:id36], 1, id34, id7)])).
+*/
+
+get_space_time_loc(Temp,Space,Tloc,Sloc):-
+     q_loc(_,Temp,[_:main_tloc,arg:Tloc]),
+    !.
+get_space_time_loc(Temp,Space,Tloc,Sloc):-
+     q_loc(_,Space,[_:main_sloc,arg:Sloc]),
+    !.
+get_space_time_loc(Temp,Space,nil,nil):-
+    !.
+
+q_buildarg_new(Rel,Ind,Role, Pred, Tops, Tloc,Sloc, [Pred, Rel, TPred], Facts,MostDs):-
+   deductive_inference(NTloc,TPred),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, NProp, Cat),
+   select_newrole_facts(Role,Ind,Facts,Rel,PropLoc),
+   check_time_space(Pred,PropLoc, NTloc,NSloc,TPred),
+   match_time_space_loc(Tloc,Sloc,TPred).
+
+q_buildarg_new(Rel,Ind,Role, Pred, Tops, Tloc,Sloc, [Def1, nil, Num, NProp, Cat], Facts,MostDs):-
+   on(Ind:Prop, Tops),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, NProp, Cat),
+   select_newrole_facts(Role,Ind,Facts,Pred,PropLoc),
+   check_time_space(Pred,PropLoc, Tloc,Sloc,TPred),
+   match_time_space_loc(Tloc,Sloc,TPred).
+
+deductive_inference(TId,TPred):-
+   entity(Type,TId,Score,facts(Facts)),
+   on(fact(_,main_tloc,TPred,1,_,_),Facts).
+
+match_time_space_loc(nil,nil,TPred):-!.
+
+match_time_space_loc(nil,TPred,TPred):-!.
+
+match_time_space_loc(nil,Sloc,TPred):-
+    stringof(SL,TPred),
+    on('_',SL),
+    recover_description(TPred,Preds),
+    on(Sloc,Preds),!.
+
+match_time_space_loc(Tloc,nil,Tloc):-!.
+match_time_space_loc(Tloc,nil,TPred):-
+    \+ list(Tloc), \+ atomic(Tloc),
+    atomic(TPred),
+    Tloc=..[Tr|_],
+    (Tr=tr;Tr=ts),!.
+match_time_space_loc(Tloc,nil,TPred):-
+    atomic(Tloc),atomic(TPred),
+    stringof(SL,TPred),
+    on('_',SL),
+    recover_description(TPred,Preds),
+    on(Tloc,Preds),!.
+match_time_space_loc(Vbl,nil,TPred):-
+    (Vbl=vbl;Vbl=when),
+    atomic(TPred),!.
+
+
+check_time_space(Pred,Fa,nil,nil,nil):-!.
+
+check_time_space(Pred,Fa,nil,Sloc, Arg):-
+     on(Pre-Id-T-L,Fa),
+     entity(Type,L,Score,facts(Facts)),
+     on(Tfact,Facts),
+     Tfact=fact(_, main_sloc, Arg, 1, TPred, L), 
+     atomic(TPred),
+     !.
+check_time_space(Pred,Fa,Tloc,nil, Arg):-
+     on(Pre-Id-T-L,Fa),
+     entity(Type,T,Score,facts(Facts)),
+     on(Tfact,Facts),
+     Tfact=fact(_, main_tloc, Arg, 1, TPred, L), 
+     atomic(TPred),
+     !.
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   spy_lower(Pred,Low,1),
+   findall(Low-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, isa, Args, 1, T, L), on(_:Low,Args)), Preds),
+   Preds\=[],!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   findall(Pred-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, isa, Args, 1, T, L), on(_:Pred,Args)), Preds),
+   Preds\=[],!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   toupper(Pred, ULex),
+   findall(ULex-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, isa, Args, 1, T, L), on(_:ULex,Args)), Preds),
+   Preds\=[],!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,SPreds):-
+   spy_lower(Pred,Low,1),
+   findall(Low-Id-Temp2-Loc2, (on(Fact,Fa),
+                   Fact=fact(Id, Low, Args, 1, T, L),
+                      on(fact(Infon1, Rel1, Args1, Pol1, Temp1, Loc1),Fa),
+                      on(prop:Id,Args1),
+                      on(prop:Infon2,Args1), Infon2\=Id,
+                      on(fact(Infon2, Rel2, Args2, Pol2, Temp2, Loc2),Fa)
+                     ), Preds),
+   Preds\=[],
+   sort(Preds,SPreds),!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   spy_lower(Pred,Low,1),
+   findall(Pred-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, Low, Args, 1, T, L)), Preds),
+   Preds\=[],!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,SPreds):-
+   findall(Pred-Id-Temp2-Loc2, (on(Fact,Fa),
+                   Fact=fact(Id, Pred, Args, 1, T, L),
+                      on(fact(Infon1, Rel1, Args1, Pol1, Temp1, Loc1),Fa),
+                      on(prop:Id,Args1),
+                      on(prop:Infon2,Args1), Infon2\=Id,
+                      on(fact(Infon2, Rel2, Args2, Pol2, Temp2, Loc2),Fa)
+                     ), Preds),
+   Preds\=[],
+   sort(Preds,SPreds),!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   findall(Pred-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, Pred, Args, 1, T, L)), Preds),
+   Preds\=[],!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,SPreds):-
+   toupper(Pred, ULex),
+   findall(ULex-Id-Temp2-Loc2, (on(Fact,Fa),
+                   Fact=fact(Id, ULex, Args, 1, T, L),
+                      on(fact(Infon1, Rel1, Args1, Pol1, Temp1, Loc1),Fa),
+                      on(prop:Id,Args1),
+                      on(prop:Infon2,Args1), Infon2\=Id,
+                      on(fact(Infon2, Rel2, Args2, Pol2, Temp2, Loc2),Fa)
+                     ), Preds),
+   Preds\=[],
+   sort(Preds,SPreds),!.
+
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   toupper(Pred, ULex),
+   findall(ULex-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, ULex, Args, 1, T, L)), Preds),
+   Preds\=[],!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   spy_lower(Pred,Low,1),
+   findall(Low-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, name, Args, 1, T, L), on(Low,Args)), Preds),
+   Preds\=[],!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   findall(Pred-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, name, Args, 1, T, L), on(Pred,Args)), Preds),
+   Preds\=[],!.
+
+select_newrole_facts(Role,Ind,Fa,Pred,Preds):-
+   toupper(Pred, ULex),
+   findall(ULex-Id-T-L, (on(Fact,Fa),
+                   Fact=fact(Id, name, Args, 1, T, L), on(ULex,Args)), Preds),
+   Preds\=[],!.
+
+get_prop_arg(Role,Z,NewPred,Temp,Space):-
+     Role\=agente, Role\=agent, Role\=actor,
+     q_fact(K,isa,Args,1,Temp,Space),
+     on(ind:Z,Args),
+     on(class:NewPred,Args),
+     !.
+
+get_arg(chi, Pred, Id):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[_:Id,_:_].
+
+get_arg(chi, Pred, Id):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[_:_,Role:Id], 
+      range_first_SROLE(Role).
+
+get_arg(chi, Pred, B):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[tema_nonaff:Id].
+
+get_arg(cosa, Pred, Id):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[_:_,_:Id].
+
+get_arg(dove, Pred, Id):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[_:_,locativo:Id].
+
+get_arg(dove, Pred, Id):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[_:_,locat:Id].
+
+get_arg(cosa, Pred, B):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[tema_nonaff:Id].
+
+get_arg(cosa, Pred, Z):-
+     entity(Type,Ind,Score,facts(Fa)),
+					on(fact(_,Pred,[Z, Id, Poss],1,T,_),Fa), 
+					on(fact(_,inst_of,[ind:Poss, class:_],1,univ,_),Fa). 
+
+get_arg(come, Pred, Z):-
+     entity(Type,Ind,Score,facts(Fa)),
+					on(fact(X,Pred,[prop:I],1,_,_),Fa),
+     on(fact(I, Prop, [arg:B], 1, T, D),Fa),
+     on(fact(K,isa,[_:B,_:Z],1,A,D),Fa).
+
+get_arg(come, Pred, Z):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(I, Prop, [arg:B], 1, T, D),Fa),
+     on(fact(K,isa,[_:B,_:Z],1,A,D),Fa).
+
+get_arg_pred(chi, K, Id, Y):-
+      ruolo_fatto(N,Y,K,Id).
+
+get_arg_prop(Ch, Pred, Pred1, Ind, Pol):-
+     entity(Type,Indd,Score,facts(Fa)),
+     on(fact(K,Pred,Args,Pol,A,B),Fa),
+      Args=[_:Ind,prop:Id],      
+     on(fact(Id,Pred1,Args1,1,A1,B1),Fa).
+
+get_arg_const(chi, Pred, Id):-
+     entity(Type,Indd,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[_:_,Role:Id], Role\=prop,
+      range_first_SROLE(Role).
+
+get_arg_const(chi, Pred, Id):-
+     entity(Type,Indd,Score,facts(Fa)),
+     on(fact(K,Pred,Args,1,A,B),Fa),
+      Args=[Role:Id|Rest],
+      Rest\=[prop:_|_],
+      range_first_SROLE(Role).
+
+regola_evento1(aspettare, B):-
+                 get_arg(B, aspettare, Z),
+                 chi_aspetta(Z).
+
+regola_evento1(wave, B):-
+                 get_arg(B, wave, Z),
+                 chi_waves(Z).
+
+regola_evento1(correre, B):-
+                 get_arg(B, correre, Z),
+                 chi_arriva(Z).
+ 
+regola_evento1(insultare, Z):-
+                 get_arg(Z, insultare, B),
+                 chi_insulta(B).
+
+regola_evento1(begin, cosa, 1-['What',has, 'John', begun]):-
+                 get_arg_prop(cosa, begin, Pred1, Ind, Pol),
+                 get_ind_des(Ind,Z,T),
+                 write_props_und(en, begin,Pred1,Z, T, Pol, 1).
+
+regola_evento1(begin, chi, 2-['Who', has, begun, doing, something]):-
+                 get_arg_prop(chi, begin, Pred1, Ind, Pol),
+                 get_ind_des(Ind,Z,T),
+                 write_props_und(en, begin,Pred1,Z, T, Pol, 2).
+
+regola_evento1(be, how, 20-Q1):-
+                 get_arg(come, be, Z),
+                 com_e(Z, 20),
+                 (atomic(Z),Z1=[Z];list(Z), Z1=Z),
+                 append(['How',was, the], Z1, Q1).
+
+regola_evento1(go, chi, 3-['Who',went, into, the, restaurant]):-
+                 get_arg(chi, go, Z),
+                 chi_go(Z, 3).
+               
+/*               
+regola_evento(take_order, Z, 4-['Who',has, ordered]):-
+                 get_ind_des(B,Z,T),
+                 chi_ha_ordinato(B, 4).
+*/
+regola_evento1(take_order, chi, 5-['Who',has, ordered]):-
+                 get_arg(chi, take_order, Z),
+                 chi_ha_ordinato(Z, 5).
+
+regola_evento1(take_order, chi, 6-['Who',has, taken, the, order]):-
+                 get_arg(chi, take_order, Z),
+                 chi_ha_preso_ordine(Z, 6).
+
+regola_evento1(there_be, cosa, 7-['What',was, there, in, the, restaurant]):-
+                 get_ind_des(B,Z,T),
+                 cosa_cera(Z, 7).
+
+regola_evento1(there_be, chi, 7-['Who',was, there, in, the, restaurant]):-
+                 get_ind_des(B,Z,T),
+                 chi_cera(Z, 7).
+
+regola_evento1(go, chi, Q):-
+                 get_arg(chi, go, Z),
+                 chi_go_all(Z, 33, Ws),
+                 write_go_do-ques(Ws, Q),
+                  !.
+
+regola_evento(aspettare, B):-
+                 get_ind_des(Z,B,T),
+                 chi_aspetta(Z).
+regola_evento(wave, B):-
+                 get_ind_des(Z,B,T),
+                 chi_waves(Z).
+regola_evento(correre, B):-
+                 get_ind_des(Z,B,T),
+                 chi_arriva(Z).
+
+regola_evento(insultare, Z):-
+                 get_ind_des(B,Z,T),
+                 chi_insulta(B).
+  
+regola_evento(take_order, Z, 8-['Who',has, taken, the, order]):-
+                 get_ind_des(B,Z,T),
+                 chi_ha_preso_ordine(B, 8).
+               
+regola_evento(read, Z, 9-['Who',was, reading]):-
+                 get_ind_des(B,Z,T),
+                 chi_legge(B, 9).
+
+regola_evento(read, Z, Q):-
+                 get_arg(chi, read, Z),
+                 chi_read_all(Z, 99, Ws),
+                 write_read_do-ques(Ws, Q),
+                  !.
+
+regola_cosa1(read, E, 12-Query):-
+                 get_arg(E, read, Z),
+                 cosa_legge(Z, 12),
+                 get_ind_des(Z,B,T),
+                 (T=1, Entity=[the, B]
+                  ;
+                  T=2, Entity=[B]),
+                 append(['What',did], Entity, Q1),
+                 append(Q1, [read], Query).
+
+regola_cosa1(there_be, E, 13-['What',was, there, in, the, restaurant]):-
+                 get_arg(E, there_be, Z),
+                 get_ind_des(Z,B,T),
+                 cosa_cera(B, 13).
+
+regola_cosa1(take_order, cosa, 14-Query):-
+                 get_arg(cosa, take_order, Z),
+                 cosa_ha_ordinato(Z, 14),
+                 get_ind_des(Z,B,T),
+                 append(['What',did], [B], Q1),
+                 append(Q1, [order], Query).
+
+regola_cosa1(poss, cosa, 19-Query):-
+                 get_arg(cosa, poss, Z),
+                 cosa_ha(Z, 19),
+                 append(['What',did], [Z], Q1),
+                 append(Q1, [possess], Query).
+
+regola_cosa_fa(Z, Queries):-
+        findall(Id, (get_arg(chi, Pred, Id),
+        Pred\=isa,Pred\=inst_of, Pred\=role), Ids),
+        sort(Ids, Idd),
+        fai_cosa_fa(Idd, Queries),
+        !.
+
+fai_cosa_fa([], []):-!.
+fai_cosa_fa([Id|Idd], [15-Query|Queries]):-
+        get_ind_des(Id,B,T),
+        cosa_fa(B, Query, 15),
+        fai_cosa_fa(Idd, Queries).
+fai_cosa_fa([Id|Idd], Queries):-
+        fai_cosa_fa(Idd, Queries).
+            
+regola_dove_era(Z, 16-Query):-
+        findall(Id-TempRel-MainRel, recover_main_topic(Id, Topic, TempRel, MainRel), AllRels),
+        sort(AllRels,SortRels),
+        on(Id-TempRel-MainRel, SortRels),
+        dove_eraprima(TempRel, MainRel, Id, Query).
+
+regola_dove_era(Z, 17-Query):-
+        findall(Id-TempRel-MainRel, recover_main_topic(Id, Topic, TempRel, MainRel), AllRels),
+        sort(AllRels,SortRels),
+        on(Id-TempRel-MainRel, SortRels),
+        dove_eradopo(TempRel, MainRel, Id, Query).
+
+regola_dove_era(Z, 18-Query):-
+        findall(Id-TempRel-MainRel, recover_main_topic(Id, Topic, TempRel, MainRel), AllRels),
+        sort(AllRels,SortRels),
+        on(Id-TempRel-MainRel, SortRels),
+        dove_eraora(Id, Query).
+
+chi_go(Z, Marker) :- 
+     get_evdes(K, Args, go, Type),
+		   get_arg_pred(chi, K, Id,Temp),
+     write( Marker ),  write('  '),
+		   (Id=Z,
+       write_doublec(Z, W, 1, en)
+      ;
+      Id\=Z,
+      write_doublec(Z, W, 0, en)
+      ),!.
+
+write_doublec(W, Z, Pol, L):-
+     get_ind_des(W,Name,T),  /*aggiunta*/
+     (T=1,write('the '); T=2),   /*aggiunta*/
+     write(Name),
+     (Pol=1;
+      Pol=0, 
+       write(' not ')
+      ),
+     (L=it, write(' ran to ')
+      ;
+       L=en,  write(' went into ')),
+     get_ind_des(Z,Name1,T1),  /*aggiunta*/
+     nonvar(T1), (T1=1, 
+       (Name1\=home, Name1\=casa,
+       write('the ')
+        ; T1=1); T1=2),   /*aggiunta*/
+	    write(Name1),nl,
+     !.
+
+write_props_und(L, Pred,Pred1,Name, T, Pol, Marker):-
+     swrite(L,Pred,Pred1,Name, T, Pol,Marker),
+     !.
+
+swrite(L,Pred,Pred1,Name, T, Pol,1):-
+      nonvar(T), 
+      write( 1 ),  write('  '),
+     (T=1,write('the '); T=2),   /*aggiunta*/
+     write(Name),
+     (Pol=1;
+      Pol=0, 
+       write(' not ')
+      ),
+     write('  '),
+     write('has begun'),
+     (L=it, write(' a ')
+      ;
+       L=en,  write(' to ')),
+	    write(Pred1),nl('Answers').
+
+swrite(L,Pred,Pred1,Name, T, Pol,2):-
+      nonvar(T), 
+       write( 2 ),  write('  '),
+     (T=1,write('the '); T=2),   /*aggiunta*/
+     write(Name),nl('Answers').
+
+
+/* che cosa c'era nel ristorante */ 
+
+cosa_cera(Z, Marker) :- getplace(Y,Z),
+	               get_thing(X), 
+        	       getall_manlocation(X,Y,A),
+                A\=[],
+                write_cosacera(A, Y,Marker),!.
+
+write_cosacera([], Y, M):-!.
+write_cosacera([B|A], Y, Marker):-
+                get_ind_des(B,Name,T),  /*aggiunta*/
+                nonvar(T), 
+                write( Marker ),  write('  '),
+                write('there was '),   /*aggiunta*/
+                (T=1,write('the '); T=2,write('a ')),   /*aggiunta*/
+                getplace(D,Place), 
+                write(Name),write(' in '),
+                (T=1,write('the '); T=2,write('a ')),   /*aggiunta*/
+                write(Place), nl('Answers'), 
+                write_cosacera(A, Y, Marker). /*aggiunta*/
+
+/* chi c'era nel ristorante */       
+
+chi_cera(Z, Marker) :-
+        getplace(Y,Z),
+        get_man(X),
+	       getall_manlocation(X,Y,A),
+        A\=[],
+        write_cosacera(A, Y,Marker),!.
+
+/* chi ha ordinato */                       
+ 
+chi_ha_ordinato(W, Marker) :- 
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,take_order,Args,1,A,B),Fa),
+      Args=[_:_,goal:W],
+     get_ind_des(W,Name,T),  /*aggiunta*/
+     nonvar(T), 
+     nl('Answers'),
+     write( Marker ),  write('  '),
+     (T=1,write('the '); T=2),   /*aggiunta*/
+     write(Name),
+		   write(' ordered'),
+     nl('Answers').
+
+cosa_ha_ordinato(W, Marker) :- 
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,take_order,Args,1,A,B),Fa),
+      Args=[_:_,goal:W],
+     get_ind_des(W,Name,T),  /*aggiunta*/
+      nonvar(T), 
+     write( Marker ),  write('  '),
+     (T=1,write('the '); T=2),   /*aggiunta*/
+     write(Name),
+		   write(' ordered something'),
+     nl('Answers').
+
+chi_legge(W, Marker) :- 
+    recover_pred_arg1(W, read, True),
+     (True=true,     
+     get_ind_des(W,Name,T),  /*aggiunta*/
+      nonvar(T), 
+     (
+      write( Marker ),  write('  '), 
+      T=1,write('the '); T=2),   /*aggiunta*/
+     write(Name),
+		   write(' reads'),
+     nl('Answers')
+     ;
+      True=false,
+      get_ind_des(W,Name,T),  /*aggiunta*/
+      nonvar(T), 
+      write( 22 ),  write('  '), 
+      (T=1,write('the '); T=2),   /*aggiunta*/
+      write(Name),
+      write(' does not read')
+     ),nl('Answers').
+
+recover_pred_arg1(W, Pred, True):-
+     get_arg(chi, Pred1, W),
+     Pred1\=isa,Pred1\=inst_of, Pred1\=in,Pred1\=poss,Pred1\=role,
+     (Pred=Pred1, True=true
+     ;
+      Pred\=Pred1, 
+     (get_arg(chi, Pred, W),
+      True=true
+      ;
+      True=false)
+     ),!.
+
+recover_pred_arg1(W, Pred, True):-
+     get_arg(chi, Pred, W1),
+     (W=W1, True=true
+     ;
+      W\=W1, True=false
+     ),!.
+
+recover_pred_arg2(W, Pred1, W1, true):-
+     get_arg(chi, Pred1, W),
+     get_arg(cosa, Pred1, W1),
+     Pred1\=isa,Pred1\=inst_of, Pred1\=in,Pred1\=poss,Pred1\=role.
+
+recover_pred_arg2(W, Pred, W1, True):-
+     get_arg(chi, Pred, W),
+     get_arg(cosa, Pred1, W1),
+     Pred1\=isa,Pred1\=inst_of, Pred1\=in,Pred1\=poss,Pred1\=role,
+     (Pred=Pred1, 
+      True=false
+     ;
+      Pred\=Pred1, 
+     (get_arg(chi, Pred, W),
+      True=true
+      ;
+      True=false)
+     ).
+
+recover_pred_arg2(W, Pred, W1, True):-
+     get_arg(cosa, Pred, W1),
+     get_arg(chi, Pred1, W),
+     Pred1\=isa,Pred1\=inst_of,Pred1\=in,Pred1\=poss,Pred1\=role,
+     (W=W1, True=false
+     ;
+      W\=W1, 
+      (Pred=Pred1, True=true
+       ;
+       Pred\=Pred1, True=false)
+     ),!.
+
+/* chi ha preso l`ordine -> sintassi: chi_ha_preso_ordine */             
+
+chi_ha_preso_ordine(W, Marker) :- 
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,take_order,Args,1,A,B),Fa),
+         (Args=[agent:W,_:_];Args=[agente:W,_:_]),
+         get_ind_des(W,Name,T),  /*aggiunta*/
+         nonvar(T), 
+         write( Marker ),  write('  '), 
+         (T=1,write('the '); T=2,write('a ')),   /*aggiunta*/
+         write(Name),
+         write(' took the order'),
+         nl('Answers').
+		       
+
+/* cosa legge */                       
+ 
+cosa_legge(Z, Marker) :- 
+    recover_pred_arg2(Z, read, W, True),
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(K,read,Args,1,A,B),Fa),
+     (Args=[agente:Z1,Rol:W];Args=[agent:Z1,Rol:W]),
+     W\=Z,
+     (True=true,     
+      get_ind_des(Z,Name,T),  /*aggiunta*/
+      nonvar(T), 
+      write( Marker ),  write('  '), 
+      (T=1,write('the '); T=2),   /*aggiunta*/
+      write(Name),
+		    write(' reads '),
+      get_ind_des(W,Name1,T1),  /*aggiunta*/
+      (T1=1,write('the '); T1=2,write('a ')),   /*aggiunta*/
+	     write(Name1) 
+     ;
+      True=false,
+      get_ind_des(Z,Name,T),  /*aggiunta*/
+      nonvar(T), 
+      write( 11 ),  write('  '), 
+      (T=1,write('the '); T=2),   /*aggiunta*/
+      write(Name),
+      write(' does not read')
+     ),nl('Answers').
+
+	
+com_e(Z, Marker):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(I, Prop, [arg:B], 1, T, D),Fa),
+     write_come(Prop, Z, D, 1, Marker),!.
+
+com_e(Z, Marker):-
+     entity(Type,Ind,Score,facts(Fa)),
+     on(fact(I, Prop, [arg:B], 1, T, D),Fa),
+     write_come(Prop, Z, D, 1, Marker),!.
+
+com_e(Z, Marker):-
+     write_come(Prop, Z, D, 0,Marker).
+
+
+writeattrs([Prop]):-
+      atomic(Prop),
+      write(Prop).
+writeattrs(Prop):-
+      list(Prop), Prop=[A|Rest],
+      write(A),
+      write('  and  '),
+      writeattrs(Rest). 
+   
+write_come(Prop, Z, D, 1, Marker):-
+      getplace(D,Place), 
+      get_ind_des(X,Z,T), 
+      nonvar(T), 
+      write( Marker ),  write('  '), 
+      (T=1,write('the '); T=2), 
+      write(Z),
+      write(' was '),
+      writeattrs(Prop),
+      write(' in '),
+      write(Place),
+      nl('Answers'). 
+
+write_come(Prop, Z, D, 0, Marker):-
+      write( Marker ),  write('  '), 
+      write(' I do not know how '),write(Z),
+      write(' is '),
+      nl('Answers'). 
+
+/*
+fact(infon85, poss, [john, id3, id21], 1, id17, id2).
+ind(infon86, id21).
+fact(infon87, inst_of, [ind:id21, class:thing], 1, univ, univ).
+fact(infon88, isa, [arg:id21, arg:book], 1, id17, id2).
+fact(infon89, poss, [arg:id21, poss:id3], 1, id17, id2).
+*/
+
+cosa_ha(Z, Marker):-
+     entity(Type,Ind,Score,facts(Fa)),
+     write_poss(Obj, Z, D, Ty, Marker).
+	
+cosa_ha(Z, Marker):-
+     entity(Type,Ind,Score,facts(Fa)),
+     write_poss(Obj, Z, D, Ty, Marker).
+	
+cosa_ha(Z, Marker):-
+     write_poss(Prop, Z, D, 0, Marker).
+
+write_poss(Prop, Name, D, T, Marker):-
+      getplace(D,Place), 
+      get_ind_des(Z,Name,T),  
+      nonvar(T), 
+      write( Marker ),  write('  '), 
+      (T=1,write('the '); T=2), 
+      write(Name),write(' possesses a '),
+      write(Prop),write(' in '),
+      write(Place),nl('Answers'),!. 
+
+write_poss(Prop, Name, D, 0, Marker):-
+      get_ind_des(Z,Name,T),  
+      nonvar(T), 
+      write( 21 ),  write('  '), 
+      write(' I do not know what '),
+      (T=1,write('the '); T=2), 
+      write(Name),
+      write(' possesses '),
+      nl('Answers'),!. 
+
+/* cosa fa nel ristorante o a casa */
+/* [[correre-agente], [aspettare-tema_nonaff, insultare-tema_aff]] */                       
+ 
+partpass(correre, corso).
+partpass(aspettare, aspettato).
+partpass(insultare, insultato).
+partpass(begin, begun).
+partpass(read, read).
+partpass(wave, woven).
+partpass(take_order, taken_order_from).
+partpass(there_be, there).
+partpass(be, been).
+
+fa(correre, corre).
+fa(aspettare, aspetta).
+fa(insultare, insulta).
+fa(wave, waves).
+fa(sit, 'is sitting').
+fa(read, 'is reading').
+fa(begin, begins).
+fa(take_order, takes_order).
+fa(there_be, is_there).
+fa(be, is).
+
+write_cosafa([], Z, Y, T):-!.
+write_cosafa([Pred-Role|A], Z, Y, T):-
+                (Pred=there_be; Pred=be),
+                define_active_role(Role, True),
+                getplace(_,Place), 
+                (True=true,
+                 fa(Pred, Pres),
+                write( 15 ),  write('  '), 
+                 (T=1, Entity=[the, Y]
+                  ;
+                  T=2, Entity=[Y]),
+                 writeseq(_,Entity),  write('  '), 
+                 write(Pres), write(' in '),
+                 write(Place),nl('Answers'),
+                 write_cosafa(A, Z, Y, T),!
+                 ;
+                 True=false,
+                write( 15 ),  write('  '), 
+                 (T=1, Entity=[the, Y]
+                  ;
+                  T=2, Entity=[Y]),
+                 partpass(Pred, Pass),
+                 writeseq(_,Entity),  write('  '), 
+                 write('was '),
+                 write(Pass), write(' in '),
+                 write(Place), nl('Answers'),
+                 write_cosafa(A, Z, Y, T),!
+                 ;
+                write_cosafa(A, Z, Y, T)),!. 
+write_cosafa([Pred-Role|A], Z, Y, T):-
+                Pred\=there_be, Pred\=be,
+                define_active_role(Role, True),
+                (True=true,
+                 fa(Pred, Pres),
+                write( 15 ),  write('  '), 
+                 (T=1, Entity=[the, Y]
+                  ;
+                  T=2, Entity=[Y]),
+                 writeseq(_,Entity),  write('  '), 
+                 write(Pres), nl('Answers'),
+                 write_cosafa(A, Z, Y, T),!
+                 ;
+                 True=false,
+                write( 15 ),  write('  '), 
+                 (T=1, Entity=[the, Y]
+                  ;
+                  T=2, Entity=[Y]),
+                 partpass(Pred, Pass),
+                 writeseq(_,Entity),  write('  '), 
+                 write('was '),
+                 write(Pass), nl('Answers'),
+                 write_cosafa(A, Z, Y, T),!
+                 ;
+                write_cosafa(A, Z, Y, T)),!. 
+
+write_cosafa([Pred-Role], Z, Y, T):-
+                Pred\=there_be, Pred\=be,
+                define_active_role(Role, True),
+                (True=true,
+                 fa(Pred, Pres),
+                write( 15 ),  write('  '), 
+                 (T=1, Entity=[the, Y]
+                  ;
+                  T=2, Entity=[Y]),
+                 writeseq(_,Entity),  write('  '), 
+                 write(Pres), nl('Answers')
+                 ;
+                 True=false,
+                write( 15 ),  write('  '), 
+                 (T=1, Entity=[the, Y]
+                  ;
+                  T=2, Entity=[Y]),
+                 partpass(Pred, Pass),
+                 writeseq(_,Entity),  write('  '), 
+                 write('was '),
+                 write(Pass), nl('Answers')),!. 
+
+define_active_role(Role, true):-
+                get_roles(Roles),
+                on(Role, Roles),!.
+define_active_role(Role, false):-!.
+
+get_roles([actor, agente, agent, causante, causer_emot, esperiente, experiencer, owner, perceiver, receiver, source]).
+
+cosa_fa(Z, Query, Marker):-
+     get_ind_des(B,Z,T),
+      nonvar(T), 
+        Z\=isa,Z\=in,Z\=inst_of,Z\=ev,
+        Z\=pr,Z\=st,Z\=poss,Z\=tloc,
+     cosafa(B, Alls),
+     appiattisci(Alls, Roles),
+     sort(Roles, Rroles),
+     write_cosafa(Rroles, B, Z, T),
+                 (T=1, Entity=[the, Z]
+                  ;
+                  T=2, Entity=[Z]),
+                 append(['What',did], Entity, Q1),
+                 append(Q1, [do], Query).
+
+cosafa(Z, Alls):-
+     findall(All, cosa_faa(Z, All), Alls),!.
+
+cosa_faa(Z, All):-
+     entity(Type,Ind,Score,facts(Fa)),
+      findall(Pred-FRole, (
+														(on(fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,_),Fa);	
+														 on(fact(X,Pred,[FRole:Z,SRole:A],1,B,_),Fa), Pred\=isa;
+														 on(fact(X,Pred,[FRole:Z],1,B,_),Fa)), 
+                FRole\=arg, Pred\=inst_of), All),!.  
+
+cosa_faa(A, All):-
+     entity(Type,Ind,Score,facts(Fa)),
+         findall(Pred-SRole, (
+														on(fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,_),Fa);	
+														on(fact(X,Pred,[FRole:Z,SRole:A],1,B,_),Fa)), All),!.  
+
+
+
+in_question(Rete, NoFr, NoCl, Ln) :-
+   abolish(frase_corrente/2),
+   asserta(frase_corrente(NoFr, File)),
+   q_estrai_argomenti(Rete, RefList),
+   write_argomenti('Topics & States', Rete, RefList),
+   !,
+   q_risolvi_esterni(NoFr, RefList, Args),
+   q_discorso(NoFr, Args),
+   stampa_stato('Topics & States', NoFr),
+   !,
+   (allen ; true),
+   write_temporal_relations('Temporal Relations'),
+   !,
+   nl, 
+   main_location(NoFr, tempo, temporale, RefList, Temp),
+   main_location(NoFr, luogo, locativo, RefList, Loc),
+   !,
+   qinfo_evaluation(NoFr),
+	  !,
+   memorizza(NoFr, Loc, Temp, Args),
+   write_rhet_structure('Info Evaluation', NoFr),
+   !,
+   memorizza_rels(NoFr,Lfs,Rels),
+   write_ls_structure('L-Structure', Lfs, Rels),
+   !,
+   write_question_infons('QModel', NoFr),
+   connect_main_temp_loc(NoFr, Temp),  
+   !,
+   discourse_structure(NoFr, Node, NoCl, Ln, NoClOut, At),
+   write_disc_structure('Discourse Structure', NoFr, Node, NoClOut, Ln, At),!.
+
+q_risolvi_esterni(Frase, RefList, L1) :-
+   findall(esterno(Snx), 
+      (
+      nodo(N) :: indice :: Snx,
+      nodo(N) :: antecedente :: esterno
+      ),
+      L),
+   (
+   L \= [],
+   sort_eq(L, LL),
+   q_risolvi1(Frase, RefList, LL, L1)
+   ;
+   LL = [],
+   L1 = RefList
+   ).
+
+q_risolvi1(NFrase,RefList,[esterno(Est1),esterno(Est2)],ListOut) 
+     :-
+      q_risolvi_due(NFrase,RefList,Est1,Est2,ListOut),
+      !.
+
+q_risolvi1(NFrase,RefList,[esterno(Est)],ListOut)  
+         :-
+     q_risolvi_uno(NFrase,RefList,Est,ListOut),      
+     !.
+
+q_risolvi_uno(NumFrase,ListaArgs,SnX,L4) :-
+      q_find_anteced(NumFrase, SnX, ListaArgs, [], L4), 
+       !.
+
+q_risolvi_due(NFrase,RefList,Est1,Est2,ListOut):-
+     q_risolvi_uno(NFrase,RefList,Est1,ListOu),      
+     q_risolvi_uno(NFrase,ListOu,Est2,ListOut),
+     !.
+
+q_find_anteced(NumFrase, SnX, ListaArgs, Types, L4) :-
+       on(ref_ex(SnX,T,Ta,P,G,N,C,F/R)/Px, ListaArgs),
+       on(+pro, Ta), on(+me, Ta),
+       append([est(SnX,indefinite)],ListaArgs,L3),
+       modifica_testa1(L3,L4),!.
+
+q_discorso(1,Args) :-
+   Args\=[],
+   !,
+   (Args=[ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R)/_|ListaAltri],
+   \+ on(-ref,Tab)
+   ;
+   on(ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R)/_,Args),
+   \+ on(-ref,Tab),   
+   subtract(Args,[ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R)/_],ListaAltri)
+   ),   
+   assert(proposto(ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R))),
+   assert(principale(nil)),
+   assert(secondario(nil)),
+   asserisci_altri(ListaAltri,1),
+   assert(stato(1,cambia)).
+q_discorso(1,Args) :-!.
+
+write_question_infons(Win, NoFr) :-
+   confer_infon(Id, NoFr, _, _, _),
+   infon(Id, Fact),
+   Fact=..[Func|Rest],
+   concat(q_,Func,QFunc),
+   QFact=..[QFunc|Rest],
+   writenl(QFact), 
+   assert(QFact),
+   fail. 
+write_question_infons(_,_).
+
+q_estrai_argomenti(Rete,RefList) :-
+   findall(Ind,
+         (
+         arco(N1,N2,tab_ref,Rete),
+         arco(N1,N3,indice,Rete),
+         foglia(N3,Ind,Rete)
+         ),
+         List),
+   maplist(trova_pred,List,NList),
+   retractall(ref_ex(_,_,_,_,_,_,_,_)),
+   retractall(ref_ex(_,_,_,_,_,_,_,_,_)),
+   modifica_testa(NList,ListaArgs),
+  checklist(assertz,ListaArgs),
+   maplist(trova_path_1,List,PList),
+   q_pesa_lista(PList,LisPes),
+   q_crea_lista(LisPes,RefList),
+   !.
+
+q_crea_lista(L1,L3) :- q_crea_lista1(L1,[],_,L2),
+                     filtra(L2,L3,1100).
+
+q_crea_lista1([],_,_,[]).
+
+q_crea_lista1([Snx/P|Coda],T,Ind,
+            [ref_ex(Snx,Testa,Tab,Pers,Gen,Num,Cat,F/R)/P|Coda1]) :-
+                   ref_ex(Snx,Testa,Tab,Pers,Gen,Num,Cat,F/R),
+                  q_crea_lista1(Coda,[Testa|T],Ind,Coda1).
+
+q_crea_lista1([Snx/P|Coda],T,Ind,
+                [ref_ex(Snx,Testa,Tab,Pers,Gen,Num,Cat,F/R)/P|Coda1]) :-
+                   ref_ex(Snx,Testa,Contr,Tab,Pers,Gen,Num,Cat,F/R),
+                     Ind3 = Snx,
+                    (member(Testa, T);member(Contr,Ind)),!,
+                   q_crea_lista1(Coda,[Testa|T],[Contr|Ind],Coda1).
+
+q_crea_lista1([Snx/P|Coda],T,Ind,Coda1) :-
+                  q_crea_lista1(Coda,T,Ind,Coda1).
+
+q_select_locat_facts(Ind,[PropLoc|MostDs]):-
+   q_fact(Id, Rel, Args, Pol, Time, Place),
+   (Locat=locat;Locat=locativo),
+   Args=[Role:Ind, Locat:Loc],
+   q_get_ind_des(Loc,PropLoc,Ty),
+   q_select_locat_facts(Loc,MostDs),
+   !.
+q_select_locat_facts(Ind,[]).
+
+q_pesa_lista(PathList,LPesata) :-
+     q_sn_ref(PathList,List),
+     maplist(punteggio1,List,L4),
+     bubblesort(L4,LPesata),!.
+
+q_sn_ref([],[]).
+q_sn_ref([Ind/Pa|Rest],[Ind/Pa|Altri]) :-
+   nodo(N)::indice::Ind,
+   nodo(N)::pred::Pred,
+   nodo(N)::tab_ref::Tab,
+   q_isa_sn_ref(Pred, Tab),
+  q_sn_ref(Rest,Altri).
+q_sn_ref([Ind/Pa|Rest],Altri) :-
+       q_sn_ref(Rest,Altri).
+
+q_isa_sn_ref(Pred, Tab) :-
+   Tab \= [+ref,-pro,-ana,+me].
+
+q_isa_sn_ref(_, [- ref, - pro, + ana, + me, - subj]) :-
+   gr(english).
+
+select_alllocat_facts(Ind,Fa,Pred,PropLoc):-
+   select_locat_facts(Ind,Fa,MostDs),
+   MostDs\=[],
+   Fact=fact(Id, Pred, Args, Pol, Time, Place),
+   (Locat=locat;Locat=locativo),
+   Args=[actor:Ind, Locat:Loc],
+   on(Fact, MostDs),
+   extract_getplace(Loc,PropLoc,Ty),
+   !.
+
+select_alllocat_facts(Ind,Facts,Rel,Arg):-
+   Fact=fact(Id, Rel, Args, Pol, Time, Place),
+   on(Role:Ind,Args),
+   (range_first_SROLE(Role);
+   range_second_SROLE(Role)),
+   on(Fact, Facts),
+   entity(Type,Place,Score,facts(LocFa)),
+   on(fact(_, main_sloc, [arg:Arg], 1, _14424, _14418),LocFa),!.
+
+select_locat_facts(Ind,Facts,[Fact|MostDs]):-
+   Fact=fact(Id, Rel, Args, Pol, Time, Place),
+   (Locat=locat;Locat=locativo),
+   Args=[Role:Ind, Locat:Loc],
+   on(Fact, Facts),
+   remove(Fact,Facts, Most),
+   select_locat_facts(Ind,Most,MostDs),
+   !.
+select_locat_facts(Ind,Facts,[]).
+
+extract_getplace(Ind,Prop,Ty):-
+   entity(Type,Ind,Score,facts(Fa)),
+   (on(fact(_,name,[Prop, Ind],Pol,_,_),Fa), 
+    on(fact(_,inst_of,[ind:Ind, class:Gend],Pol,_,_),Fa), 
+     Def=prop, Num=sing
+    ;
+    on(fact(_,isa,[_:Ind, _:Prop],Pol,_,_),Fa), 
+     Def=def, 
+     (Ty=ind, Num=sing
+      ;
+      Type=set, Num=plur)),
+   !.
+
+
+
+reply_user(Out, NoFr, D) :-
+     q_fact(K,focus,[arg:Id],1,_,_),
+     q_fact(_,isa,[_:Id,_:Focus],1,A,B),
+     get_focus_arg(Focus, Pred, Idx, D, NewP),
+     get_focus_tense(T, M),
+     Form=[Pred,T,M,P,[D]],
+     build_reply(Out,Focus, Form),
+     !.
+
+reply_user(Out, NoFr, D) :-
+     q_fact(K,focus,[arg:Id],1,_,_),
+     q_fact(_,isa,[_:Id,_:Focus],1,A,B),
+     get_focus_arg_second(Focus, Pred, Idx, D, NewP),
+     get_focus_tense(T, M),
+     Form=[Pred,T,M,P,[D]],
+     build_reply(Out,Focus, Form),
+     !.
+
+reply_user(Out, NoFr, [True,Form]) :-
+     q_fact(K,perf,[arg:_, Perform:Id],1,A,B),
+     q_fact(Id,Pred,Args,1,T,S),
+     get_focus_arg(Perform, Pred, Args, D, True-NewFact),
+     write_true_false_all(NewFact, True, YN, NPred, D),
+     !.
+
+write_true_false_all(NewFact, counter, YN, NPred, D):-
+     get_focus_tense(Te, M),
+     generate_ysno(NewFact, counter, YN, NPred),
+     write_true_false_output(YN, user),
+     Form=[NPred,Te,M,P,[D]],
+     ynbuild_reply(counter,Focus, Form),
+     !.
+
+write_true_false_all(NewFact, false, YN, NPred, D):-
+     get_focus_tense(Te, M),
+     generate_ysno(NewFact, false, YN, NPred),
+     write_true_false_output(YN, user),
+     build_out_form1(Te,M,P,D,Form),
+     ynbuild_reply(false,Focus, Form),
+     build_out_form2(do,Te,M,P,D,CForm),
+     ynbuild_reply(true,Focus, CForm),
+     !.
+
+write_true_false_all(NewFact, true, YN, NPred, D):-
+     get_focus_tense(Te, M),
+     generate_ysno(NewFact, true, YN, NPred),
+     write_true_false_output(YN, user),
+     Form=[NPred,Te,M,P,[D]],
+     ynbuild_reply(true,Focus, Form),
+     !.
+
+build_out_form1(Te,M,P,[D,D1],Out):-
+     Out=[do,Te,M,P,[NewP1]],
+     D = [Prop, nil, Num, Name], 
+     NewP1 = [Prop, nil, Num, Name],
+     !.
+
+build_out_form1(Te,M,P,D,Out):-
+     Out=[do,Te,M,P,[NewP1]],
+     D = [Prop, nil, Num, Name], 
+     NewP1 = [Prop, nil, Num, Name],
+     !.
+
+build_out_form2(NPred,Te,M,P,[D,D2],CForm):-
+     D=[Def, A, N, L],
+     set_def_model_ind(L,Def1),
+     D1=[Def1, A, N, L],
+     translate_form_ind(D1, NewP1),
+     translate_form_ind(D2, NewP2),
+     CForm=[NPred,Te,M,P,[NewP1,NewP2]],
+     !.
+
+build_out_form2(NPred,Te,M,P,D,CForm):-
+     D=[Def, A, N, L],
+     set_def_model_ind(L,Def1),
+     D1=[Def1, A, N, L],
+     translate_form_ind(D1, NewP1),
+     CForm=[NPred,Te,M,P,[NewP1]],
+     !.
+
+translate_form_ind(D, NewP1):-
+     D = [Prop, nil, Num, Name,Cat, []], 
+     NewP1 = [Prop, nil, Num, Name],
+     !.
+translate_form_ind(D, NewP1):-
+     D = [Prop, nil, Num, Name,Cat], 
+     NewP1 = [Prop, nil, Num, Name],
+     !.
+translate_form_ind(D, D):-!.
+
+ynbuild_reply(true,Focus, Form):-
+     Form=[Pred,T,M,P,NewP],
+     Form1=[act,T,M,Pred,NewP],
+     genS(Form1),
+     !.
+ynbuild_reply(false,Focus, Form):-
+     Form=[Pred,T,M,P,NewP],
+     Form1=[neg,act,T,M,Pred,NewP],
+     genS(Form1),
+     !.
+ynbuild_reply(counter,Focus, Form):-
+     Form=[Pred,T,M,P,[D1]],
+     translate_form_ind(D1, NewP),
+     Form1=[neg,act,T,M,Pred,[NewP]],
+     genS(Form1),
+     !.
+
+generate_ysno(Pred, true, yes, do).
+generate_ysno(Pred, false, no, Pred).
+generate_ysno(Pred, counter, no, Pred).
+
+get_focus_tense(Tens, ind):-
+     Infon=..[fact, InfonId, isa, [arg:TenseId, arg:tloc], 1, T, L],
+     Infon,
+     Infon1=..[fact, InfonId1, Tense, [arg:TenseId], 1, T, L],
+     Infon1,
+     (Tense\=nil, Tens=Tense;Tens=pres),
+     !.
+
+write_true_false_output(Sent, OutWin):-
+    write(Sent),
+    write(', '),nl,
+     !.
+
+write_generated_output(Sent, OutWin):-
+    writeseq(OutWin,Sent),nl,
+     !.
+
+checkarticle(Name,Art):-
+     stringof([C|_],Name),
+     (is_vow(C),Art=an;Art=a),!.
+
+transl_cat(man,umano).
+transl_cat(thing,oggetto).
+transl_cat(social_role,umano).
+transl_cat(_,oggetto).
+
+
+build_reply(OutWin,chi, Form):-
+     Form=[Pred,T,M,P,[NewP]],
+     translate_form_ind(NewP, NeDwP1),
+     (
+       NeDwP1 = [prop, nil, sing, Name], Sent=[Name]
+       ;
+       NeDwP1 = [Prop, nil, sing, Name], Prop\=prop,
+     set_def_model_ind(Name,Def),
+       (Def=prop,
+         (list(Name), Sent=Name; atomic(Name),Sent=[Name])
+         ;
+         Sent=[the, Name])),
+     write_generated_output(Sent, OutWin),
+     !.
+
+build_reply(OutWin,cosa, Form):-
+     Form=[Pred,T,M,P,[NewP]],
+     translate_form_ind(NewP, NeDwP1),
+     (
+       NeDwP1 = [prop, nil, sing, Name], Sent=[Name]
+       ;
+       NeDwP1 = [Prop, nil, sing, Name], Prop\=prop,
+       set_def_model_ind(Name,Def),
+       (Def=prop,Sent=[Name];
+        checkarticle(Name,Art),
+         Sent=[Art, Name])
+       ;
+       NeDwP1 = [Prop, nil, sing, Name, Scat, Propt], Prop\=prop,
+       set_def_model_ind(Name,Def),
+       (Def=prop,Sent=[Propt, Name];
+        checkarticle(Name,Art),
+         Sent=[Art, Propt, Name])
+       ),
+     write_generated_output(Sent, user),
+     !.
+
+build_reply(Out,where, Form):-
+     Form=[Pred,T,M,P,[NewP]],
+     NewP = [Prop, nil, Num, Name,SemCat,Rels],
+     list(Rels), 
+     transl_cat(SemCat,Cat),
+     NewP1 = [Prop, nil, Num, Cat],
+     Form1=[act,T,M,Pred,[NewP1, Rels]],
+     genS(Form1),
+     !.
+
+build_reply(Out,how, Form):-
+     Form=[Pred,T,M,P,[NewP]],
+     NewP = [Prop, nil, Num, Rels,_],
+     list(Rels),
+     Rels=[R,R1],
+     Rels1=[R,and,R1],
+     Sent=[the,Prop,was|Rels1],
+     write_generated_output(Sent, Out),
+     !.
+
+build_reply(Out,where, Form):-
+     Form=[Pred,T,M,P,[NewP]],
+     NewP = [Prop, nil, Num, Name,SemCat], 
+     transl_cat(SemCat,Cat),
+     NewP1 = [Prop, nil, Num, Cat],
+     Rels=[locat,Name],
+     Form1=[act,T,M,Pred,[NewP1, Rels]],
+     genS(Form1),
+     !.
+
+build_reply(Out,where, Form):-
+     Form=[Pred,T,M,P,[NewP]],
+     NewP = [Prop, nil, Num, Name,SemCat, Mod],
+     (Mod\=[],Mod1=Mod;Mod=[], Mod1=ind),
+     transl_cat(SemCat,Cat),
+     NewP1 = [Prop, nil, Num, Cat],
+     Rels=[locat,[Name, [Type,Mod1]]],
+     Form1=[act,T,M,Pred,[NewP1, Rels]],
+     genS(Form1),
+     !.
+
+build_reply(Out,why, Form):-
+     Form=[Pre,T,M,P,NewP],
+     NewP = [[Prop, nil, Num, Name,SemCat, []]], 
+     Sent=[to,Pre,Name],
+     write_generated_output(Sent, Out),
+     !.
+
+build_reply(Out,why, Form):-
+     Form=[Pre,T,M,P,NewP],
+     NewP = [[Prop, nil, Num, Name,SemCat]], 
+     Sent=[to,Pre,Name],
+     write_generated_output(Sent, Out),
+     !.
+
+build_reply(Out,why, Form):-
+     Form=[Pre,T,M,P,NewP],
+     NewP = [[Pro, nil, Nu, reason,Sem,PropWhy]], 
+     PropWhy=[Pred, [Prop, nil, sing, [Name], Cat, [to, Reason,Action]]],
+     vv(X,Pred,part,pass,Pers,Num),
+     Sent=[because,Name,was,X,to,Reason,Action],
+     write_generated_output(Sent, Out),
+     !.
+
+build_reply(Out,why, Form):-
+     Form=[Pre,T,M,P,NewP],
+     NewP = [[Pro, nil, Nu, reason,Sem,PropWhy]], 
+     PropWhy=[Pred, [Prop, nil, sing, Name, Cat, [to, Reason,Action]]],
+     list(Name), 
+     participio_p(X,Pred,Pers,Num),
+     append_gen(Name,Nam),
+     Sent=[because,Nam,was,X,to,Reason,Action],
+     write_generated_output(Sent, Out),
+     !.
+
+build_reply(Out,why, Form):-
+     Form=[Pre,T,M,P,NewP],
+     NewP = [[Pro, nil, Nu, reason,Sem,PropWhy]], 
+     PropWhy=[Pred, [Prop, nil, sing, Name, Cat, [to, Reason,Action]]],
+     atomic(Name), 
+     participio_p(X,Pred,Pers,Num),
+     Sent=[because,Name,was,X,to,Reason,Action],
+     write_generated_output(Sent, Out),
+     !.
+
+build_reply(Out,Focus, Form):-
+     Form=[Pre,T,M,P,[[Name,Pred,NewP]]],
+     participio_p(X,Pred,Pers,Num),
+     Sent=[Name,was,X,in,NewP],
+     write_generated_output(Sent, Out),
+     !.
+
+build_reply(Out,Focus, Form):-
+     Form=[Pre,T,M,P,[[Name,Pred,NewP]]],
+     vv(X,Pred,part,pass,Pers,Num),
+     Sent=[Name,was,X,in,NewP],
+     write_generated_output(Sent, Out),
+     !.
+
+append_gen([A|List],Nam):-
+     mcon(A,'_',A1),
+     on(B,List),
+     mcon(A1,B,Nam),!.
+
+reply_user(Rete, NoFr, NoCl, Ln) :-
+    q_get_focus_arg(Focus, Pred, Idx),
+    !.
+
+select_from_pred1(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    on(Role1:Ind,Args),
+    belongsrole(Role,Role1),
+    !.
+
+select_from_pred1(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    Args=[R:Ind|_],
+    !.
+
+select_from_pred1(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    Args=[R,S,Role1:Ind|_],
+    belongsrole(Role,Role1),
+    !.
+
+select_from_pred1(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    Args=[R,S,Ro:Ind|_],
+    !.
+
+
+select_from_pred1(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred1,Args,Pol,A,B), Facts),
+    consistent_preds(Pred,Pred1,Score),
+    on(Role1:Ind,Args),
+    belongsrole(Role,Role1),
+    !.
+
+select_from_pred1(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred1,Args,Pol,A,B), Facts),
+    consistent_preds(Pred,Pred1,Score),
+    Args=[R:Ind|_],
+    !.
+
+select_from_pred1(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred1,Args,Pol,A,B), Facts),
+    consistent_preds(Pred,Pred1,Score),
+    Args=[R,S,Role1:Ind|_],
+    belongsrole(Role,Role1),
+    !.
+
+select_from_pred1(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred1,Args,Pol,A,B), Facts),
+    consistent_preds(Pred,Pred1,Score),
+    Args=[R,S,Ro:Ind|_],
+    !.
+
+select_from_pred11(Pred,Role,Facts,NFacts,D):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    select_from_pred1(Pred,Role,Ind,Facts),
+    q_buildarg(Role, Pred, [Ind:Z], D, NFacts,NewP),
+    !.
+select_from_pred11(Pred,Role,Facts,NFacts,D):-
+    on(fact(K,Pred1,Args,Pol,A,B), Facts),
+    consistent_preds(Pred,Pred1,Score),
+    select_from_pred1(Pred1,Role,Ind,Facts),
+    q_buildarg(Role, Pred1, [Ind:Z], D, NFacts,NewP),
+    !.
+
+
+select_from_pred_temp(Pred,[after,_,A],Facts,NDis,before):-
+    on([Ind-A-Temp-Role-SemRel-MainRel-Ut], NDis),
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    select_from_pred1(Pred,Role,Ind,Facts),
+    !.
+
+select_from_pred_temp(Pred,[Rel,_,A],Facts,NDis,NRel):-
+    on([Ind-A-Temp-Role-SemRel-MainRel-Ut], NDis),
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    select_from_pred1(Pred,Role,Ind,Facts),
+    !.
+
+select_from_pred111(Pred,prop,Facts,NDis,D):-
+    nonvar(NDis),
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    select_from_pred1(Pred,Role,Ind,Facts),
+    on([Ind-A-Temp-Role-SemRel-MainRel-Ut], NDis),
+    nonvar(Temp),
+    Temp=..D,
+    !.
+
+select_from_pred111(Pred,Role,Facts,NDis,D):-
+    nonvar(NDis),
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    select_from_pred1(Pred,Role,Ind,Facts),
+    on([Ind-A-Temp-Role-SemRel-MainRel-Ut], NDis), 
+    nonvar(Temp),
+    Temp=..D,
+    !.
+
+select_from_pred2(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    Args=[R,Role:Ind|_],
+    !.
+
+select_from_pred2(Pred,Role,Ind,Facts):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    Args=[Ro,R:Ind|_],
+    !.
+
+select_from_pred22(Pred,Role,Facts,NFacts,D):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    Args=[R,Role:Id|_],
+    q_buildarg(Role, Pred, [Id:Z], D, NFacts,NewP),
+    !.
+
+select_from_pred22(Pred,Role,Facts,NFacts,D):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    Args=[R:Id],
+    q_buildarg_infon(Role, Pred, [Id:Z], D, NFacts,NewP),
+    !.
+select_from_pred222(Id,Pred,reason,Facts,D1,NewPred):-
+    on(fact(K1,Pred,Args,Pol,A1,B1), Facts),
+    Args=[_:Id|_],
+    on(fact(K2,Pred1,Args2,Pol,A2,B2), Facts),
+    on(_:K1,Args2),
+    on(fact(K,coincide,Args1,Pol,A,B), Facts),
+    on(_:K2,Args1),
+    on(_:K3,Args1),K3\=K2,
+    on(fact(K3,NewPred,Args3,Pol,A3,B3), Facts),
+    on(_:Id,Args3),
+    on(_:Idx,Args3),Idx\=Id,
+    q_buildarg(Role, NewPred, [Idx:Z], D1, NFacts,NewP),
+    !.
+
+select_from_pred222(Id,Pred,reason,Facts,D1,NewPred):-
+    on(fact(K1,Pred,Args,Pol,A1,B1), Facts),
+    Args=[_:Id|_],
+    on(fact(K2,Pred1,Args2,Pol,A2,B2), Facts),
+    on(_:K1,Args2),
+    on(fact(K,coincide,Args1,Pol,A,B), Facts),
+    on(_:K2,Args1),
+    on(_:K3,Args1),K3\=K2,
+    entity(Type,Ind,Score,facts(Fa)),
+    on(fact(K3,NewPred,Args3,Pol,A3,B3), Fa),
+    on(_:Id,Args3),
+    on(_:Idx,Args3),Idx\=Id,
+    q_buildarg(Role, NewPred, [Idx:Z], D1, NFacts,NewP),
+    !.
+/*
+select_from_pred22(Pred,Role,Facts,NFacts,D):-
+    on(fact(K,Pred,Args,Pol,A,B), Facts),
+    Args=[Ro,R:Id|_],
+     q_buildarg(Role, Pred, [Id:Z], D, NFacts,NewP),
+    !.
+*/
+q_locat_facts([Location|PropLoc]):-
+     findall(X,q_ruolo_fatto2(X,locativo),
+     q_get_ind_des(K,Location,Ty)),
+     q_locat_facts(PropLoc),
+     !.
+
+q_locations(Places, NewPred):-
+    findall(X,q_getplace(C,X),K),
+    sort(K,Places),
+    Places\=[],
+    (on(there,Places), 
+     concat(there,'_',NewPre),
+     concat(NewPre,be,NewPred)
+     ; 
+     \+ nogen_member(there,Places),NewPred=be),
+    !.
+
+get_focus_arg(chi, Pred, Idx):-
+     q_fact(_,Pred,[Role:Id|_],1,_,B),
+     q_find_descr([Id],Desc), on(Des,Desc),
+     q_buildarg(Role, Idx, [Idx:Des], D, Facts,NewP),
+     !.
+
+get_focus_arg(dove, FPred, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred=be,
+     q_fact(X,Be,[prop:Y],1,_,_), 
+     q_fact(Y,Prop,[_:K,FRole:Type],1,_,_),
+     q_fact(_,inst_of,[_:K,_:Z],P,T,S),
+     q_get_ind_des(K,Propp,Ty),
+     q_buildarg(FRole, FPred, [Idx:Propp], D, Facts,New),
+     D1=D, NewP=New,
+     !.
+
+get_focus_arg(quando, essere, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred=essere,
+     q_fact(X,Pred,Args,1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Role),
+     q_buildarg(Role, Pred, [Idx:Z], D, Facts,New),
+     (
+      select_from_pred2(Pred,Role,Idx,Facts), D1=D, NewP=Facts
+      ;
+      select_from_pred22(Pred,Role,Facts,NewP,D1)),     
+     !.
+
+get_focus_arg(cosa, essere, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred=essere,
+     q_fact(X,Pred,Args,1,_,L),
+     q_locations(Places,NPred),
+     on(Location,Places),
+     q_buildarg_loc(theme_nonaff, Location, NPred, [Idx:Z], D, Facts,New),
+     D=[Def, Q, Nu, What, Cat],
+     Cat=thing,
+     D1=[ndef, Q, Nu, What, Cat],
+     !.
+
+get_focus_arg(che_cosa, essere, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred=essere,
+     q_fact(X,Pred,Args,1,_,L),
+     q_locations(Places,NPred),
+     on(Location,Places),
+     q_buildarg_loc(theme_nonaff, Location, NPred, [Idx:Z], D, Facts,New),
+     D=[Def, Q, Nu, What, Cat],
+     Cat=thing,
+     D1=[ndef, Q, Nu, What, Cat],
+     !.
+
+get_focus_arg(chi, essere, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred=essere,
+     q_fact(X,Be,[prop:Y],1,_,_), 
+     q_fact(Y,Prop,[_:K,FRole:Type],1,_,_),
+     (q_fact(_,inst_of,[_:K,_:Z],P,T,S), Pred1=Pred
+       ;
+      (Z=agente;Z=agent;Z=actor)),
+     q_buildarg(Role, Pred1, [Idx:Z], D, Facts,New),
+     (
+      select_from_pred2(Pred1,Z,Idx,Facts), D1=D, NewP=Facts
+      ;
+      select_from_pred22(Pred1,Z,Facts,NewP,D1)
+      ;    
+    select_from_pred1(Pred1,Z,Idx,Facts), D1=D, NewP=Facts),
+     !.
+
+get_focus_arg(come, essere, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred=essere,
+     q_fact(X,come,[_:Y],1,_,_), 
+     q_fact(Q,isa,[_:K,class:Pred1],1,_,_),
+     (q_fact(_,inst_of,[_:K,_:Z],P,T,S)
+       ;
+      (Z=prop;Z=Nil)),
+     q_buildarg(Role, Pred1, [Idx:Z], D, Facts,New),
+     (
+      select_from_pred2(Pred1,Z,Idx,Facts), D1=D, NewP=Facts
+      ;
+      select_from_pred22(Pred1,Z,Facts,NewP,D1)
+      ;    
+    select_from_pred1(Pred1,Z,Idx,Facts), D1=D, NewP=Facts),
+     !.
+
+get_focus_arg(yes/no_question, Pred, Args, D, True-NewFact):-
+     fact_individuals(Args, Inds),
+     Inds=[A],
+     yn_buildarg(Pred, Inds, Prop, D, Facts, Ind),
+     check_facts(Pred, Prop, Inds, Ind, D, D1, Facts, True, NewFact),
+     !.
+
+get_focus_arg(yes/no_question, Pred, Args, D, True-NewFact):-
+     fact_individuals(Args, Inds),
+     Inds=[A],
+     yn_counterbuildarg(Pred, Inds, Prop, D, Facts, Ind),
+     check_facts(Pred, Prop, Inds, Ind, D, D1, Facts, True, NewFact),
+     !.
+
+get_focus_arg(yes/no_question, Pred, Args, D, counter-Pred):-
+     fact_individuals(Args, Inds),
+     Inds=[A],
+     yn_counterbuildarg(Pred, Inds, Prop, D, Facts, Ind),
+     !.
+
+get_focus_arg(yes/no_question, Pred, Args, D1, True-NewFact):-
+     fact_individuals(Args, Inds),
+     Inds\=[A],
+     yn_buildarg(Pred, Inds, Prop, D, Facts, Ind),
+     check_facts(Pred, Prop, Inds, Ind, D, D1, Facts, True, NewFact),
+     !.
+
+get_focus_arg(yes/no_question, Pred, Args, D, counter-Pred):-
+     fact_individuals(Args, Inds),
+     Inds\=[A],
+     yn_counterbuildarg(Pred, Inds, Prop, D, Facts, Ind),
+     !.
+
+get_focus_arg(dove, Pred, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred\=be,
+     q_fact(X,Pred,Args,1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Role),
+     q_buildarg(locat, Pred, [Idx:Z], D, Facts,New),
+     (
+      select_from_pred2(Pred,locat,Idx,Facts), D1=D, NewP=Facts
+      ;
+      select_from_pred22(Pred,locat,Facts,NewP,D1)),     
+     !.
+
+get_focus_arg(quando, Pred, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred\=essere,
+     q_fact(X,Pred,Args,1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Role),
+     q_buildarg(temporale, Pred, [Idx:Z], D, Facts,New),
+     select_from_pred111(Pred,Role,Facts,New,Temp), 
+     select_from_pred_temp(NPred,Temp,Facts,New,Ntemp),    
+     !.
+
+get_focus_arg(cosa, Pred, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred\=essere,
+     q_fact(X,Pred,Args,1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Role),
+     q_buildarg(Role, Pred, [Idx:Z], D, Facts,New),
+     (
+      select_from_pred2(Pred,Role,Idx,Facts), D1=D, NewP=Facts
+      ;
+      select_from_pred22(Pred,Role,Facts,NewP,D1)),     
+     !.
+
+get_focus_arg(che_cosa, Pred, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred\=essere,
+     q_fact(X,Pred,Args,1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Role),
+     q_buildarg(Role, Pred, [Idx:Z], D, Facts,New),
+     (
+      select_from_pred2(Pred,Role,Idx,Facts), D1=D, NewP=Facts
+      ;
+      select_from_pred22(Pred,Role,Facts,NewP,D1)),     
+     !.
+
+get_focus_arg(chi, Pred, Ind, D1, NewP):-
+     q_getevents(A,Pred),
+     Pred\=be,
+     q_fact(X,Pred,Args,1,_,L),
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto(X,Role),
+     q_buildarg(Role, Pred, [Idx:Z], D, Facts,New),
+     Facts\=[],
+     select_from_pred11(Pred,Role,Facts,NewP,D1),     
+/*     (
+      select_from_pred2(Pred,Role,Idx,Facts), D1=D, NewP=Facts
+      ;
+      select_from_pred22(Pred,Role,Facts,NewP,D1)),     
+*/   select_from_pred1(Pred,Role,Idx,NewP),
+     !.
+
+assert_centerf(Role,Propp):-
+     cf(Propp,_),
+     proposto(Ref), 
+     Ref=ref_ex(SnX,Propp,Tab,Pers,Gen,Num,Cat,F/R),
+     asserta(cb(Propp,Ref)),!.
+
+assert_centerf(Role,Propp):-
+     cb(Propp,_),
+     proposto(Ref), 
+     Ref=ref_ex(SnX,Propp,Tab,Pers,Gen,Num,Cat,F/R),
+     asserta(cf(Propp,Ref)),!.
+
+assert_centerf(Role,Propp):-
+     proposto(Ref), 
+     Ref=ref_ex(SnX,Propp,Tab,Pers,Gen,Num,Cat,F/R),
+     asserta(cf(Propp,Ref)),!.
+
+assert_centerf(Role,Propp):-
+     cf(Propp,_),
+     asserta(cb(Propp,Ref)),!.
+assert_centerf(Role,Propp):-
+     cb(Propp,_),
+     asserta(cf(Propp,Ref)),!.
+
+assert_centerf(Role,Propp):-
+     asserta(cf(Propp,Role)),!.
+
+centering(Id,Propp,Role):-
+   range_first_SROLE(Role),
+   assert_centerf(Role,Propp),
+   !.
+centering(Id,Propp,Role):-
+   range_second_SROLE(Role),
+   assert_centerb(Role,Propp),
+   !.
+centering(Id,Propp,Role):-
+   range_third_SROLE(Role),
+   assert_centerb(Role,Propp),
+   !.
+fact_individuals([], []):-!.
+fact_individuals([Role:Id|Args], [Propp-Role|Inds]):-
+     q_get_specific_ind_des(Id,Propp,Ty),
+     Propp\=exist,
+     update_user_model(Propp, Role), 
+     centering(Id,Propp,Role),
+     fact_individuals(Args, Inds),!.
+
+fact_individuals([Role:Id|Args], [Propp-Role|Inds]):-
+     q_get_ind_des(Id,Propp,Ty),
+     Propp\=exist,
+     fact_individuals(Args, Inds),!.
+
+fact_individuals([Role:Id|Args], Inds):-
+     q_get_ind_des(Id,Propp,Ty),
+     Propp=exist,
+     fact_individuals(Args, Inds),!.
+
+ind_role([], []):-!.
+ind_role([Role:Id|Args], [Prop-Role|Inds]):-
+     entity(Type,Id,Score,facts(Facts)),
+     q_extract_properties(Type,Id, Facts, Def1, Num, Prop, Cat),
+     ind_role(Args, Inds),!.
+ind_role([Role:Id|Args], Inds):-
+     ind_role(Args, Inds),!.
+
+yn_buildarg(Pred, Tops, Prop, [top, nil, Num, Propp], Facts,Ind):-
+       on(Prop-_, Tops),
+       nonspecific_ref(Num,Prop,True),
+       True=false,
+       q_get_ind_des(Id,Prop,Ty),
+       pred_p(_, Prop, nil, Cat, []),
+       default_properties(NoFr, SnX, Cat, Propp, Id, Temp, Loc),
+       !.
+       
+yn_buildarg(Pred, Tops, Prop, [Def1, nil, Num, Prop], Facts,Ind):-
+   on(Prop-_, Tops),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, Prop, Cat).
+
+/* il predicato non esiste nei fatti e si recupera il partecipante nell'evento */
+
+yn_counterbuildarg(Pred, Tops, Prop, [Def1, nil, Num, Pro, Cat], Facts,Ind):-
+   on(Prop-_, Tops),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, Pro, Cat), 
+   Pro\=Prop,
+   on(fact(K,Pred,Args,1,A,B), Facts).
+
+evaluate_facts(K, K, A, B, A, B, Facts, Facts, true):-!.
+
+/* il predicato esiste nei fatti e cambia il partecipante nell'evento */
+
+check_facts(Pred, Prop, Tops, Id, D1, D1, Facts,True,[]):-
+   remove(Prop-Role, Tops, Rest),
+   on(fact(K,Pred,Args,1,A,B), Facts),
+   yn_buildarg(Pred, Rest, SProp, D, NFacts, Ind),
+   on(fact(K1,Pred,Args1,1,A1,B1), NFacts),
+   evaluate_facts(K, K1, A, B, A1, B1, Args, Args1, True),
+   !.   
+
+check_facts(Pred, Prop, Tops, Id, D1, D3, Facts,false,Pred):-
+   remove(Prop-Role, Tops, Rest),
+   on(fact(K,Pred,Args,1,A,B), Facts),
+   yn_buildarg(Pred, Rest, SProp, D, NFacts, Ind),
+   \+ nogen_member(fact(K1,Pred,Args1,1,A1,B1), NFacts),
+   ind_role(Args, Inds), 
+   on(_-NRole, Rest),
+   on(NProp-NRole, Inds),
+   yn_buildarg(Pred, [NProp-NRole], NProp, D2, DFacts, Idd),
+   append([D2],[D1],D3),
+   !.   
+
+check_facts(Pred, Prop, Tops, Id, D, D, Facts,false,[Predd]):-
+   remove(Prop-Role, Tops, Rest),
+   on(fact(K,Predd,Args,1,A,B), Facts), 
+   Pred=Predd,
+   isa_role_fatto(Args),
+   ind_role(Args, Inds), 
+   on(Prop-Role1, Inds), 
+   belongsrole(Role,Role1),
+   !.   
+
+q_get_focus_arg(cosa, Pred, Idx):-
+     q_fact(K,focus,[arg:Id],1,A,B),
+     q_fact(_,Pred,[Role1:Id1,Role:Id|_],1,_,B),
+     q_get_evdes(K, Pred, Type),
+     get_evdes(K, Args, GPred, Type),
+      Args=[_:Id1,_:Idx|_].
+
+q_get_focus_arg(chi, Pred, Idx):-
+     q_fact(K,focus,[arg:Id],1,A,B),
+     q_fact(_,Pred,[Role1:Id1,Role:Id|_],1,_,B),
+     q_get_evdes(K, Pred, Type),
+     get_evdes(K, Args, GPred, Type),
+      Args=[_:Id1,_:Idx|_].
+
+q_get_focus_arg(chi, Pred, Idx):-
+     q_fact(K,focus,[arg:Id],1,A,B),
+     q_fact(_,Pred,[Role:Id|_],1,_,B),
+     q_get_evdes(K, Pred, Type),
+     get_evdes(K, Args, GPred, Type),
+      Args=[_:Idx|_].
+
+q_get_all(X,Y,Z) :- q_get_luoghi(X),q_get_man(Y),q_get_thing(Z).
+ 
+q_get_luoghi(Pl) :- findall(X, q_getplace(_,X), Places), sort(Places,Pl).
+
+q_get_man(X) :- findall(B, (q_getclass(Man,B), (Man=woman;Man=man;Man=social_role)), X).
+
+q_get_thing(X) :- findall(B, q_getclass(thing,B), X).
+
+q_get_processi(X) :- findall(B, q_getevents(pr,B), X).
+
+q_get_stati(X) :- findall(B, q_getevents(st,B), X).
+
+q_get_eventi(X) :- findall(B, q_getevents(ev,B), X).
+
+q_get_verbo(X, Pred) :- findall(A, (
+                                 (B=pr;B=st;B=ev),
+                                  q_getevents(B,A), q_getevents_pred(X,A,C)), Pred).
+
+q_get_locazione(C,B) :- q_getplace(C,B).
+
+q_getall_man_location([],Y,[]):-!.
+q_getall_man_location([X|Rest],Y,[A|Altri]):-
+         q_fact(_, isa, [ind:X, class:B], 1, T1, Y),
+         q_getall_man_location(Rest,Y,Altri).
+
+q_getall_man_location([X|Rest],Y,[A|Altri]):-
+         q_fatto(Y,X,A),
+         q_getall_man_location(Rest,Y,Altri).
+
+q_getall_manlocation([],Y,[]):-!.
+q_getall_manlocation([X|Rest],Y,[A|Altri]):-
+         q_fact(_, isa, [ind:A, class:X], 1, T1, Y),
+         q_getall_manlocation(Rest,Y,Altri).
+q_getall_manlocation([X|Rest],Y,[A|Altri]):-
+         q_fatto(Y,Z,A),
+         q_get_ind_des(A,X,T),
+         q_getall_manlocation(Rest,Y,Altri).
+q_getall_manlocation([X|Rest],Y,Altri):-
+         q_getall_manlocation(Rest,Y,Altri).
+
+q_getclass(A,B) :- 
+         q_fact(_, inst_of, [ind:C, class:A], 1, T, S),
+         q_fact(_, isa, [ind:C, class:B], 1, T1, S1).
+
+q_getclass(A,B) :- 
+         q_fact(_, inst_of, [ind:C, class:A], 1, T, S),
+         q_fact(_, name, [B,C], 1, T1, S1).
+
+q_getevents(A,F) :- 
+         q_fact(_, F, [Role:B, prop:C], 1, T, S),
+         q_fact(C, Rel, Args, 1, T1, S1).
+
+q_getevents(A,B) :- 
+         q_fact(_, isa, [arg:C, arg:A], 1, T, S),
+         q_fact(C, B, Args, 1, T1, S1).
+
+q_getevents_pred(C,B,A) :- 
+         q_fact(_, isa, [arg:C, arg:A], 1, T, S),
+         q_fact(C, B, Args, 1, T1, S1).
+
+q_getplace(C,B) :- 
+         q_loc(_, C, [arg:main_sloc, arg:B]).
+
+q_getplace(C,B) :- 
+         q_fact(_, in, [arg:_, locativo:C], 1, T, S),
+         q_fact(_, isa, [ind:C, class:B], 1, T1, S).
+
+q_getplace(C,B) :- 
+         q_fact(_, Rel, [Role:_, locativo:C], 1, T, S),
+         q_fact(_, isa, [ind:C, class:B], 1, T1, S).
+
+q_getplace(C,B) :- 
+         q_fact(_, Rel, [Role:_, locat:C], 1, T, S),
+         (q_fact(_, isa, [ind:C, class:B], 1, T1, S);
+         q_fact(_, isa, [arg:C, arg:B], 1, T1, S)).
+
+q_get_verbo(X) :- q_get_verbi(Y),
+                member([X],Y).
+
+q_fatto(Y,X,Z) :- q_fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole).
+
+q_fatto(Y,X,Z) :- q_fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole).
+
+q_fatto(Y,X,A) :- q_fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole),!.
+
+q_fatto(Y,X,A) :- q_fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole),!.
+
+
+q_fatto(Y, X,W) :- 
+    fact(X,Pred,[prop:Z],1,B,_),   
+    fact(Z,Prop,[_:W],1,_,_),!. 
+
+
+q_fatto(Y,X,Z) :- q_fact(X,Pred,[FRole:Z],1,B,Y), FRole\=arg. 
+
+q_ruolo_fatto(X,FRole) :- q_fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole),!.
+
+q_ruolo_fatto(X,FRole) :- q_fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole),!.
+
+q_ruolo_fatto(X,FRole) :- 
+   q_fact(X,Be,[prop:Z],1,B,Y), 
+   q_fact(Z,Pred,[_:K,FRole:Type],1,_,_),!.
+
+q_ruolo_fatto(X,FRole) :- 
+   q_fact(X,Pred,[FRole:Z],1,B,Y),  FRole\=prop, FRole\=arg,!.
+
+q_ruolo_fatto2(X,SRole) :- q_fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole),!.
+
+q_ruolo_fatto2(X,SRole) :- q_fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole),!.
+
+q_ruolo_fatto2(X,FRole) :- 
+   q_fact(X,Be,[prop:Z],1,B,Y), 
+   q_fact(Z,Pred,[_:K,FRole:Type],1,_,_),!.
+
+q_ruolo_fatto2(X,FRole) :- 
+   q_fact(X,Pred,[FRole:Z],1,B,Y), 
+   FRole\=prop, FRole\=arg,!.
+
+q_ruolo_fatto2(X,FRole) :- 
+   q_fact(Z,Pred,[SRole:K,FRole:X],1,_,_), 
+   SRole=arg,!.
+ 
+q_ruolo_fatto3(X,TRole) :- q_fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),	
+   qrange_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole),!.
+
+
+q_getinds :- q_get_thing(A),q_get_man(B),
+               collect2(A, B, Inds),
+            sort(Inds,Dsc),
+            writenl('LIST OF ENTITIES OF THE DM'),
+            writeseqnl(Dsc).
+
+q_et_evs :- q_get_processi(A),q_get_stati(B),q_get_eventi(C),
+               collect([A, B, C], Middle,Inds),
+            sort(Inds,Dsc),
+            writenl('LIST OF EVENTS OF THE DM'),
+            writeseqnl(Dsc).
+
+q_get_evdes(K, Pred, Type):-
+     q_fact(_,isa,[arg:K,arg:Type],1,A,B),
+     q_fact(K,Pred,Args,1,A,B).
+
+q_get_ev_des(A, Pred):-
+     (
+     q_fact(_,isa,[arg:K,arg:ev],1,A,B)
+      ;
+     q_fact(_,isa,[arg:K,arg:st],1,A,B)
+      ;
+     q_fact(_,isa,[arg:K,arg:pr],1,A,B))
+     ,
+     q_fact(K,Pred,Args,1,A,B).
+
+q_get_ind_des(A, Pred,1):-
+      q_loc(_,A,[_:main_sloc,_:Pred]).
+
+q_get_ind_des(A, Pred,N):-
+      (q_fact(_,isa,[_:A,_:Pred],P,T,S),
+        Pred \= tloc,Pred \= pr,Pred \= st,Pred \= ev,
+       N=1
+       ;
+       q_fact(_,name,[Pred,A],P,T,D), N=2
+       ;
+       q_fact(_,inst_of,[_:A,_:Pred],P,T,S),N=1).
+
+q_get_ind_des(A, [],1):-
+   q_fact(Y,Be,[Role:A],1,B,Y), 
+   q_fact(A,Pred,[_:K,FRole:Type],1,_,_),
+   !.
+q_get_ind_des(A, [],1):-
+   q_fact(X,Vcomp,[_:_, Role:A],1,B,Y), 
+   q_fact(A,Pred,[_:K,FRole:Type],1,_,_),
+   !.
+
+
+q_get_specific_ind_des(A, Pred,N):-
+      (q_fact(_,isa,[_:A,_:Pred],P,T,S),
+        Pred \= tloc,Pred \= pr,Pred \= st,Pred \= ev,
+       N=1
+       ;
+       q_fact(_,name,[Pred,A],P,T,D), N=2),
+       nonspecific_ref(Num,Pred,True),
+       True=true,
+       !.
+
+nonspecific_ref(Num,Pred,false):-
+     pr(Type,Part,Pred,_,_,Num,_),
+     !.
+nonspecific_ref(Type,Pred,true):-
+     !.
+q_find_descr([],[]):-!.
+q_find_descr([Ind|Inds],[Des|Desc]):-
+      (q_fact(_,isa,[_:Ind,_:Des],P,T,S)
+       ;
+       q_fact(_,name,[Des,Ind],P,T,D)),
+      q_find_descr(Inds,Desc),!.
+
+q_find_descre([],[]):-!.
+q_find_descre([K|Inds],[Pred|Desc]):-
+     (
+     q_fact(_,isa,[arg:K,arg:ev],1,A,B)
+      ;
+     q_fact(_,isa,[arg:K,arg:st],1,A,B)
+      ;
+     q_fact(_,isa,[arg:K,arg:pr],1,A,B))
+     ,
+     q_fact(K,Pred,Args,1,A,B),
+     q_find_descre(Inds,Desc),!.
+
+q_find_descre([poss|Inds],[poss|Desc]):-
+     q_find_descre(Inds,Desc),!.
+
+isa_role_fatto(Fatto) :- 
+   Fatto=[FRole:Z,SRole:A,TRole:T],	
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole),
+   !.
+isa_role_fatto(Fatto) :- 
+   Fatto=[FRole:Z,SRole:A],	
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   !.
+
+isa_role_fatto(Fatto) :- 
+  Fatto=[FRole:Z], 
+  FRole\=arg, FRole\=nil,
+   !.
+
+init_queries:-
+  wkill('Answers'),
+  wcreate('Answers', 0, 45, 31, 290, 450),
+  wfont('Answers','Palatino',1,24),
+  wfront('Answers'),
+  abolish(queries/1),
+  assert(queries([])),
+   !.
+
+qwrite_model :-
+   tell(conv),
+   write_world,
+   nl,nl,
+   write('discourse_structures'),
+   write('('),
+   write('['),
+   nl,
+   write_disc,
+   write(']'),
+   write(')'),
+   write('.'),
+   nl,nl,
+   told,
+   save_confer_infon.
+
+sh_qwrite_model([Name],Files):-
+   concat('Macintosh HD',':',Log),
+   concat(Log, Name, Logf),
+   concat(Logf,':',Logfi),
+   concat(Logfi, 'models', Logfile),
+   dvol(Logfile),
+   concat(model, '_', FileN),
+   concat(FileN, dump, FileNam),
+   concat(FileNam, '_', File),
+   concat(File, Name, FileName),
+   open(FileName,write),
+   tell(FileName),
+   write_world,
+   nl,nl,
+   told,
+   concat(Logfile,':',Logs),
+   concat(Logs,FileName,Files).
+
+sh_read_model(Model) :-
+    abolish(entities_of_the_world/1),
+    abolish(discourse_structures/1),
+    dynamic(entities_of_the_world/1),
+    dynamic(discourse_structures/1),
+    consult(Model).
+
+
+semantic_comment(Win,M,false):-
+   name(M,[A,A]),
+   nl,nl,
+   writenl(Win,'Your question was semantically inconsistent'),
+   nl,nl,
+   writenl(Win,'Your answer was wrong and semantically inconsistent'),
+   nl,nl,
+   !.
+
+semantic_comment(Win,M,true):-
+   name(M,[A,A]),
+   nl,nl,
+   writenl(Win,'Your question was semantically inconsistent'),
+   nl,nl,
+   writenl(Win,'Your answer was right but semantically inconsistent'),
+   nl,nl,
+   !.
+
+semantic_comment(Win,Marker,true):-
+   nl,nl,
+   writenl(Win,'Your question was right and also semantically consistent'),
+   nl,nl,
+   writenl(Win,'Your answer was right and also semantically consistent'),
+   nl,nl,
+   !.
+
+semantic_comment(Win,Marker,false):-
+   nl,nl,
+   writenl(Win,'Your question was wrong but semantically consistent'),
+   nl,nl,
+   writenl(Win,'Your answer was wrong but semantically consistent'),
+   nl,nl,
+   !.
+
+printout(Win,Question, Ans):-
+   netta_fin(Win),
+   nl,nl,
+   writenl(Win,'Your question was the following :'),
+   nl,nl,
+   writenl(Win,Question),
+   nl,nl,
+   writenl(Win,'Your answer was the following :'),
+   nl,nl,
+   writeseqnl(Win,Ans),
+   nl,nl,
+   !.
+
+decide_scores(Win,_-Marker-_,Question,Type-['We', don_t,know,from,text], True, Marker):-
+   printout(Win,Question, ['We', don_t,know,from,text]),
+   !.
+
+decide_scores(Win,_-Marker-_,Question, Type-Ans, True, Marker):-
+   printout(Win,Question, Ans),
+   (Marker=Type, True=true,
+   writenl(Win,'Your answer was right')
+    ;
+     Marker\=Type, True=false,
+   writenl(Win,'Your answer was wrong')
+   ),
+   !.
+
+make_templates(Marker, Question):-
+  findall(F, frasekatomo(J,F), Ff),
+  record_buildl(Ff,Btn),
+  findall(J, frasekatomo(J,F), Markers),
+  associate_buttons(Markers, Btn, Marker),
+  choose_question(Marker,Ff,Question),
+  !.
+
+choose_question(A-B-1,[Ques|Ff],Ques).
+choose_question(A-B-3,[_,Ques|Ff],Ques).
+choose_question(A-B-5,[_,_,Ques|Ff],Ques).
+choose_question(A-B-7,[_,_,_,Ques],Ques).
+
+build_queries(N, SortQ):-
+   findall(Q, regola_evento(Pred, Kword,Q), Queries),
+   sort(Queries,SortQ).
+build_queries(N, SortQ):-
+   findall(Q, regola_evento1(Pred, Kword,Q), Queries),
+   sort(Queries,SortQ).
+/*build_queries(N, Queries):-
+   findall(Q, regola_cosa(Pred, Kword,Q), Queries).
+*/
+build_queries(N, SortQ):-
+   findall(Q, regola_cosa1(Pred, Kword,Q), Queries),
+   sort(Queries,SortQ).
+build_queries(N, SortQ):-
+   regola_cosa_fa(Pred,Queries),
+   sort(Queries,SortQ).
+build_queries(N, SortQ):-
+   findall(Q, regola_dove_era(Z, Q), Queries),
+   sort(Queries,SortQ).
+
+associate_buttons([First|Markers], 1, First-1).
+associate_buttons([First,Second|Markers], 3, Second-3).
+associate_buttons([First,Second,Third|Markers], 5, Third-5).
+associate_buttons(Markers, 7, Fourth-7):-
+   reverse(Markers,[Fourth|_]),!.
+
+buildallqueries(Qs, Marker):-
+  buildqueries(Qs, Markers),
+  abolish(frasekatomo/2),
+  convertikfrasi(1,Qs),
+  !.
+
+buildqueries(Qs, Markers):-
+   queries(Qss),
+   Qss\=[],
+   scegli_rand(4, Qss, NQs, Qs, Markers ),
+   abolish(queries/1),
+   assert(queries(NQs)),
+   !.
+
+buildqueries(Qs, Markers):-
+   findall(Q, build_queries(N, Q),
+   Queries),
+   appiattisci(Queries, Qq),
+   sort(Qq, Qss),
+   scegli_rand(4, Qss, NQs, Qs, Markers ),
+   abolish(queries/1),
+   assert(queries(NQs)),
+   !.
+
+scegli_rand(0, Qss, Qss, [],[] ):-!.
+scegli_rand(N, Qss, Nqs, [Mark-Elem|Qs], [Mark|Ms]  ):-
+   sceglirand( Qss, Mark-Elem ),
+   remove(Mark-Elem, Qss, NQs),
+   N1 is N - 1,
+   scegli_rand(N1, NQs, Nqs, Qs, Ms),
+   !.
+
+sceglirand( Lista,Elem ) :-
+        length(Lista,N),
+        irand(N,N1),        
+/*        N1 is ip(rand(N)), */
+        sceglirand(Lista,N1,Elem).
+
+sceglirand( [X|Xs],0,X ):-!.
+sceglirand( [X|Xs],N,Y ) :- N1 is N-1,sceglirand(Xs,N1,Y).
+
+make_examples_ready(Question,Win,Answer):- 
+   read_examples(Win),
+   clean_examples(Ans),
+   abolish(sentencekatomo/2),
+   convertiksentence(Ans,1),
+   findall(J, sentencekatomo(_,J), Total),
+   sentencekatomo(N-_,_),
+   N1 is N + 1,
+    words_to_atom([N1, 'We', don_t,know,from,text], Atomo),
+   append([Atomo], Total, NTotal),
+   reverse(NTotal,RTotal),
+   netta_fin(conv),
+   writekfrasi(conv,RTotal),
+   crea_feedback(Question,conv,Code),
+   (nmember(Answer, Ans, Code)
+     ;
+     Code=N1, Answer=N1-['We', don_t,know,from,text]),
+   !.
+
+convertiksentence([],C) :-!.
+convertiksentence([Frase|Frasi],C) :-
+  Frase=Code-Words,
+   Words\=[],
+    words_to_atom([C | Words], Atomo),
+    asserta(sentencekatomo(C-Code,Atomo)),
+  C1 is C + 1,
+  convertiksentence(Frasi,C1).
+
+convertiksentence([Frase|Frasi],C) :-
+  convertiksentence(Frasi,C).
+
+crea_feedback(Quest,Win,Code):-
+  misura_fin(Win, To),
+  kscroll_menu('Choose an Appropriate Answer',
+      To,Quest,Selezione),
+  Selezione=Code,!.
+
+writekfrasi(Win,[]) :-!.
+writekfrasi(Win,[Sent|Total]) :-
+   writenl(Win, Sent),
+   writekfrasi(Win,Total),
+   !.
+
+clean_examples(Ans):-
+   findall(Id-Frase, (kfrase(Id,Frase), Frase\=[]),
+   Answs),
+   sort(Answs, Ans),
+   !.
+   
+read_examples(Win):-
+   abolish(kfrase/2),
+   cursor( Win, 0, 0 ),
+   cursor( Win, F0, T0 ),
+   edintoks(Win, Toks, Vs ),     % Read tokens up to terminator
+   save_all_sentences(Toks,Vs),
+   !.
+
+/* Extract subtopic headings from tokens just read */
+save_all_sentences( [],V):-!.
+save_all_sentences( Tokens,V):-
+   Tokens=[Tok|Toks],
+   Tok = token(Ind,1),
+   saveallsentences(V,Toks, Words, Rest),
+   asserta(kfrase(Ind,Words)),
+   save_all_sentences(Rest,V),
+   !.
+saveallsentences(V,[], [], []):-!.
+saveallsentences(V,[Tok|Toks], [], [Tok|Toks]):-
+   Tok = token(Ind,1),!.
+saveallsentences(V,[Tok|Toks], [W|Ws], Rest):-
+   Tok = token(W,3),
+   saveallsentences(V,Toks, Ws, Rest),
+   !.
+saveallsentences(Vs,[Tok|Toks], [V|Ws], Rest):-
+   Tok = token(W,0),
+   Vs = [(V,_)],
+   saveallsentences(V,Toks, Ws, Rest),
+   !.
+
+listfrasi(To) :-
+  misura_fin('Answers', To),
+  cursor('Answers', 0, -1),
+  copy_bytes(To, 'Answers', conv),
+   !.
+
+listfrasi(Queries) :-
+   findall(Q, frasekatomo(Code, Q),
+   Queries),!.
+
+getkexample(Code, Sentence) :-
+  listfrasi(To),
+  kscroll_menu('Choose an Appropriate Answer',
+      To,'Sentence Number',Selezione),
+  Selezione=Code,!.
+
+kscroll_menu(Prompt, To, Sel, Term):-
+   dialog(Prompt, 50, 50, 500, 850,
+        [button( 350, 30, 50, 65, 'Ok'),
+         button( 350, 100, 50, 65, 'Cancella'),
+         text( 50, 30, 75, 250, 'This is the question you chose :'),
+         text( 100, 30, 75, 250, Sel),
+         scrolltext( 20, 350, 450,400, conv(0,To), 'Monaco',12,0 ),
+         edit( 200, 100, 40, 100, 'Sentence Number', read(Term))],
+             Btn). 
+
+convertikfrasi(N,[]) :-!.
+convertikfrasi(N,[Frase|Frasi]) :-
+    Frase=Code-Words,
+    words_to_atom(Words, Atomo),
+    asserta(frasekatomo(N-Code,Atomo)),
+    N1 is N+1,
+    convertikfrasi(N1,Frasi).
+
+displaykcreate :-
+  wkill('Feedback'),
+  screen(Depth, Width),
+  DispFromLeft is Width - 300,
+  DispDepth is Depth - 60,
+  wcreate('Feedback', 0, 55, 0, DispDepth, 300),
+  wfont('Feedback','Comic Sans MS',0,16).
+
+displayacreate :-
+  wkill('Answers'),
+  screen(Depth, Width),
+  DispFromLeft is Width - 300,
+  DispDepth is Depth - 60,
+  wcreate('Answers', 0, 55, 0, DispDepth, 300),
+  wfont('Answers','Comic Sans MS',0,16).
+
+record_buildl([First,Second,Third,Fourth],Btn):-
+   dialog( 'Choose a Question', 50, 30, 400, 500,
+           [ button(20, 10, 60, 80, 'A'),
+             text( 20, 150, 75, 250, First),
+             button(100, 10, 60, 80, 'B'),
+             text( 100, 150, 75, 250, Second),
+             button(200, 10, 60, 80, 'C'),
+             text( 200, 150, 75, 250, Third),
+             button(300, 10, 60, 80, 'D'),
+             text( 300, 150, 75, 250, Fourth)], 
+              Btn). 
+
+leggi_testo(Input, Output):-
+  old('TEXT', Input),
+  open(Input, read),
+  text_load(Input, Output),
+  !.
+
+
+file_creat(N, NFile):-
+   new(NFile, NVol, 'Matrix', N),
+   create(NFile, NVol, 'TEXT'),
+   open(NFile, write).
+
+dtt(Time)  :-
+  (ticks(Time1),
+  Delta is Time1 - Time,
+  Seconds is Delta/60,
+  write(user,Delta), write(user,'/60 sec.'), 
+  nl(user)
+  ;
+  ticks(Time1),
+  Delta is Time1 - Time,
+  Seconds is Delta/60,
+  write(user,Delta), write(user,'/60 sec.'), 
+  nl(user),
+  fail).
+
+
+chi_go_all(Z, Marker,Ws) :- 
+        findall(Id, (get_arg(chi, Pred, Id),
+        Pred\=in,Pred\=ev,Pred\=pr,
+        Pred\=st,Pred\=poss,Pred\=tloc), Ids),
+        sort(Ids,Idd),
+		      write_events(Z,go,Idd,Marker,Ws),
+        !.
+
+chi_read_all(Z, Marker,Ws) :- 
+        findall(Id, (get_arg(chi, Pred, Id),
+        Pred\=in,Pred\=ev,Pred\=pr,
+        Pred\=st,Pred\=poss,Pred\=tloc), Ids),
+        sort(Ids,Idd),
+		      write_events(Z,read,Idd,Marker,Ws),
+        !.
+
+write_go_do-ques([], []):-!.
+write_go_do-ques([Z|Ws], [33-['Did', the, B, go, into, the, restaurant]|Q]):-
+        get_ind_des(Z,B,T),
+        nonvar(T), 
+        B\=restaurant,
+        T=1,
+        write_go_do-ques(Ws, Q),
+        !.
+write_go_do-ques([Z|Ws], [33-['Did', B, go, into, the, restaurant]|Q]):-
+        get_ind_des(Z,B,T),
+        nonvar(T), 
+        B\=restaurant,
+        T=2,
+        write_go_do-ques(Ws, Q),
+        !.
+write_go_do-ques([Z|Ws], Q):-
+        write_go_do-ques(Ws, Q),
+        !.
+write_read_do-ques([], []):-!.
+write_read_do-ques([Z|Ws], [99-['Did',the, B, read, the, book]|Q]):-
+        get_ind_des(Z,B,T),
+        nonvar(T), 
+        B\=book,
+        T=1,
+        write_read_do-ques(Ws, Q),
+        !.
+write_read_do-ques([Z|Ws], [99-['Did',B, read, the, book]|Q]):-
+        get_ind_des(Z,B,T),
+        nonvar(T), 
+        B\=book,
+        T=2,
+        write_read_do-ques(Ws, Q),
+        !.
+write_read_do-ques([Z|Ws], Q):-
+        write_read_do-ques(Ws, Q),
+        !.
+
+
+make_pred(1, go, ' went into ').
+make_pred(1, read, ' read ').
+make_pred(0, go, ' did not go into ').
+make_pred(0, read, ' did not read ').
+
+write_events(Z,Pred,[W|Ids],Mark,Ws):-
+       (Mark=3;Mark=9),
+       W=Z,
+       write_body_ind_event(Z,W,Pred,Mark,1),
+       write_events(Z,Pred,Ids,Mark,Ws),
+       !.
+
+write_events(Z,Pred,[],M,W):-!.
+write_events(Z,Pred,[W|Ids],Mark, [W|Ws]):-
+       (Mark=33;Mark=99),
+       W\=Z,
+       write_body_ind_event(Z,W,Pred,Mark,0),
+       write_events(Z,Pred,Ids,Mark,Ws),
+       !.
+write_events(Z,Pred,[W|Ids],M,Ws):-
+       write_events(Z,Pred,Ids,M,Ws),
+       !.
+
+write_body_ind_event(Z,W,Pred,Mark, Pol):-
+       get_ind_des(W,Name,T),
+       nonvar(T), 
+       write( Mark ),  write('  '),
+       (T=1,write('the '); T=2), 
+       write(Name),
+       make_pred(Pol, Pred, Morf),
+       write(Morf),
+       write_second_argument(Z,Pred),
+       !.
+
+write_second_argument(Z,Pred):-
+       recover_pred_arg2(Z, Pred, W1, true),
+       get_ind_des(W1,Name1,T1),
+       nonvar(T1), 
+       (T1=1,write('the '); T1=2,write('a ')),
+ 	     write(Name1),
+       nl('Answers'),
+       !.
+       
+dove_eraprima(TempRel, VerbInd,X, Query):-
+       TempRel=..[Rel,Current,RelTemp],
+       (Rel=before;Rel=during),
+       temp_reason(X, Ind,Rel,Yss),
+       sort(Yss, Ys),
+       on(Y-NowFact,Ys), Y\=x,
+       temp_fatto(Fact,RelTemp),Fact\=NowFact,
+       question_answers_before(true,NowFact,X,RelTemp,Fact,Query).
+
+dove_eradopo(TempRel, VerbInd,X, Query):-
+       TempRel=..[Rel,Current,RelTemp],
+       (Rel=after;Rel=during),
+       temp_reason(X, Ind,Rel,Yss),
+       sort(Yss, Ys),
+       on(Y-NowFact,Ys), Y\=x,
+       temp_fatto(Fact,RelTemp), Fact\=NowFact,
+       question_answers_after(true,NowFact,X,RelTemp,Fact,Query).
+
+dove_eraora(X, Query):-
+       temp_reason(X, Ind,during,Yss),
+       sort(Yss, Ys),
+       on(Y-NowFact,Ys), Y\=x,
+       temp_fatto(Fact,Y),
+       get_stati(W), 
+       (on(NowFact,W), True=true;True=false),
+       question_answers_during(True,X,NowFact,Fact,Query).
+
+temp_reason(Z, Ind,before,Inds):-
+       findall(Y-Pred,(before(Ind,Y),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,before,Inds):-
+       findall(Y-Pred,(before(Y,Ind),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,after,Inds):-
+       findall(Y-Pred,(after(Ind,Y),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,after,Inds):-
+       findall(Y-Pred,(after(Y,Ind),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,during,Inds):-
+       findall(Y-Pred,(during(Ind,Y),
+                       ruolo_fatto(1, Ind,X,Z),                       
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,during,Inds):-
+       findall(Y-Pred,(during(Y,Ind),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,during,Inds):-
+       findall(Y-Pred,(contains(Ind,Y),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,during,Inds):-
+       findall(Y-Pred,(contains(Y,Ind),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,during,Inds):-
+       findall(Y-Pred,(overlap(Ind,Y),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+
+temp_reason(Z, Ind,during,Inds):-
+       findall(Y-Pred,(overlap(Y,Ind),
+                       ruolo_fatto(1,Ind,X,Z),
+                       temp_fatto(Pred,Ind)), Inds),Inds\=[].
+       
+get_temp_index(Verbo,X,Ind):-
+       temp_fatto(Verbo,Ind).
+
+temp_fatto(Pred,B) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole).
+
+temp_fatto(Pred,B) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole).
+
+temp_fatto(Pred,B) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole).
+
+temp_fatto(Pred,B) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole).
+
+temp_fatto(Pred,B) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[prop:Z],1,B,_),Fa),  
+   on(fact(Z,Prop,[arg:W],1,_,_),Fa). 
+
+temp_fatto(Pred,B) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z],1,B,Y),Fa), FRole\=arg. 
+
+ruolo_fatto(1,B,X,Z):-
+    ruolo_fatto1(B,X,Z),!.
+ruolo_fatto(2,B,X,Z):-
+    ruolo_fatto2(B,X,Z),!.
+
+ruolo_fatto1(B,X,Z) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole).
+
+ruolo_fatto1(B,X,Z) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole).
+
+ruolo_fatto2(B,X,A) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A,TRole:T],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole),
+   range_third_SROLE(TRole).
+
+ruolo_fatto2(B,X,A) :- 
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(X,Pred,[FRole:Z,SRole:A],1,B,Y),Fa),
+   range_first_SROLE(FRole),
+   range_second_SROLE(SRole).
+
+higher_assertion(True,I, X, sit, Name, CP, T):-
+                marker_true_false(True,I,Mark),
+                get_ind_des(X,Name,T), 
+                nonvar(T), 
+                (T=1,
+                  append([Mark], [the], IP1),
+                  append(IP1, [Name], IP)
+                 ; T=2, 
+                  append([Mark], [Name], IP)),
+                 append(IP, [was, sitting], IBar),
+                 costruisci_state(X, sit, Place), 
+                append(IBar, Place, CP),
+                !.
+
+higher_assertion(True,18, X, NowFact, Name, CP, T):-
+                marker_true_false(True,18,Mark),
+                get_ind_des(X,Name,T), 
+                nonvar(T), 
+                (T=1,
+                  append([Mark], [the], IP1),
+                  append(IP1, [Name], IP)
+                 ; T=2, 
+                  append([Mark], [Name], IP)),
+                 append(IP, [was], IBar),
+                 I=18,
+                 costruisci_state(X, NowFact, Place), 
+                append(IBar, Place, CP),
+                !.
+
+higher_assertion(True,I, X, NowFact, Name, CP, T):-
+                 I\=18,
+                marker_true_false(True,I,Mark),
+                get_ind_des(X,Name,T), 
+                nonvar(T), 
+                (T=1,
+                  append([Mark], [the], IP1),
+                  append(IP1, [Name], IP)
+                 ; T=2, 
+                  append([Mark], [Name], IP)),
+                append(IP, [was], IBar),
+                 progressive_loc(NowFact,NowAction,Loc),
+                 append(IBar, [NowAction], Comp),
+                 costruisci_locat(X, NowFact, Place),
+                append(Comp, Place, CP),
+                !.
+
+marker_true_false(true,16,16).
+marker_true_false(true,17,17).
+marker_true_false(true,18,18).
+marker_true_false(false,18,88).
+marker_true_false(false,16,66).
+marker_true_false(false,17,77).
+
+question_answers_after(True,NowFact,X,Y,Fact,Query):-
+                (Y=[], 
+                 Assertion='I dont know',
+                 write(17),  write('  '),
+                 write(Assertion)
+                ;
+                 higher_assertion(True,17, X, NowFact, Name, CP, T),
+                 writeseqnl('Answers',CP)),
+                 (T=1, Entity=[the, Name]
+                  ;
+                  T=2, Entity=[Name]),
+                 append(['Where',was], Entity, Q1),
+                  append(Q1, [after], Q2),
+                 progressive(Name, Fact,Action),
+                 append(Q2, Action, Quer),
+                 costruisci_locat(X, Fact, Locat),
+                 append(Quer, Locat, Query),
+                 !.
+
+question_answers_during(True,X,NowFact,Fact, Query):-                
+                (NowFact=[], Place='I dont know',
+                 write(18),  write('  '),
+                 write(Place)
+                ;
+                 higher_assertion(True,18, X, NowFact, Name, CP, T),
+                 writeseqnl('Answers',CP)),
+                 (T=1, Entity=[the, Name]
+                  ;
+                  T=2, Entity=[Name]),
+                 append(['Where',was], Entity, Q1),
+                 append(Q1, [while], Q2),
+                 progressive(Name, NowFact, NowAction),
+                 append(Q2, NowAction, Quer),
+                 costruisci_locat(X, NowFact, Locat),
+                 append(Quer, Locat, Query),
+                 !.
+
+question_answers_before(True,NowFact,X,Y,Fact, Query):-
+                (NowFact=[], Place='I dont know',
+                 write(16),  write('  '),
+                 write(Place)
+                ;
+                 higher_assertion(True,16, X, NowFact, Name, CP, T),
+                 writeseqnl('Answers',CP)),
+                 (T=1, Entity=[the, Name]
+                  ;
+                  T=2, Entity=[Name]),
+                 append(['Where',was], Entity, Q1),
+                  append(Q1, [before], Q2),
+                 progressive(Name, NowFact,NowAction),
+                 append(Q2, NowAction, Quer),
+                 costruisci_locat(X, Fact, Locat),
+                 append(Quer, Locat, Query),
+                 !.
+
+costruisci_state(X, Fact, Locat):-
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(C, Fact, Args, 1, T1, S1),Fa),
+         on(_:Y, Args), X\= Y,
+         getplace(Y,Luogo),
+         get_pre(Luogo, Prep),
+         Locat=[Prep, the, Luogo],!.
+
+costruisci_locat(X, be, Locat):-
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(C, be, Args, 1, T1, S1),Fa),
+         getplace(S1,Luogo),
+         get_pre(Luogo, Prep),
+         Locat=[Prep, the, Luogo],!.
+
+costruisci_locat(X, Fact, Locat):-
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(C, Fact, Args, 1, T1, S1),Fa),
+         on(Loc:Y, Args), X\= Y,
+         (Loc=locat;Loc=locativo),
+         getplace(Y,Luogo),
+         get_prepositionn(Fact, Luogo, Prep),
+         Locat=[Prep, the, Luogo],!.
+
+costruisci_locat(X, Fact, Locat):-
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(C, Fact, Args, 1, T1, S1),Fa),
+         on(fact(C1, Fact1, Args1, 1, T2, S1),Fa),
+         on(Loc:Y, Args1), X\= Y,
+         (Loc=locat;Loc=locativo),
+         getplace(Y,Luogo),
+         get_prepositionn(Fact, Luogo, Prep),
+         Locat=[Prep, the, Luogo],!.
+
+costruisci_locat(X, Fact, Locat):-
+         entity(Type,Ind,Score,facts(Fa)),
+         on(fact(C, Fact, Args, 1, T1, S1),Fa),
+         on(_:Y, Args), X\= Y,
+         get_verbos(Y, Preds),
+         on(Pred,Preds),
+         Locat=[to, Pred],!.
+
+get_preposition(Event, C, Prep):-
+        progressive_loc(Event,_,Prep),!.
+get_preposition(Event, C, Prep):-
+         entity(Type,Ind,Score,facts(Fa)),
+        on(fact(Infon, isa, [arg:C, arg:Event], 1, T, X),Fa),
+        preposition_event(Event, Prep),!.
+
+preposition_event(ev, into).
+preposition_event(st, at).
+preposition_event(pr, in).
+
+get_prepositionn(Verb,table, at):-
+    Verb=read;Verb=sit;Verb=take_order;Verb=begin.
+get_prepositionn(Verb,restaurant, in):-
+    Verb=read;Verb=sit;Verb=take_order;Verb=begin.
+get_prepositionn(go,table, to).
+get_prepositionn(go,restaurant, into).
+
+get_pre(table, at).
+get_pre(restaurant, in).
+
+progressive(Name, sit,[he,was,sitting]).
+progressive(Name, go,[he,was,going]).
+progressive(Name, read,[he,was,reading]).
+progressive(Name, begin,[he,was,beginning]).
+progressive(Name, wave,[he,was,waving]).
+progressive(Name, take_order,[he,was,'taking the order']).
+progressive(Name, order,[he,was,ordering]).
+progressive(Name, be,[he,was]).
+progressive_loc(sit,sitting,at).
+progressive_loc(go,going,into).
+progressive_loc(begin,'beginning to read', at).
+progressive_loc(take_order,'taking the order',at).
+
+recover_main_topic(Id, Topic, TempRel, MainRel):-
+    info(NoFr, Node, FunRole, View, Intens, Change, Rel,VerbCat, MainRel,TempRel, DiscRel, DiscDom, SubjConsc),
+
+    confer_topic(NoFr, Type, Id, _, PropNode),
+    Type=main,
+    get_ind_des(Id,B,T),
+    DiscRel\=explanation, DiscRel\=elaboration.
+
+recover_main_topic(Id, Topic, TempRel, MainRel):-
+    info(NoFr, Node, FunRole, View, Intens, Change, Rel,VerbCat, MainRel,TempRel, DiscRel, DiscDom, SubjConsc),
+
+    confer_topic(NoFr, Type, Id, _, PropNode),
+    get_ind_des(Id,B,T),
+    DiscRel\=explanation, DiscRel\=elaboration.
+
+get_verbos(X,SortV):-
+    findall(Verb, 
+      info(NoFr, Node, FunRole, View, Intens, Change, Rel,VerbCat, Verb,TempRel, DiscRel, DiscDom, SubjConsc),
+      Verbs),
+    sort(Verbs,SortV),!.
+
+make_summmary :-
+%   write_model,
+   read_model,
+   nl, nl,
+   writenl(user, '**************************'),
+   writenl(user, 'SUMMARY'),
+   summarize.
+
+makesummmary :-
+   write_model,
+   read_model,
+   nl, nl,
+   writenl(user, '**************************'),
+   writenl(user, 'SUMMARY'),
+   summarize.
+
+summarize :-
+    entities_of_the_world(Ents),
+    on(entity(Type,Ide,Score,facts(EFacts)), Ents),
+    semantic_planning(Ide, EFacts, TopicSegs),
+    init_user_model(Ide),
+    rhetoric_planning(1,TopicSegs, RhetSegs),
+    build_tadj(Ents, Adj),
+    summarize_clauses(1, Adj, EFacts, RhetSegs).
+
+define_voice(Args, Voice, ind):-
+   perspective(Id),
+   (on(Role:Id, Args),
+    Role=tema_aff, Voice=pass;
+    Voice=act).
+
+update_user_model(Id, Role) :-
+      assert(tknow(Id, Role)).
+
+summarize_clauses(N, E, H, []):-!.
+summarize_clauses(N, E, F, [First|TopicSegs]):-
+    summarize_clause(N, E, F, First),
+    N1 is N + 1,
+    summarize_clauses(N1, E, F, TopicSegs).
+summarize_clauses(N, E, F, [First|TopicSegs]):-
+    N1 is N + 1,
+    summarize_clauses(N1, E, F, TopicSegs).
+
+summarize_clause(N, Adj, F, DiscRel-[Clause1, Clause2]):-
+   sum_clause(N, Adj, DiscRel, Clause1, F, GenOut1),
+   N1 is N+ 1,
+   sum_clause(N1, Adj, DiscRel, Clause2, F, GenOut2),
+   join_clauses(GenOut1, GenOut2).
+
+summarize_clause(N, Adj, F, [DiscRel-[Clause1, Clause2]]):-
+   sum_clause(N, Adj, DiscRel, Clause1, F, GenOut1),
+   N1 is N+ 1,
+   sum_clause(N1, Adj, DiscRel, Clause2, F, GenOut2),
+   join_clauses(GenOut1, GenOut2).
+
+summarize_clause(N, Adj, F, [Id-Time-TempRel-Role-Drel-Rel-Cl]):-
+   Rel=..[P, Tops],
+   on(fact(Id,P,Args,Pol,_,_),F),
+%   remove(Role:Ind, Args, Arg),
+   buildargs(F, P, Args, Tops, BuiltArgs, NewP),
+   (var(NewP), Pred=P
+   ;
+   NewP\=P, Pred=NewP),
+   define_voice(Args, Voice, M),
+   assign_tense(Voice, Adj, TempRel, T),
+   buildadjsargs(N, T, Adj, BuiltArgs, Voice, NewArgs),
+   genS([Voice,T,M,Pred,NewArgs]).
+
+recovers_facts(P, Tops, Id, Facts, Args):-
+    entities_of_the_world(Ents),
+    on(Ind:Role, Tops),
+    perspective(Idp), Ind\=Idp,
+    on(entity(Type,Ind,Score,facts(Facts)), Ents),
+    on(fact(Id,P,Args,Pol,_,_),Facts),
+    !.
+
+sum_clause(N, Adj, DiscRel, [Id-Time-TempRel-Role-Drel-Rel-Cl], F, [Dep,Voice,T,M,Pred,NewArgs]):-
+   Rel=..[P, Tops],
+   (on(fact(Id,P,Args,Pol,_,_),F), Fac=F;
+     recovers_facts(P, Tops, Id, Facts, Args), Fac=Facts),
+   buildargs(Fac, P, Args, Tops, BuiltArgs, NewP),
+   (var(NewP), Pred=P
+   ;
+   NewP\=P, Pred=NewP),
+   define_voice(Args, Voice, M),
+   assign_tense(Voice,Adj, TempRel, T),
+   buildadjsargs(N, T, Adj, BuiltArgs, Voice, NewArgs),
+   (DiscRel=explanation, Dep=cause;
+    DiscRel=Drel, Dep=dep;
+    DiscRel=coord, Dep=coord; 
+    Dep=main).
+
+join_clauses([dep,V,T,M,Pred,DArgs], GenOut2):-
+   GenOut2=[main,V1,T1,M1,Pred1,Args],
+   remove([top, _, _, Head], Args, RArg),
+   RArg=[JArg],
+   remove([Def, Typ, Num, Head], DArgs, SecArg),
+   append([[rel, nil, Num, Head]], SecArg, SArgs),
+   NewArgs=[[Def, Typ, Num, [Head, [V,T, M, Pred, SArgs]]], JArg],
+   tens(TenseAsp),
+   check_rel(dep, V, TenseAsp, T),
+   genS([V1,TenseAsp,M1,Pred1,NewArgs]).
+
+join_clauses(GenOut1, [dep,V,T,M,Pred,DArgs]):-
+   GenOut1=[main,V1,T1,M1,Pred1,Args],
+   remove([top, _, _, Head], Args, RArg),
+   RArg=[JArg],
+   remove([Def, Typ, Num, Head], DArgs, SecArg),
+   append([[rel, nil, Num, Head]], SecArg, SArgs),
+   NewArgs=[[Def, Typ, Num, [Head, [V,T, M, Pred, SArgs]]], JArg],
+   tens(TenseAsp),
+   check_rel(dep, V, TenseAsp, T),
+   genS([V1,TenseAsp,M1,Pred1,NewArgs]).
+
+join_clauses(GenOut1, [Rel,V,T,M,Pred,NewArgs]):-
+   GenOut1=[Rel,V1,T1,M1,Pred1,Args],
+   GenOut=[V1,T1,M1,Pred1,Args],
+   removeargs(Rel, NewArgs, NArgs),
+   Rels=..[Rel,GenOut,[V,T,M,Pred,NArgs]],
+   genS(Rels).
+
+join_clauses(GenOut1, [Rel,V,T,M,Pred,NewArgs]):-
+   GenOut=[V,T,M,Pred,NArgs],
+   removeargs(Rel, NewArgs, NArgs),
+   genS(cause(GenOut,[V1,T1,M1,Pred1,Args])).
+
+removeargs(coord,[NArgs], [Args]):-
+   (NArgs=[top, _, _, Head],
+    Args=[[top, nil, Num, pro]]
+    ;
+    Args=NArgs),!.
+
+removeargs(coord,[Arg1, Arg2], [NArg1, NArg2]):-
+   (
+    ( Arg1=[top, _, _, Head],
+     NArg1=[top, nil, Num, pro], NArg2=Arg2
+    ;
+     Arg2=[top, _, _, Head],
+     NArg2=[top, nil, Num, pro], NArg1=Arg1)
+    ;
+    NArg1=Arg1,NArg2=Arg2),!.
+    
+removeargs(Rel, Args, Args):-!.
+
+buildadjsargs(1, T, Adj, BuiltArgs, Voice, NewArgs):-
+    nonvar(Adj), 
+    append([Adj], BuiltArgs, NewArgs),
+    assert(tens(T)),!.
+
+buildadjsargs(N, T, Adj, BuiltArgs, act, NewArgs):-
+   (var(Adj), NewArgs=BuiltArgs
+    ;
+    1 < N, 
+    NewArgs=BuiltArgs, 
+    (tens(T)
+     ;
+     T=imperf)),!.
+
+buildadjsargs(N, T, Adj, BuiltArgs, pass, NewArgs):-
+   (var(Adj), NewArgs=BuiltArgs
+    ;
+    1 < N, 
+    NewArgs=BuiltArgs),!.
+
+assign_tense(pass, Adj, after, perf).
+assign_tense(pass, Adj, before, past).
+assign_tense(pass, Adj, Rel, perf).
+assign_tense(act, Adj, before, past).
+assign_tense(act, Adj, Rel, Tense):-
+   nonvar(Adj),
+   Adj=[Ty, Time],
+   diz(Time, Cat, [_, Conf]),
+   compat_tense(Conf, TenseAsp),
+   check_rel(Rel, _, TenseAsp, Tense).
+assign_tense(_, _, _, _).
+
+check_rel(coord, pass, perf, past):-!.
+check_rel(coord, pass, perf, pres):-!.
+
+check_rel(dep, act, past, imperf):-!.
+check_rel(dep, act, imperf, imperf):-!.
+
+check_rel(after, act, past, past):-!.
+check_rel(after, act, imperf, past):-!.
+
+check_rel(Rel, act, TenseAsp, imperf):-
+    includerel(Rel),
+    !.
+check_rel(Rel, act, TenseAsp, past):-
+    beforrel(Rel),
+    !.
+check_rel(Rel, act, TenseAsp, TenseAsp):-!.
+
+build_tadj(Ents, Adj):-
+    on(entity(Type,Ide,Score,facts(EFacts)), Ents),
+    on(fact(_, main_tloc, Arg, _, _, _), EFacts),
+    nonvar(Arg), Arg=[arg:Time],
+    Adj=[Ty, Time].
+
+build_tadj(_, _).
+
+swap_def(prop, top).
+swap_def(def, top).
+
+set_def(Def, Id, Role, Def1):-
+    (tknow(Id, Role1), 
+    swap_def(Def, Def1)
+    ;
+    update_user_model(Id, Role), 
+     Def1=Def),!.
+
+confirm_head(top, Gend, Prop, NProp):-
+   nonvar(Gend),
+   findall(P, tknow(Id, Role), Ps),
+   (Ps=[A], NProp=pro
+   ;
+    Ps=[A|Rest], nonvar(A), Rest\=[], NProp=Prop),!.
+
+confirm_head(Def, Gend, Prop, Prop):-
+%   Def\=top,
+   !.
+
+buildargs(F, P, [], Tops, [], NP):-!.
+
+buildargs(F, P, Args, Tops, [D, [prop, P]], essere):-
+   on(nil:Ind, Args),
+   buildarg(F, P, prop, Ind, Tops, D, NewP).
+
+buildargs(F, P, Args, Tops, [D|BuiltArgs], NewP):-
+   remove(Role:Ind, Args, Arg),
+   buildarg(F, P, Role, Ind, Tops, D, NewP),
+   buildargs(F, P, Arg, Tops, BuiltArgs, NewP).
+
+buildarg(F, P, locativo, Ind, Tops, [meta, Prop], NewP):-
+   on(Ind:Prop, Tops),!.
+
+buildarg(F, P, Role, Ind, Tops, [Def1, nil, Num, NProp], NewP):-
+   on(Ind:Prop, Tops),
+   extract_properties(Ind, F, Def1, Num, NProp),
+    !.
+
+buildarg(F, P, locativo, Ind, Tops, [meta, Prop], NewP):-
+   entities_of_the_world(Ents),
+   on(entity(Type,Ind,Score,facts(Fa)), Ents),
+   extract_properties(Ind, Fa, Def1, Num, Prop),
+    !.
+
+buildarg(F, P, Role, Ind, Tops, [Def1, nil, Num, NProp], NewP):-
+   entities_of_the_world(Ents),
+   on(entity(Type,Ind,Score,facts(Fa)), Ents),
+   extract_properties(Ind, Fa, Def1, Num, NProp),
+    !.
+
+buildarg(F, P, Role, Ind, Tops, [Role, Prop], NewP):-
+   on(Ind:Prop, Tops),
+     nonvar(Prop),
+    !.
+
+extract_properties(Ind, Fa, Def1, Num, NProp):-
+   (on(fact(_,name,[Prop, Ind],Pol,_,_),Fa), 
+    on(fact(_,inst_of,[ind:Ind, class:Gend],Pol,_,_),Fa), 
+     Def=prop, Num=sing
+    ;
+    on(fact(_,isa,[_:Ind, _:Prop],Pol,_,_),Fa), 
+     Def=def, 
+     (ind(_,Ind), Num=sing
+      ;
+      set(_,Ind), Num=plur)),
+    set_def(Def, Ind, Role, Def1),
+    confirm_head(Def1, Gend, Prop, NProp),
+    !.
+
+q_buildarg(locativo, Pred, Tops, [Def1, nil, Num, NProp, Cat, [locat, PropLoc]], Facts,NewP):-
+   var(Pred),
+   on(Ind:Prop, Tops),
+   entity(Type,Ind,Score,facts(Fa)),
+   q_extract_properties(Type,Ind, Fa, Def1, Num, Prop, Cat),
+   select_alllocat_facts(Ind,Fa,Pred,PropLoc),
+   !.
+
+q_buildarg(Role, Pred, Tops, [Def1, nil, Num, NProp, Cat,PropLoc], Facts,MostDs):-
+   on(Ind:Prop, Tops),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, NProp, Cat),
+   select_allrole_facts(Role,Ind,Facts,Pred,PropLoc),
+   !.
+
+q_buildarg(Role, Pred, Tops, [Def1, nil, Num, NProp, Cat,PropLoc], Facts,MostDs):-
+   on(Ind:Prop, Tops),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, NProp, Cat),
+   select_allrole_facts(Role,Id,Facts,Pred,PropLoc),
+   !.
+
+q_buildarg(Role, Pred, Tops, [Def1, nil, Num, NProp, Cat], Fa,NewP):-
+   entity(Type,Ind,Score,facts(Fa)),
+   q_extract_properties(Type,Ind, Fa, Def1, Num, NProp, Cat),
+   !.
+
+q_buildarg(Role, Ind, Tops, [Role, Prop], Facts,NewP):-
+   on(Ind:Prop, Tops),
+     nonvar(Prop),!.
+
+q_buildarg(locativo, Pred, Tops, [meta, Prop], Facts,NewP):-
+   on(Ind:Prop, Tops),
+   !.
+
+q_buildarg_infon(Role, Pred, Tops, [Def, nil, Num, Prop, Cat], Fa,NewP):-
+   entity(Type,Ind,Score,facts(Fa)),
+   on(fact(Infon,Prop, [_:Ind],Pol,_,_),Fa),
+   list(Prop), Num=plur,
+   on(fact(Infon1,Def, [_:Ind],Pol,_,_),Fa),
+   atomic(Def),
+%  fact(infon67, [friendly, warm], [arg:id19], 1, id18, id2),
+   !.
+
+q_buildarg_loc(theme_nonaff, Location, Pred, Tops, [Def1, nil, Num, NProp, Cat], Facts,New):-
+   Location\=there,
+   on(Ind:Prop, Tops),
+   entity(Type,Id,Score,facts(Facts)),
+   q_extract_properties(Type,Ind, Facts, Def1, Num, NProp, Cat),
+   select_most_relevant_ds(Ind,Facts,MostDs).
+
+extrfacts(Fa,Ind,Gend,prop,Prop):-
+   on(fact(_,name,[Prop, Ind],Pol,_,_),Fa), 
+   on(fact(_,inst_of,[ind:Ind, class:Gend],Pol,_,_),Fa), 
+   !.
+extrfacts(Fa,Ind,Gend,prop,Prop):-
+   on(sit(_,name,[Prop, Ind],Pol,_,_),Fa), 
+   on(sit(_,inst_of,[ind:Ind, class:Gend],Pol,_,_),Fa), 
+   !.
+extrfacts(Fa,Ind,Gend,class,Prop):-
+    on(fact(_,isa,[_:Ind, _:Prop],Pol,_,_),Fa),
+    on(fact(_,inst_of,[ind:Ind, class:CGend],Pol,_,_),Fa), 
+   !.
+extrfacts(Fa,Ind,Gend,class,Prop):-
+    on(sit(_,isa,[_:Ind, _:Prop],Pol,_,_),Fa),
+    on(sit(_,inst_of,[ind:Ind, class:CGend],Pol,_,_),Fa), 
+   !.
+extrfacts(Fa,Ind,neut,prop,Prop):-
+   on(fact(_,name,[Prop, Ind],Pol,_,_),Fa), 
+   !.
+extrfacts(Fa,Ind,neut,prop,Prop):-
+   on(sit(_,name,[Prop, Ind],Pol,_,_),Fa), 
+   !.
+extrfacts(Fa,Ind,neut,class,Prop):-
+    on(fact(_,isa,[_:Ind, _:Prop],Pol,_,_),Fa),
+   !.
+extrfacts(Fa,Ind,neut,class,Prop):-
+    on(sit(_,isa,[_:Ind, _:Prop],Pol,_,_),Fa),
+   !.
+
+q_extract_properties(Type,Id, Fa, Def1, Num, NProp, Gend):-
+   on(in(_, Ind, Id),Fa),
+   (extrfacts(Fa,Ind,Gend,prop,Prop), 
+     Def=prop, Num=sing
+    ;
+    extrfacts(Fa,Ind,CGend,class,Prop), 
+    select_gend(Prop,CGend,Gend),
+    topichood_stack(Prop,Def),
+     (Ty=ind, Num=sing
+      ;
+      Type=set, Num=plur)),
+    set_def(Def, Ind, Prop, Role, Def1),
+    confirm_head(Def1, Gend, Prop, NProp),
+    !.
+
+q_extract_properties(Type,Ind, Fa, Def1, Num, NProp, Gend):-
+   (extrfacts(Fa,Ind,Gend,prop,Prop), 
+     Def=prop, Num=sing
+    ;
+    extrfacts(Fa,Ind,CGend,class,Prop), 
+    select_gend(Prop,CGend,Gend),
+    topichood_stack(Prop,Def),
+     (Ty=ind, Num=sing
+      ;
+      Type=set, Num=plur)),
+    set_def(Def, Ind, Prop, Role, Def1),
+    confirm_head(Def1, Gend, Prop, NProp),
+    !.
+
+q_extract_properties(Type,Ind, Fa, Def1, Num, Prop, Gend):-
+    on(fact(Ind,Prop, [ModInd],Pol,_,_),Fa),
+    list(Prop), Num=plur,
+    !.
+
+
+select_gend(waiter,CGend,man).
+select_gend(waitress,CGend,woman).
+select_gend(Pred,CGend,CGend).
+
+assign_def(def,top).
+assign_def(undef,def).
+
+topichood_stack(Prop,Def):-    
+     proposto(Ref),
+     Ref=ref_ex(SnX,T,Tab,P,G,N,C,F/R),
+     Tab=[+ref,Deff,nil,_,Pro,Ana,Class],
+     (Class= -class, Def=prop;
+     (Deff= -def, Def=undef; Def=def)),
+     !.
+
+set_def(Def, Id, Prop, Role, Def1):-
+    (tknow(Id, Role1), 
+     swap_def(Def, Def1)
+    ;
+     tknow(Prop, Role1), 
+     swap_def(Def, Def1)
+    ;
+    update_user_model(Id, Role), 
+    assign_def(Def,Def1)).
+
+
+set_def_model_ind(Prop,prop):-
+    list(Prop),!.
+set_def_model_ind(Prop,Def):-
+     entity(Type,Id,Score,facts(Facts)),
+   (on(fact(_,name,[Prop, Ind],Pol,_,_),Facts), 
+    on(fact(_,inst_of,[ind:Ind, class:Gend],Pol,_,_),Facts),
+     Def=prop
+    ;
+    on(fact(_,isa,[_:Ind, _:Prop],Pol,_,_),Facts),
+    on(fact(_,inst_of,[ind:Ind, class:CGend],Pol,_,_),Facts),
+    Def=def
+    ;
+    on(fact(_,name,[Prop, Ind],Pol,_,_),Facts), 
+     Def=prop
+    ;
+    on(fact(_,isa,[_:Ind, _:Prop],Pol,_,_),Facts),
+    Def=def).
+
+
+write_all_short_rels_set(W,[],[]):-!.
+write_all_short_rels_set(W,[Ent|Ents],[Ent-Prop|Props]):-
+       write_all_short_rels(W,Ent),
+      write_all_short_rels_set(W,Ents,Props),
+    !.
+ 

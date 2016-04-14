@@ -1,0 +1,282 @@
+﻿/*
+Interfaccia per il Parser
+Autore: Marco Aldo PICCOLINO BONIFORTI (mapb@stud.uni-graz.at)
+Versione: alpha (5/11/2004)
+*/
+
+:- style_check(-singleton).
+:- use_module(library(pce)).
+:- pce_autoload(finder, library(find_file)).
+:- pce_global(@finder, new(finder)).
+/*:- include(inits).
+:- make_all.*/
+
+
+
+/* gui/0: Predicato principale che chiama la finestra coi menu */
+
+gui :-
+	new(Frame, frame('Italian GETARUNS')),
+	send(Frame, append, new(MD, dialog)),
+	send(MD, append, new(MB, menu_bar)),
+        send(MD, pen , 0),
+        send(MD, gap, size(0, 0)),
+	send(new(BD, dialog),below(MD)),
+	send(BD, append, new(T, text('Universitaà Ca\' Foscari\nLaboratory of Computational Linguistics\n/A System for the Italian Language',center,bold))),
+
+	send_list(MB, append, 
+		  [ new(File, popup(file)),
+		    new(Parse, popup(parse)),
+		    new(Question, popup(question)),
+		    new(Focalized_QA, popup(focalized_qa)),
+		    new(Analyze_Summarize, popup(analyze_summarize)),
+                    new(Help, popup(help))
+                  ]),
+
+              send_list(File, append,
+		  [ menu_item(quit, message(Frame, destroy))
+		  ]),
+	send_list(Parse, append,
+		  [menu_item(input_sentence,
+			      message(@prolog, loadinput1)),
+		   menu_item(sentence_from_database,
+			      message(@prolog, loaddb1))
+		  ]),
+
+	send_list(Question, append,
+		  [menu_item(question_input,
+			      message(@prolog, loadinput))
+		  ]),
+
+	send_list(Focalized_QA, append,
+		  [menu_item(question_input,
+			      message(@prolog, loadfinput))
+		  ]),
+
+	send_list(Analyze_Summarize, append,
+		  [ 
+		    menu_item(closed_domain,
+			      message(@prolog, loadfile)),
+		    menu_item(closed_domain_file,
+			      message(@prolog, loadfilet))
+		  ]),
+
+	send_list(Help, append,
+		  [ menu_item(help,
+			      message(@prolog, helpa)),
+		     menu_item(info,
+			      message(@prolog, info))
+		  ]),
+
+       send(Frame, open).
+
+/* loadfile/0: Chiama il file finder ed esegue l'analisi di un file di testo */
+
+loadfile :-
+       get(@finder, file, exists := @on, FileName),
+       qsomma(FileName).
+
+qsomma(In) :-
+       abolish(fp/2), itsommar(In).
+
+loadfilet :-
+       get(@finder, file, exists := @on, FileName),
+       qsommat(FileName).
+
+qsommat(In) :-
+       abolish(fp/2), newitsommar(In).
+
+
+openloadfile :-
+       get(@finder, file, exists := @on, FileName),
+       getarunopen(FileName).
+
+getarunopen(In) :-
+       makeframe(Str), abolish(fp/2), opensommar(In,Str).
+       
+/* loadinput/0: Apre una finestra per l'input ed analizza la frase immessa */
+
+loadinput :-
+	new(DI, dialog('English Q/A System')),
+	send(DI, append, new(TI, text('Input a question:',left,bold))),
+	send(new(Fil, text_item), below, TI),
+	send(Fil, length, 50),
+	send(new(WI, button(analyze, message(@prolog, frase1, Fil?selection))), below(Fil)),
+	send(DI, open).
+
+loadfinput :-
+	new(DI, dialog('English Q/A System')),
+	send(DI, append, new(TI, text('Input a focalized question:',left,bold))),
+	send(new(Fil, text_item), below, TI),
+	send(Fil, length, 50),
+	send(new(WI, button(analyze, message(@prolog, frasef, Fil?selection))), below(Fil)),
+	send(DI, open).
+
+
+
+/* loadinput1/0: Apre una finestra per l'input ed analizza la frase immessa */
+
+loadinput1 :-
+	new(DI, dialog('English Q/A System')),
+	send(DI, append, new(TI, text('Input a sentence:',left,bold))),
+	send(new(Fil, text_item), below, TI),
+	send(Fil, length, 50),
+	send(new(WI, button(parse, message(@prolog, frase2, Fil?selection))), below(Fil)),
+	send(DI, open).
+
+
+frase2(Fil) :- 
+           makeframe(Str),
+           concat_atom(Fil1,' ',Fil),
+                     gen_sym(sent,Symb),
+                     kill(fqq),
+	       asserta(fqq(Symb,Fil1)),
+	       parsesentinput(Symb,Fil1,FilD).
+
+parsesentinput(Sym,R,Q):-
+       init_lexicon,
+       parseinput(Sym),
+       !.
+
+/* loaddb1/0: Apre una maschera che visualizza le frasi contenute nel db dei fatti ed esegue l'analisi */
+
+loaddb1 :-
+     get(@finder, file, exists := @on, FileName),
+     abolish(sp/2),
+     consult(FileName),
+     new(DD, dialog('English Q/A System')),
+     send(DD, append, new(T, text('Select a sentence:',left,bold))),
+     send(new(B, list_browser), below, T), send(B, size, size(100,5)),
+     forall(sp(X, Y), send(@prolog, pestrai_frase, Y, B)),
+     send(new(W, button(parse, message(@prolog, frase_es1, B?selection?key))), below(B)),
+     send(DD, open).
+
+frase_es1(Q) :- 
+    concat_atom(R, ' ', Q),
+	sp(X,R),
+	parsesent(X,R,Q).
+	
+parsesent(Sym,R,Q):-
+       makeframe(Str),  
+       init_lexicon,
+       parselfg(Sym),
+       !.
+
+/* loaddb/0: Apre una maschera che visualizza le frasi contenute nel db dei fatti ed esegue l'analisi */
+
+loaddb :-
+     new(DD, dialog('English Q/A System')),
+     send(DD, append, new(T, text('Select a question:',left,bold))),
+     send(new(B, list_browser), below, T), send(B, size, size(100,5)),
+     forall(fq(X, Y), send(@prolog, qestrai_frase, Y, B)),
+     send(new(W, button(analizza, message(@prolog, frase_es, B?selection?key))), below(B)),
+     send(DD, open).
+
+qanswer(X,R,Q):-
+	makeframe3(Str),
+	write(Q),nl,
+	qanswering(Str,X,R).
+
+
+/* makeframe/1: crea la finestra per l'analisi ed indirizza l'output su di essa */
+
+makeframe(Str) :-
+   new(F, frame('Tokenization')),
+   send(F, append(new(V, view))),
+   send(V,font, bold),
+   send(F, open),
+   pce_open(V, append, Str),
+   tell(Str).
+
+makeframe1(Str) :-
+   new(F, frame('Analysis')),
+   send(F, append(new(V, view))),
+   send(V,font, bold),
+   send(F, open),
+   pce_open(V, append, Str),
+   tell(Str).
+
+makeframe2(Str) :-
+   new(F, frame('Model')),
+   send(F, append(new(V, view))),
+   send(V,font, bold),
+   send(F, open),
+   pce_open(V, append, Str),
+   tell(Str).
+
+makeframe3(Str) :-
+   new(F, frame('Question Analysis')),
+   send(F, append(new(V, view))),
+   send(V,font, bold),
+   send(F, open),
+   pce_open(V, append, Str),
+   tell(Str).
+
+/* summma/1: Permette di specificare un file di output */
+
+qsumma(FileName) :-
+	new(DI, dialog('Analizzatore per l\'inglese')),
+	send(DI, append, new(TI, text('Specifica un file di output:',left,bold))),
+	send(new(Fil, text_item), below, TI),
+	send(Fil, length, 50),
+	send(new(WI, button(parse, message(@prolog, somma, DI, FileName, Fil?selection))), below(Fil)).
+%	send(DI, open).
+
+somma(DI, In, Out) :-
+       send(DI, destroy), makeframe(Str), sommar(In,Out).
+
+
+/* helpa/0: Apre la finestra di aiuto */
+
+helpa :-
+   new(F, frame('Summarizer - Help')),
+   send(F, append(new(V, view))),
+   send(V,font, normal),
+   send(F, open),
+   pce_open(V, append, Str),
+   tell(Str),
+   writea.
+
+writea :- write('SUMMARIZER\n\nSummarizer è un riassuntore per la lingua inglese che permette di estrarre parole chiave e frasi fondamentali da un qualsiasi testo in lingua inglese. Le frasi selezionate vengono salvate nel file "frasi". Il file contenente le frasi tokenizzate può venire specificato dall\'utente.'),nl.	
+
+/* info/0: Apre la finestra di info */
+
+info :-
+   new(FA, frame('Summarizer - Info')),
+   send(FA, append(new(DA,dialog))),
+   send(DA, append(new(TA,text('Summarizer v. alpha (11/2004)',center,bold)))),
+   send(new(TA1,text('Laboratory of Computational Linguistics\nUniversità Ca\' Foscari - Venezia\nemail: delmont@unive.it',center)),below,TA),
+   send(FA, open).
+
+frase1(Fil) :- 
+           makeframe3(Str),
+	       downcase_atom(Fil,FilD),
+           concat_atom(Fil1,' ',FilD),
+           gen_sym(user,Symb),
+	       userqanswering(Str,Symb,Fil1).
+
+frasef(Fil) :- 
+           makeframe3(Str),
+%           downcase_atom(Fil,FilD),
+           concat_atom(Fil1,' ',Fil),
+           gen_sym(user,Symb),
+	       happenqanswering(Str,Symb,Fil1).
+
+qestrai_frase(Y,B) :- 
+    fq(X,Y),
+	concat_atom(Y, ' ', Z),
+	send(B, append, Z).
+
+pestrai_frase(Y,B) :- 
+    sp(X,Y),
+	concat_atom(Y, ' ', Z),
+	send(B, append, Z).
+
+fq(q1,[che,cosa,è,accaduto,?]).
+
+frase_es(Q) :- 
+    concat_atom(R, ' ', Q),
+	fq(X,R),
+	qanswer(X,R,Q),!.
+
+

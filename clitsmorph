@@ -1,0 +1,2714 @@
+﻿:- style_check(-singleton).
+
+ana_cli(FCli,_, String, RestIn, Cat, Morpho, Code, RestOut) 
+   :-
+   append(Prefix,  [Car], String),
+   stringof(Prefix, Word),
+   mcon(Car, RestIn, RestMid),
+   stringof(Lw, RestMid),
+   length(Lw, N), 
+   !, N < 4,
+   FCli \= RestMid,
+   (pro_cli(RestMid, Clca),
+     (
+      doublecli(RestMid, Prefix, NWord, NPrefix, Cat), 
+      Morpho=NWord, Code=NPrefix,
+      mcon(RestMid, FCli, RestOut)
+     ;
+      doublecons(N, RestMid, Prefix, NWord, NPrefix, Cat), 
+      Morpho=NWord, Code=NPrefix,
+      mcon(RestMid, FCli, RestOut)
+     ;
+     Morpho=Word, Code=Prefix,
+     mcon(RestMid, FCli, RestOut),
+     clx(_, RestOut, Cat)
+      )
+     ;
+      en_cli(FCli, Cllca),
+      doublecons(N, RestMid, Prefix, NWord, NPrefix, Cat), 
+      Morpho=NWord, Code=NPrefix,
+      mcon(RestMid, FCli, RestOut)
+    ;
+   ana_cli(FCli, Word, Prefix, RestMid, Cat, Morpho, Code, RestOut)), !.
+
+constr_clit(Feats,Cli):-
+  on(mood=Mode, Feats),
+  on(tense=Tense, Feats),
+  allowed_m_t(Con,Mode,Tense,Cli,Feats).
+
+infinite_tronc(ar, inf).
+infinite_tronc(ir, inf).
+infinite_tronc(er, inf).
+infinite_tronc(r, inf).
+
+allowed_m_t(Con,part,pass,Cli,Feats) :-
+  on(num=N, Feats), 
+  on(gen=G, Feats), 
+  (p_cli(Cli,3,N,G)
+   ;
+   c_case(Cli, Case),
+   (Con\=a3,
+    (on(dat,Case)
+    ;
+    Case=dat))). 
+
+allowed_m_t(Con,part,pres,Cli,Feats) :-
+   c_case(Cli, dat).
+
+allowed_m_t(_,ger,Tense,_,_).
+allowed_m_t(_,inf,Tense,_,_).
+allowed_m_t(Con,imp,Tense,Clit,Feats) :-
+%  clitimp(on),
+  findall(Cli,  si_c(Cli,_), Cls),
+  \+ member(Clit, Cls),
+  member(num=N, Feats), 
+  member(pers=P, Feats),
+  P\=3, 
+  (
+   (Clit=mi;Clit=ti;Clit=ci;Clit=vi;Clit=lo;Clit=la;Clit=li;Clit=le),
+   imp_cli(Clit,P,N,_)
+    ;
+   (Clit\=mi,Clit\=ti,Clit\=ci,Clit\=vi),
+   (
+    p_cli(Clit,_,N,_)
+    ;
+    doubl_cl(Clit, _))
+  ). 
+
+allowed_m_t(Con,ind,pres,si,Feats) :-
+  member(pers=3, Feats), !.
+allowed_m_t(Con,indic,pres,si,Feats) :-
+  member(pers=3, Feats), !.
+allowed_m_t(Con,part,pres,si,Feats).
+
+allowed_m_t(Con,subj,pres,si,Feats) :-
+  member(pers=3, Feats), !.
+allowed_m_t(Con,ind,pres,Clit,Feats) :-
+ (Clit=mi;Clit=ti;Clit=ci;Clit=vi;Clit=lo;Clit=la;Clit=li;Clit=le),
+  (  
+  member(pers=2, Feats);
+  member(pers=1, Feats)), 
+  !.
+allowed_m_t(Con,indic,pres,Clit,Feats) :-
+ (Clit=mi;Clit=ti;Clit=ci;Clit=vi;Clit=lo;Clit=la;Clit=li;Clit=le),
+  (  
+  member(pers=2, Feats);
+  member(pers=1, Feats)), 
+  !.
+
+
+writenclitic(NFile, File, Fees):-
+      Fees=[Word-Tag-Fee|F],
+      remove(num=No, Fee, Fea),
+      remove(gen=Gen, Fee, Feat),
+      (lemc(Lem,Word,G,No),
+       singleclitic(NFile, File,Word,Lem,Tag,G,Feat)
+       ;
+       doubleclits(Word,Clit1,Clit2),
+       twoclitic(NFile, File,[Clit1,Clit2])),
+      !.
+
+writenclitic(NFile, File, Featss):-
+      Featss=[Fees|_],
+%      on(Fees, Feats),
+      on(Word-Tag-Fee, Fees),
+      remove(num=No, Fee, Fea),
+      remove(gen=Gen, Fee, Feat),
+      (lemc(Lem,Word,G,No),
+       singleclitic(NFile, File,Word,Lem,Tag,G,Feat)
+       ;
+       doubleclits(Word,Clit1,Clit2),
+       twoclitic(NFile, File,[Clit1,Clit2])),
+      !.
+
+twoclitic(NFile, File,[]):-!.
+twoclitic(NFile, File,[Clit1|Clit2]):-
+      c_case(Clit1,Case),
+      conv_pron(clit,  Case,    _, Tag),
+      lemc(Lem,Clit1,G,No),
+      p_cli(Clit1,P,_,_),
+      singleclitic(NFile, File,Clit1,Lem,Tag,G,[pers=P,num=No]),
+      twoclitic(NFile, File,Clit2),!.
+
+singleclitic(NFile, File,Word,Lem,Tag,G,Feat):-
+      append([gen=G], Feat, Feats),
+      append([pred=Lem], Feats, LCa),
+      asserisciprimo(Word, Tag, TNum, Num, NFrase, OLeng), 
+      scrivitokens(NFile, File, Pol, Word, TNum, Num, NFrase, LCa, Tag, 1, OLeng),
+      dot(NFile),
+      seeing(OFile),
+      see(NFile),
+      stream_position(NFile, _, LNum ),
+      see(OFile),      
+      assert(numtyp(TNum, Num, LNum)),
+      dot(File),
+      asserttyps(OLeng, NFrase, Tag, Word),
+      !.
+
+lemc(io,mi,fm,s).
+lemc(tu,ti,fm,s).
+lemc(io,me,fm,s).
+lemc(tu,te,fm,s).
+lemc([lui,lei],l,fm,s).
+lemc(lei,le,f,s).
+lemc(lei,le,f,p).
+lemc(lui,gl,m,s).
+lemc(lui,gli,m,s).
+lemc(egli,egli,m,s).
+lemc(ella,la,f,s).
+lemc(esso,si,fm,s).
+lemc(esso,se,fm,s).
+lemc(esso,lo,m,s).
+lemc(voi,ve,fm,p).
+lemc([là,noi],c,fm,p).
+lemc(noi,ce,fm,p).
+lemc(loro,loro,fm,p).
+lemc(loro,li,m,p).
+lemc([là,voi],v,fm,p).
+lemc([là,voi],vi,fm,p).
+lemc([là,noi],ci,fm,p).
+lemc(['di là','di ciò'],ne,fm,p).
+
+doubleclits(gliel,gli,l).
+doubleclits(glielo,gli,lo).
+doubleclits(gliela,gli,la).
+doubleclits(glieli,gli,li).
+doubleclits(gliele,gli,le).
+doubleclits(glisi,gli,si).
+doubleclits(gliene,gli,ne).
+doubleclits(tene,te,ne).
+doubleclits(telo,te,lo).
+doubleclits(teli,te,li).
+doubleclits(tele,te,le).
+doubleclits(tela,te,la).
+doubleclits(tici,ti,ci).
+doubleclits(tisi,ti,si).
+doubleclits(mela,me,la).
+doubleclits(melo,me,lo).
+doubleclits(meli,me,li).
+doubleclits(mele,me,le).
+doubleclits(mela,me,la).
+doubleclits(mene,me,ne).
+doubleclits(misi,mi,si).
+doubleclits(mici,mi,ci).
+doubleclits(mivi,mi,vi).
+doubleclits(velo,ve,lo).
+doubleclits(veli,ve,li).
+doubleclits(vele,ve,le).
+doubleclits(vela,ve,la).
+doubleclits(vene,ve,ne).
+doubleclits(visi,vi,si).
+doubleclits(vici,vi,ci).
+doubleclits(cisi,ci,si).
+doubleclits(celo,ce,lo).
+doubleclits(celi,ce,li).
+doubleclits(cele,ce,le).
+doubleclits(cela,ce,la).
+doubleclits(cene,ce,ne).
+doubleclits(selo,se,lo).
+doubleclits(seli,se,li).
+doubleclits(sele,se,le).
+doubleclits(sela,se,la).
+doubleclits(sene,se,ne).
+
+c_case(l,acc).
+c_case(c,abl).
+c_case(lo,acc).
+c_case(la,acc).
+c_case(gli,dat).
+c_case(gl,dat).
+c_case(li,acc).
+c_case(le,[dat, acc]).
+c_case(loro,[dat, acc]).
+c_case(gliel,[dat+acc]).
+c_case(glielo,[dat+acc]).
+c_case(gliela,[dat+acc]).
+c_case(glieli,[dat+acc]).
+c_case(gliele,[dat+acc]).
+c_case(glisi,[dat+nom]).
+c_case(cisi,[dat+nom]).
+c_case(ci,[nom,dat, abl]).
+c_case(vi,[nom,dat, abl]).
+c_case(tene,[dat+abl]).
+c_case(gliene,[dat+part]).
+c_case(mi,[nom,acc,dat]).
+c_case(ti,[nom,acc,dat]).
+c_case(m,dat).
+c_case(me,dat).
+c_case(meco,obl).
+c_case(teco,obl).
+c_case(seco,obl).
+c_case(te,[acc,dat]).
+c_case(telo,[dat+acc]).
+c_case(teli,[dat+acc]).
+c_case(tele,[dat+acc]).
+c_case(tela,[dat+acc]).
+c_case(tici,[dat+acc]).
+c_case(tisi,[dat+nom]).
+c_case(mela,[dat+acc]).
+c_case(melo,[dat+acc]).
+c_case(meli,[dat+acc]).
+c_case(mele,[dat+acc]).
+c_case(mela,[dat+acc]).
+c_case(mene,[dat+part]).
+c_case(misi,[dat+nom]).
+c_case(mici,[dat+abl]).
+c_case(mivi,[dat+abl]).
+c_case(velo,[dat+acc]).
+c_case(veli,[dat+acc]).
+c_case(vele,[dat+acc]).
+c_case(vela,[dat+acc]).
+c_case(vene,[dat+part]).
+c_case(visi,[dat+nom]).
+c_case(vici,[dat+abl]).
+c_case(celo,[dat+acc]).
+c_case(celi,[dat+acc]).
+c_case(cele,[dat+acc]).
+c_case(cela,[dat+acc]).
+c_case(cene,[dat+part]).
+c_case(selo,[dat+acc]).
+c_case(seli,[dat+acc]).
+c_case(sele,[dat+acc]).
+c_case(sela,[dat+acc]).
+c_case(sene,[dat+part]).
+c_case(se,dat).
+c_case(ve,dat).
+c_case(ce,dat).
+c_case(n,part).
+c_case(ne,part).
+c_case(s,[nom, dat]).
+c_case(si,[nom, dat]).
+
+si_c(cisi,[abl+nom]).
+si_c(tisi,[dat+nom]).
+si_c(glisi,[dat+nom]).
+si_c(misi,[dat+nom]).
+si_c(visi,[dat+nom]).
+si_c(selo,[dat+acc]).
+si_c(seli,[dat+acc]).
+si_c(sele,[dat+acc]).
+si_c(sela,[dat+acc]).
+si_c(sene,[dat+part]).
+si_c(se,dat).
+si_c(si,[nom, dat]).
+
+p_cli(l,3,s,G).
+p_cli(lo,3,s,m).
+p_cli(la,3,s,f).
+p_cli(gli,3,N,f).
+p_cli(gli,3,N,m).
+p_cli(li,3,p,m).
+p_cli(le,3,p,f).
+p_cli(glielo,3,N,m).
+p_cli(gliela,3,N,f).
+p_cli(glieli,3,N,m).
+p_cli(gliele,3,N,f).
+p_cli(glisi,3,_,_).
+p_cli(cisi,1,p,_).
+p_cli(c,1,p,_).
+p_cli(ce,1,p,_).
+p_cli(ve,2,p,_).
+p_cli(ci,1,p,_).
+p_cli(vi,2,p,_).
+p_cli(tene,P,_,_).
+p_cli(gliene,P,_,_).
+p_cli(m,1,s,_).
+p_cli(me,1,s,_).
+p_cli(mi,1,s,_).
+p_cli(te,2,s,_).
+p_cli(ti,2,s,_).
+p_cli(telo,2,s,m).
+p_cli(teli,2,N,m).
+p_cli(tele,2,N,f).
+p_cli(tela,2,s,f).
+p_cli(tici,2,_,_).
+p_cli(tisi,2,_,_).
+p_cli(mela,1,N,f).
+p_cli(melo,1,N,m).
+p_cli(meli,1,N,m).
+p_cli(mele,1,N,f).
+p_cli(mela,1,N,f).
+p_cli(mene,1,_,_).
+p_cli(misi,1,_,_).
+p_cli(mici,1,N,_).
+p_cli(mivi,1,N,_).
+p_cli(velo,2,N,m).
+p_cli(veli,2,N,m).
+p_cli(vele,2,N,f).
+p_cli(vela,2,N,f).
+p_cli(vene,2,_,_).
+p_cli(visi,2,_,_).
+p_cli(vici,2,_,_).
+p_cli(celo,1,N,m).
+p_cli(celi,1,N,m).
+p_cli(cele,1,N,f).
+p_cli(cela,1,N,f).
+p_cli(cene,1,_,_).
+p_cli(selo,3,N,m).
+p_cli(seli,3,N,m).
+p_cli(sele,3,N,f).
+p_cli(sela,3,N,f).
+p_cli(sene,3,_,_).
+p_cli(n,3,_,_).
+p_cli(ne,3,_,_).
+p_cli(se,3,_,m).
+p_cli(s,3,_,_).
+p_cli(si,3,_,m).
+p_cli(si,3,_,f).
+
+imp_cli(vi,P,N,_):-
+   ( P\=2, N=s
+    ;
+    N=p).
+imp_cli(mi,P,N,_):-
+   ( P\=1, N\=s
+    ;
+    P\=1, N=p).
+
+imp_cli(ti,P,N,_):-
+   ( P\=2
+    ;
+    P\=2, N=p).
+imp_cli(Clit,P,N,G):-
+   (Clit\=mi;Clit\=ti;Clit\=vi),
+   p_cli(Clit,_,_,G).
+
+occ(complic).
+occ(duplic).
+occ(erpic).
+occ(falc).
+occ(fornic).
+occ(pac).
+occ(merc).
+occ(vortic).
+occ(supplic).
+occ(nutric).
+occ(mastic).
+occ(pesc).
+occ(radic).
+occ(meretric).
+occ(lecc).
+occ(lacc).
+occ(impicc).
+occ(edific).
+occ(giudic).
+occ(indic).
+occ(cucc).
+occ(casc).
+occ(calc).
+occ(burrific).
+occ(benefic).
+occ(auspic).
+occ(acetific).
+occ(stracc).
+occ(sfoc).
+occ(sbocc).
+occ(lasc).
+occ(saponific).
+occ(sacrific).
+occ(pastific).
+occ(panific).
+occ(litig).
+occ(indic).
+occ(pubblic).
+occ(coniug).
+occ(colleg).
+occ(teolog).
+occ(preg).
+occ(astrolog).
+occ(magnific).
+occ(terrific).
+occ(naufrag).
+occ(indag).
+occ(siring).
+occ(strig).
+
+supporto(lasciare).
+supporto(bisognare).
+supporto(dovere).
+supporto(potere).
+supporto(volere).
+supporto(dover).
+supporto(poter).
+supporto(voler).
+
+modal(X,A,B,C,D,E):-
+   supporto(X),!.
+
+progr(stare).
+progr(andare).
+progr(venire).
+progr(andate).
+progr(andiamo).
+progr(venite).
+progr(va).
+progr(vieni).
+progr(star).
+progr(andar).
+progr(venir).
+doublecli(Fcl, String, Word, Pre, Cat) 
+   :-
+   append(Prefix,  [Car], String),
+    ( (Car=t; Car=m; Car=c), 
+      (
+       (Fcl=me; Fcl=ce; Fcl=te),
+       Cat=['clit:double']
+       ;
+       Cat=['clit:r_enc']),
+      Pre=Prefix
+     ; 
+     (Car=l ; Car=n),
+      Cat=['clit:r_enc'],
+      Pre=Prefix
+     ),
+   stringof(Pre, Word), !.
+
+doublecons(1, Fcl, String, Word, Pre, Cat) 
+   :-
+     (Fcl=t; Fcl=m; Fcl=c; Fcl=n; Fcl=l),
+       Cat=['clit:r_enc'],
+       Pre=String,
+   stringof(Pre, Word), !.
+   
+pro_cli(Des, Cat) :-
+   (Cat=['clit:proenc']; Cat=['clit:pro']),
+   clx(N, Des, Cat).
+
+en_cli(Des, ['clit:proenc']) :-
+   clx(N, Des, Cats),
+   on('clit:proenc', Cats).
+
+en_cli(Des, ['clit:enc']) :-
+   clx(N, Des, ['clit:enc']).
+   
+nonrecursive(Morpho, MorphoSt, NCli, Morphos, NCode, CCat, RestOut+Cli):-
+	   nmorpho(0, Morpho, MorphoSt, '', cw(_,_), Morphos, SCode, RestOut),
+   findall(Co, (on(C,SCode),term_to_atom(Co,C)), Cos),
+    constr_cl(Morph-Morph, Morphos,RestOut+NCli, Cos),
+    check_verb_codes(Cos, Coniug, Sc, TopDown),
+    ver_dire(Morpho, Coniug),
+    find_clit(Cos, RestOut, CCat, MorphoSt, NCli, Cli),
+    check_appr_clit(Morpho, Sc, Cli, Case, Subc),
+    extr_vcode(Cos, Coniug, Subc, Vs),
+    NCode=[encl=Cli, case=Case, vf=Morpho, Vs].
+%    !.
+
+get_codes(Morph, Cl, SubCl, Form):-
+   (irv(Sec, Cl, SubCl, Form, Morph, _)
+    ;
+    prefixation(Morph, Cl, SubCl, Form, _, _)
+   ).    
+
+get_codes(Pre+Morph, Cl, SubCl, Form):-
+   irv(Sec, Cl, SubCl, Form, Morph, _),!.
+
+% get_codes(Morph, Cl, SubCl, Form).
+
+get_codes_d(Morph, Cl, SubCl, Form, Con):-
+   !,
+   irv(Sec, Cl, SubCl, Form, Morph, Con).
+
+get_codes_d(Morph, Cl, SubCl, Form, Con):-
+    prefixation(Morph, Cl, SubCl, Form, _, Con),!.    
+
+
+/***
+• approp_vdes(
+   +desinence, +mode, +tense, +pers, +num, 
+   +coniug, +class, +subClass, +form, ). 
+• Desinence expressing [mode, tense, pers, num] is appropiate for the form (primary, secondary ...) of the [class, subClass] 
+NB: It works only if used in verify mode 
+NB: Form number 1 is the primary form, forms number 2, 3, 4 ecc. are secondary forms •
+***/
+approp_vdes(Root,2,Des, Mode, Tense, Pers, Num, 1, b, 1) :-
+   check_roots(Root),
+   pfd(1, b, Des, Mode, Tense, Pers, Num).
+
+approp_vdes(_,_,Des, Mode, Tense, Pers, Num, Cl, SubCl, 1) :-
+   pfd(Cl, SubCl, Des, Mode, Tense, Pers, Num).
+
+approp_vdes(_,_,Des, Mode, Tense, Pers, Num, Cl, SubCl, FormNum) :-
+   (nonvar(FormNum),
+   1 < FormNum;
+    var(FormNum)),
+   fd(Cl, SubCl, FormNum, Des, Mode, Tense, Pers, Num).
+
+approp_vdes(_,Coniug,Des, Mode, Tense, Pers, Num, Cl, SubCl, 1) :-
+   rvd(Des, Coniug, Mode, Tense, Pers, Num),
+   tm(Cl,SubCl,Mode,Tense).
+
+approp_vdes(_, Coniug,Des, Mode, Tense, Pers, Num, Cl, SubCl, 1) :-
+   ivd(Des, Coniug, Mode, Tense, Pers, Num),
+   t_m(Cl,SubCl,Mode,Tense).
+
+approp_vdes(_,_,Des, imp, pres, 2, p, Cl, SubCl, FormNum) :-
+   (Des=a; Des=i),
+   imp_fless(Cl, SubCl, FormNum),!.
+
+imp_fless(3, h, 3).
+imp_fless(3, b, 1).
+imp_fless(3, g, 1).
+imp_fless(4, c, 3).
+imp_fless(6, a, 1).
+
+%ivd(â,    1, imp, pres, 2, s). % da
+%ivd(î,    3, imp, pres, 2, s). % di
+
+ver_imp(3, g).
+ver_imp(3, b).
+ver_imp(4, g).
+ver_imp(6, a).
+
+ ver_cl(1, c).
+ ver_cl(1, e).
+ ver_cl(2, a).
+ ver_cl(3, c).
+ ver_cl(3, d).
+ ver_cl(3, e).
+ ver_cl(3, g).
+ ver_cl(3, h).
+ ver_cl(3, i).
+ ver_cl(4, c).
+
+ver_im(2, c).
+ver_im(3, b).
+ver_im(4, e).
+ver_im(4, f).
+ver_im(6, a).
+ver_im(7, a).
+
+ver_pass(1, c).
+ver_pass(1, d).
+ver_pass(1, e).
+ver_pass(1, f).
+ver_pass(1, g).
+ver_pass(1, h).
+ver_pass(3, h).
+ver_pass(3, d).
+ver_pass(3, c).
+ver_pass(3, g).
+ver_pass(4, b).
+ver_pass(4, c).
+ver_pass(5, a).
+
+ver_pass_rem(1, d).
+ver_pass_rem(1, a).
+ver_pass_rem(1, e).
+ver_pass_rem(1, i).
+ver_pass_rem(1, f).
+ver_pass_rem(1, h).
+ver_pass_rem(2, a).
+ver_pass_rem(3, c).
+ver_pass_rem(3, e).
+ver_pass_rem(3, d).
+ver_pass_rem(3, h).
+ver_pass_rem(5, a).
+
+ver_fut(1, a).
+ver_fut(1, b).
+ver_fut(1, c).
+ver_fut(1, d).
+ver_fut(1, e).
+ver_fut(1, g).
+ver_fut(1, h).
+ver_fut(2, a).
+ver_fut(2, b).
+ver_fut(3, a).
+ver_fut(3, b).
+ver_fut(3, e).
+ver_fut(3, l).
+
+t_m(Cl,SubCl,indic,fut):-
+  nonvar(Cl),
+  ver_cl(Cl, SubCl),!.
+
+t_m(Cl,SubCl,cond,pres):-
+  nonvar(Cl),
+  ver_cl(Cl, SubCl),!.
+
+t_m(Cl,SubCl,imp,pres):-
+  nonvar(Cl),
+  ver_imp(Cl, SubCl),!.
+
+t_m(_,_,inf,_).
+
+t_m(1,g,indic,pass).
+t_m(1,i,indic,pass).
+
+tm(Cl,_,inf,_).
+tm(3,SubCl,ger,_):-
+    SubCl\=b, !.
+
+tm(Cl,_,ger,_):-
+    Cl\=6, Cl\=3, !.
+
+tm(3,SubCl,part,pres):-
+    SubCl\=b, !.
+
+tm(Cl,_,part,pres):-
+    Cl\=6, Cl\=7, Cl\=3, !.
+
+tm(Cla,SubCl,indic,imperf):-
+  nonvar(Cla),
+  ver_im(Cl, Sub),
+  Cla\=Cl, SubCl\=Sub,!.
+
+tm(Cl,SubCl,Modo,pass):-
+  nonvar(Cl),
+  (Modo=indic,
+   ver_pass_rem(Cl,SubCl)
+   ; 
+   Modo=part,
+   ver_pass(Cl,SubCl)
+   ),!.
+
+tm(Cl,SubCl,indic,fut):-
+  nonvar(Cl),
+  ver_fut(Cl, SubCl),!.
+
+tm(Cl,SubCl,cond,pres):-
+  nonvar(Cl),
+  ver_fut(Cl, SubCl),!.
+
+tm(Cl,SubCl,indic,pres):-
+  nonvar(Cl),
+  Cl < 3,
+  (Cl\=2
+     ;
+   Cl=2,
+   SubCl=a),!.
+
+tm(Cl,SubCl,imp,pres):-
+  nonvar(Cl),
+  Cl < 4,
+  (Cl=2,
+   SubCl=a
+   ;
+   Cl=3,
+   SubCl=a
+    ;
+    Cl=1,
+    SubCl\=e, SubCl\=f),!.
+
+tm(Cl,SubCl,subj,pres):-
+  nonvar(Cl),
+  Cl < 3,
+  (Cl\=2
+     ;
+   Cl=2,
+   SubCl=a),!.
+
+tm(Cl,SubCl,subj,imperf):-
+  ver_subjimp(Cl,SubCl),!.
+
+tm(Cl,SubCl,subj,imperf):-
+    Cl\=3,  Cl\=6, Cl\=7,!.
+
+ver_subjimp(3,a).
+ver_subjimp(3,c).
+ver_subjimp(3,d).
+ver_subjimp(3,e).
+ver_subjimp(3,f).
+ver_subjimp(3,h).
+ver_subjimp(3,i).
+ver_subjimp(3,l).
+
+check_roots(Root):-
+  member(Root, [flett, riflett, deflett, succed, perd]),!.
+
+
+ver_dire(dir, 3):-!.
+ver_dire(dar, 1):-!.
+ver_dire(di, 3):-!.
+ver_dire(da, 1):-!.
+ver_dire(V, C):-V\=dar,V\=dir,V\=da,V\=di,!.
+
+tablecats([n],s).
+tablecats([n],sl).
+tablecats([n],st).
+tablecats([v],v).
+tablecats([ag],agg).
+tablecats([av],agg).
+tablecats([av],avv).
+tablecats([v],aggpp).
+tablecats([ag],aggpp).
+tablecats([av],aggpr).
+tablecats([av],aggpp).
+tablecats([v],aggpr).
+tablecats([ag],aggpr).
+tablecats([n],sa).
+tablecats([ag],sa).
+tablecats([av],sa).
+tablecats([v],sapr).
+tablecats([av],sapr).
+tablecats([ag],sapr).
+tablecats([n],as).
+tablecats([ag],as).
+tablecats([av],as).
+
+
+tablecatss(C,A):-
+   tablecats([C],A),!.
+/*
+tablecatss(Cs,A):-
+   on(C,Cs),
+   tablecats([C],A),!.
+    
+dc('cong:C', 440, conj).
+dc('inter', 45, intj).
+dc('loc:avv', 46, avvl).
+dc('pron:an', 47, pron).
+*/
+matchcheckcats(Code,Tags,[]):-
+   nonvar(Code), Tags=[],Code=nil,!.
+matchcheckcats(Codes,Tags,Ta):-
+   findall(T, (
+         (is_list(Tags), on(T,Tags);atomic(Tags),T=Tags),
+          concat_atom([A|_],:,T),
+          tablecatss(Code,A)), Ta), Ta\=[],
+   !.
+/*
+matchcheckcats(Codes,Tags,Ta):-
+   findall(T, (
+         (is_list(Tags), on(T,Tags);atomic(Tags),T=Tags),
+          stringof([A|_],T),
+          tablecatss(Code,A)), Ta), Ta\=[],
+   !.
+*/
+
+lex_lookup(N, Types, Ds, Morpho, NMorpho, Codes):-
+%   !,
+   lexx(N, Ds, Morpho, NMorpho, Code, From),
+   matchcheckcats(Types,Code,Codes).
+   
+lexx(N, Ds, Root, NRoot, Codes, dizionario) :-
+   dr(Root, Codes), 
+   (var(NRoot),NRoot=Root;nonvar(NRoot)),
+   Codes \= [].
+
+lexx(N, Ds, Root, NRoot, Codes, pro_lex) :-
+   pro_lex(N, Ds, Root, NRoot, Codes), Codes\=[].
+ 
+pro_lex(N, Ds, Morpho, NRoot, Codes) :-
+   (var(Ds)
+    ;nonvar(Ds), member(dv, Ds)),
+    (supp_verb(Morpho, NRoot, Codes),Codes \= []
+    ;
+    irr_verb(Morpho, NRoot, Codes)
+    ).
+
+constr_cl(W-Pred, Root, Morph, Code):-
+   (sellexcl(Code, Class),
+    Class=v,
+    ccsv(Root, Morph, Code, Reg)
+   ;
+    nonvar(Code),
+    Morph=I+Cli,
+    (member(v:C, Code);
+     member(v:i-v:C:_,Code)),
+    ccsv(Root, Morph, Code, Reg)),
+    !.
+
+sellexcl(v:i-v:C:_, v).
+sellexcl(v:Coniug-Cl-SubCl-Form-_:_, v).
+sellexcl(v:C:_, v).
+sellexcl(s:Code, [n]).
+sellexcl(s:Code:_, [n]).
+sellexcl(sp:Code, [n]).
+sellexcl(sv:Code, [n]).
+sellexcl(sl:Code, [n]).
+sellexcl(st:Code, [n]).
+sellexcl(sa:Code, [a, n]).
+sellexcl(as:Code, [a, n]).
+sellexcl(sapr:Code, [a, n]).
+sellexcl(agg:Code, [a]).
+sellexcl(pron:Code, [a]).
+sellexcl(aggpp:Code, [a]).
+sellexcl(aggpr:Code, [a]).
+sellexcl(Codes, Cat):-
+   is_list(Codes),
+   on(Code,Codes),
+   sellexcl(Code, Cat),!.
+
+sellexcl(Codes, Cat):-
+   
+
+
+selmorf(mente).
+selmorf(amente).
+selmorf(emente).
+selmorf(issima+mente).
+
+/*
+selmorfz('', Code, Code, '').
+selmorfz(ecco+_, Code, inter, '').
+*/
+
+selmorfz(Root, '', Code, Code, ''):-
+  Root\=a,!.
+selmorfz(ecco, ecco+_, Code, inter, '').
+
+ccsn(Root, Morph, s:Code, Mode-Suff):-
+   nonvar(Root),nonvar(Morph),
+   (Code=Class:Features),
+   nom_des(Root, Class, Features, Morph, Feats),
+   (member(mode=_, Feats), Mode=1, 
+    member(suff=Suff, Feats)
+    ;
+    Mode=0), 
+   !.
+ccsn(Root, Morph, s:Code, Mode-Suff):-
+   nonvar(Root),var(Morph),
+   (Code=Class:Features),
+   (Class=io;Class=ie),
+   nom_des(Root, Class, Features, Morph, Feats),
+   (member(mode=_, Feats), Mode=1, 
+    member(suff=Suff, Feats)
+    ;
+    Mode=0), 
+   !.
+
+ccsn(Root, Morph, s:Code, 0):-
+   (Code=ore:Feats),
+   nom_des(Root, ore, _, Morph, _), 
+   !.
+
+ccsn(Root, Morph, sa:Code, 0):-
+   (Code=ore;Code=io;Code=ico),
+   nom_des(Root, Code, _, Morph, _), 
+   !.
+
+ccsn(Root, Morph, sa:Code, 0):-
+   (Code=ore:Feats),
+   nom_des(Root, ore, Feats, Morph, _), 
+   !.
+
+ccsn(Root, Morph, sa:Code, Mode-Suff):-
+   (Code=Class:Features),
+   nom_des(Root, Class, Features, Morph, Feats), 
+   (member(mode=_, Feats), Mode=1, 
+    member(suff=Suff, Feats)
+    ;
+    Mode=0), 
+   !.
+
+ccsn(Root, Morph, sl:Code, 0):-
+   (Code=Class:Features),
+   nom_des(Root, Class, Features, Morph, _), 
+   !.
+ccsn(Root, Morph, st:Code, 0):-
+   (Code=Class:Features),
+   nom_des(Root, Class, Features, Morph, _), 
+   !.
+ccsn(Root, Morph, sp:Code, 0):-
+   (Code=Class:Features),
+   nom_des(Root, Class, Features, Morph, _), 
+   !.
+
+ccav(_,amente, agg:Code):- !.
+ccav(_,emente, agg:Code):- !.
+ccav(_,emente, aggpr:Code):- !.
+ccav(_,amente, aggpp:Code):- !.
+ccav(_,mente, as:o):- !.
+ccav(_,mente, as:e):- !.
+ccav(_,mente, as:e:_):- !.
+ccav(_,emente, as:e):- !.
+ccav(_,amente, as:o):- !.
+ccav(_,amente, as:e):- !.
+ccav(_,amente, sa:a:_):- !.
+ccav(_,amente, sa:o:_):- !.
+ccav(_,amente, sa:ico:_):- !.
+ccav(_,amente, sa:ico):- !.
+ccav(_,amente, sa:io:_):- !.
+ccav(_,mente, agg:e):- !.
+ccav(_,mente, agg:e:_):- !.
+ccav(_,mente, agg:o):- !.
+ccav(_,amente, sa:ga:_):- !.
+ccav(_,amente, sa:go:_):- !.
+ccav(_,amente, sa:co:_):- !.
+ccav(_,amente, sa:ca:_):- !.
+ccav(_,mente, sa:e:_):- !.
+ccav(_,mente, sa:e):- !.
+ccav(_,emente, sa:e:_):- !.
+ccav(_,emente, sa:e):- !.
+ccav(_,emente, s:e:_):- !.
+ccav(_,emente, sapr:e:_):- !.
+ccav(_,mente, s:e:_):- !.
+ccav(_,amente, s:a:_):- !.
+ccav(_,issimo, s:e:_):- !.
+ccav(_,issimo, agg:Code):- !.
+ccav(_,issima+mente, agg:Code):- !.
+ccav(_,issima+mente, sa:Code):- !.
+ccav(_,hissimo, s:e:_):- !.
+ccav(_,hissimo, agg:Code):- !.
+ccav(_,hissima+mente, agg:Code):- !.
+ccav(_,hissima+mente, sa:Code):- !.
+
+/* categorie invariabili */
+ccaz(_,'', prep):- !.
+ccaz(_,'', prep:art):- !.
+ccaz(_,'', loc:prep):- !.
+ccaz(_,'', loc:avv):- !.
+ccaz(_,'', punt):- !.
+ccaz(_,'', dirs):- !.
+ccaz(_,'', par):- !.
+ccaz(_,'', puntint):- !.
+ccaz(_,'', punto):- !.
+ccaz(_,'', cosu:_):- !.
+ccaz(_,'', cong:_):- !.
+ccaz(_,'', congf:_):- !.
+ccaz(_,'', avv):- !.
+ccaz(_,'', avv:_):- !.
+ccaz(_,'', avv:C):- !.
+ccaz(_,'', inter):- !.
+ccaz(_,'', num:_):- !.
+ccaz(_,'', pron:C):- !.
+ccaz(_,'', clit:_):- !.
+ccaz(_,'', art:_):- !.
+
+
+
+ccaz(_,'', s:z:_):- !.
+ccaz(_,'-', s:z:_):- !.
+ccaz(_,'', s:p:_):- !.
+ccaz(_,'', s:c:_):- !.
+ccaz(_,'', s:geo:_):- !.
+ccaz(_,'', s:tg:_):- !.
+ccaz(_,'', s:tm:_):- !.
+ccaz(_,'', s:t:_):- !.
+ccaz(_,'', s:ts:_):- !.
+ccaz(_,'', s:io:_):- !.
+ccaz(_,'', s:ie:_):- !.
+ccaz(_,'', s:ab:_):- !.
+ccaz(_,'', s:ab:_:_):- !.
+ccaz(_,'', sa:z:_):- !.
+ccaz(_,'', sv:z:_):- !.
+ccaz(_,'', agg:z):-!.
+ccaz(_,'', agg:ind):-!.
+ccaz(_,'', agg:z:_):-!.
+ccaz(_,'', agg:io):-!.
+ccaz(_,'', agg:num:_):-!.
+ccaz(_,'', vc:loc:_):-!.
+ccaz(_,'', as:z):-!.
+ccaz(_,'', as:z:num:car):-!.
+ccaz(_,'', as:num:car):-!.
+
+
+/* gli aggettivi normalmente partono da una singola forma e da quella devono costruire il femminile e i relativi plurali - gli aggettivi in velari fanno i plurali in -chi -che, mentre quelli in -ico fanno i plurali in -ci e -che
+   adjectival_des(M,  G, Type,  Feats)
+ */
+
+ccsa(_,Morph, sapr:Class):-
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, agg:Class):-
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, agg:Code):-
+   (Code=a:Feats),
+   adjectival_des(Morph,  Feats, a,  _), 
+   !.
+
+ccsa(_,Morph, as:o):-
+   !,
+   adjectival_des(Morph,  o, as,  _), 
+   !.
+
+ccsa(_,Morph, as:e:_):-
+   !,
+   adjectival_des(Morph,  e, as,  _), 
+   !.
+/* quelli di tipo as:o devono essere ristretti */
+
+ccsa(_,Morph, as:Code):-
+   (Code=Class),
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, sa:Code):-
+   (Code=Class:Feats),
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, sa:Code):-
+   (Code=Class),
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, sa:o):-
+   (Class=o),
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, aggpp:Code):-
+   (Code=Class),
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, aggpr:Code):-
+   (Code=Class),
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, agg:Code):-
+   (Code=num:_),
+   adjectival_des(Morph,  _, Class,  _), 
+   !.
+
+ccsa(_,Morph, as:Code):-
+   (Code=ore:Features),
+   adjectival_des(Morph,  Features, Class,  _), 
+   !.
+
+ccsa(_,Morph, as:Code):-
+   (Code=sup:Features),
+   adjectival_des(Morph,  Features, Class,  _), 
+   !.
+
+ccsa(_,Morph, as:Code):-
+   (Code=num:Features),
+   adjectival_des(Morph,  Features, Class,  _), 
+   !.
+
+ccsa(_,V, agg:ind):-!.
+ccsa(_,V, agg:ind:_):-!.
+ccsa(_,V, agg:dim):-!.
+ccsa(_,V, agg:poss):-!.
+ccsa(_,V, agg:escl):-!.
+ccsa(_,V, agg:rel):-!.
+ccsa(_,V, agg:int):-!.
+ccsa(_,V, agg:sup):-!.
+ccsa(_,V, agg:c):-!.
+ccsa(_,V, agg:alt):-!.
+ccsa(_,V, pron:_):-!.
+
+/* categorie miste sa as */
+ccsan(_,V, as:e):-!.
+ccsan(_,V, as:comp):-!.
+ccsan(_,V, as:ico):-!.
+ccsan(_,V, as:ind):-!.
+ccsan(_,V, as:io):-!.
+ccsan(_,V, as:min):-!.
+ccsan(_,V, as:o):-!.
+ccsan(_,V, as:sup):-!.
+ccsan(_,V, as:num:car):-!.
+ccsan(_,V, as:num:ord):-!.
+
+/*
+v:Coniug-Cl-SubCl-Form-Primo:Rest, Code).
+approp_vdes(_,Coniug,Des, _, _, _, _, Cl, SubCl, Form)
+*/
+
+comproo(Root, Root):-
+   atomic(Root),!.
+
+comproo(Pre+Root, NRoot):-
+   mcon(Pre, Root, NRoot),!.
+
+comproo(Pre+Root+Des, NRoot):-
+   mcon(Pr, Root, Pred1),
+   mcon(Pred1, Des, NRoot),!.
+
+extr_con(i-v:Con:_, Con, _, _, _):-!.
+extr_con(Con-Cl-SubCl-Form-_:_, Con, Cl, SubCl, Form):-!.
+extr_con(Con:_, Con, _, _, _).
+
+ccsv(Root, Morph, v:1:_, _):-
+   (nonvar(Root),
+    Morph=i;Morph=ino;Morph=iamo),
+    stringof(String, Root),
+    check_plos(Morph,String,Suf),
+    !,
+    findall(OcRo, occ(OcRo), OcRoots),
+    \+ member(Root, OcRoots),
+    !.
+
+ccsv(Root, I+Cli, v:i-v:C:_, irreg(Cl, SubCl, Form)):-
+%   !,
+   get_codes(Root, Cl, SubCl, Form),
+   (
+   approp_vdes(Root,C,I, M, T, P, N, Cl, SubCl, Form),
+   Feats=[pers=P, num=N, gen=G]    
+   ;
+   root_occl(I, NRoot, M, T, P, N),
+   Feats=[pers=P, num=N, gen=G]
+    ;
+   root_pal(I, NRoot, M, T, P, N),
+   Feats=[pers=P, num=N, gen=G]),
+   allowed_m_t(C, M, T, Cli, Feats),!.
+
+ccsv(Root, I+Cli, v:Coniug-Cl-SubCl-Form-_:_, _):-
+   !,
+   approp_vdes(Root, Coniug, I, M, T, P, N, Cl, SubCl, Form),
+   Feats=[pers=P, num=N, gen=P],
+   allowed_m_t(Coniug, M, T, Cli, Feats),!.
+
+ccsv(Root, I+Cli, v:Code, reg):-
+   !,
+   comproo(Root, NRoot),
+   extr_con(Code, C, Cl, SubCl, Form),
+   (match_inflect(I, C, M, T, Feats)
+    ;
+   root_occl(I, NRoot, M, T, P, N),
+   Feats=[pers=P, num=N, gen=G]
+    ;
+   root_pal(I, NRoot, M, T, P, N),
+   Feats=[pers=P, num=N, gen=G]),
+   allowed_m_t(C, M, T, Cli, Feats),!.
+
+ccsv(Root, I, v:i-v:C:_, irreg(Cl, SubCl, Form)):-
+%   !,
+   get_codes(Root, Cl, SubCl, Form),
+   approp_vdes(Root,C,I, M, T, P, N, Cl, SubCl, 1),!.
+
+ccsv(Root, I+Cli, v:i-v:C:_, irreg(Cl, SubCl, Form)):-
+%   !,
+   get_codes(Root, Cl, SubCl, Form),
+   approp_vdes(Root,C,I, M, T, P, N, Cl, SubCl, 1),!.
+
+ccsv(Root, Des, v:Coniug-Cl-SubCl-Form-_:_, _):-
+%   !,
+   approp_vdes(Root, Coniug, Des, M, T, P, N, Cl, SubCl, Form),!.
+
+ccsv(Root,I, v:Code, _):-
+   comproo(Root, NRoot),
+   root_pal(I, NRoot, M, T, P, N),!.
+
+ccsv(Root,I, v:Code, _):-
+   comproo(Root, NRoot),
+   root_occl(I, NRoot, M, T, P, N),!.
+
+ccsv(_,I, v:C:_, _):-
+   match_inflect(I, C, M, T, Feats),!.
+
+ccsv(_,I, v:_:C:_, _):-
+   match_inflect(I, C, M, T, Feats),!.
+ccsv(Root,I, Codes, Form):-
+   is_list(Codes),
+   on(v:C:Code,Codes),
+   ccsv(Root,I, v:C:Code, Form),!.
+
+constraint(Cat,Cli):-
+  Cat=desnc(des(_),_,_,Con,_,Feats),
+  member(mood=Mode, Feats),
+  member(tense=Tense, Feats),
+  allowed_m_t(Con,Mode,Tense,Cli,Feats).
+ 
+match_inflect(I, 1, M, T, [pers=P, num=N, gen=G]):-
+  (rvd(I,1, M, T, P, N)
+   ;
+   ivd(I,1, M, T, P, N)).
+
+match_inflect(I, 2, M, T, [pers=P, num=N, gen=G]):-
+  (rvd(I,2, M, T, P, N)
+   ;
+   ivd(I,2, M, T, P, N)).
+
+match_inflect(I, 3, M, T, [pers=P, num=N, gen=G]):-
+  (rvd(I,3, M, T, P, N)
+   ;
+   ivd(I,3, M, T, P, N)).
+
+match_inflect(I, a3, M, T, [pers=P, num=N, gen=G]):-
+  (rvd(I, a3, M, T, P, N)
+   ;
+   ivd(I, a3, M, T, P, N)).
+
+pref_name(Morph, Form):-
+   is_list(Morph),
+   PrevL = 0,
+   reverse(Morph,String),
+   seg_name(Form,String,Word,Pref,PrevL).
+pref_name(Morph, Form):-
+   atomic(Morph),
+   stringof(List,Morph),
+   PrevL = 0,
+   reverse(List,String),
+   seg_name(Form,String,Word,Pref,PrevL).
+
+seg_name(Form,M,Word,Pref,PrevL):-
+   valid_name(Form,M,Word,Pref,PrevL).
+
+seg_name(Form,M,Word,Pref,PrevL):-
+   extract_p(M,NWord,Pref,PrevL,Leng,NewPref),
+   stringof(Morph, NWord),
+   seg_name(Form,Morph,NWord,NewPref,Leng).
+
+valid_name(Form,M,Word,Pref,Length):-
+   check_r(M, Root),
+   check_p(M,Pref,Length,Pre),
+   Form=Pre+Root.
+
+extract_p(String,Word,RestIn,0,1,Car):-
+   append(Prefix,  [Car], String),
+   stringof(Prefix, Word).
+
+extract_p(String,Word,RestIn,PrevL,Leng,Pref):-
+   Leng is PrevL + 1,
+   append(Prefix,  [Car], String),
+   stringof(Prefix, Word),
+   mcon(Car, RestIn, Pref).
+
+check_r(Word, Root):-
+   reverse(Word,P),
+   stringof(P, Root).
+
+check_p(Word,Pref,Length,Pre):-
+   nonvar(Pref),
+   stringof(Morph, Pref),
+   reverse(Morph,P),
+   stringof(P, Pre),
+   (2 < Length
+    ;
+    Length = 1,
+     nonvar(Pre),
+     (Pre=a;Pre=s)
+    ;
+    Length = 2,
+   (Pre=am,
+    reverse(Word,R),
+    R=[m|_]
+    ;
+    choose_p(Pre))
+    ),
+   is_pref(Pre, Code),   
+   !.
+
+prefixation(M, Cl, SubCl, FormN,  Forms, Coniug):-
+   stringof(Morph, M),
+   reverse(Morph,String),
+   segm(Cl,SubCl,FormN,Coniug,String,Word,Pref,0,Forms),
+   Forms\=[].
+
+segm(Cl,SubCl,FormN,Coniug,[W],_, Pref,1,[]):- !.
+
+segm(Cl,SubCl,FormN,Coniug,[],_,Pref,PrevL,Fms):- !.
+
+segm(Cl,SubCl,FormN,Coniug,M,Word,Pref,PrevL,Form):-
+   valid(Cl,SubCl,FormN,Coniug,M,Word,Form,Pref,PrevL).
+
+segm(Cl,SubCl,FormN,Coniug,M,Word,Pref,PrevL,Fms):-
+   extract_prefix(M,NWord,Pref,PrevL,Leng,NewPref),
+   nonvar(NWord),
+   stringof(Morph, NWord),
+   segm(Cl,SubCl,FormN,Coniug,Morph,NWord,NewPref,Leng,Fms).
+
+seg_sec_pre(Cl,SubCl,FormN,Coniug,M,Word,Pref,PrevL,Fms):-
+   extract_prefix(M,NWord,Pref,PrevL,Leng,NewPref),
+   nonvar(NWord),
+   stringof(Morph, NWord),
+   segm(Cl,SubCl,FormN,Coniug,Morph,NWord,NewPref,Leng,Fms).
+
+valid(Cl,SubCl,FormN,Coniug,M,Word,NRoot,Pref,Length):-
+   check_prefix(Pref,Length,P),
+   check_irr(M, Cl, SubCl, FormN, Coniug, Root),
+   legal_prefixation(P,Root),
+   NRoot=P+Root.
+
+legal_prefixation(P,Root):-
+   leg_pr(P,Root), !.
+
+check_irr(Word, Cl, SubCl, FormN, Coniug, Root):-
+   reverse(Word,P),
+   stringof(P, Morph),
+   irv(Morph, Cl, SubCl, FormN,  Root, Coniug), !.
+
+check_irr(Word, Cl, SubCl, FormN, Coniug, Root):-
+   reverse(Word,P),
+   stringof(P, Root),
+   irv(Morph, Cl, SubCl, FormN,  Root, Coniug), !.
+
+leg_pr(P,Root):-
+   (P=an,
+    \+ member(Root, [dig, d])
+    ;
+    P\=an,
+    \+ member(Root, [dig, d])
+    ), !.
+
+leg_pr(P,Root):-
+   (
+    member(Root, [sap,ess,d]),
+    P=ri
+    ;
+    P\=ri,
+    \+ member(Root, [par,sap,ess,dig])), !.
+
+leg_pr(P,Root):-
+   (P=in,
+    \+ member(Root, [f,sap,ess])
+    ;
+    P\=in,
+    \+ member(Root, [par,sap,ess,dig])
+    ), !.
+
+leg_pr(P,Root):-
+   (
+    member(Root, [dig]),
+    P=re
+    ;
+    P\=re,
+    \+ member(Root, [dig])), !.
+
+extract_prefix(String,Word,RestIn,0,Leng,Car):-
+   Leng is 0 + 1,
+   append(Prefix,  [Car], String),
+   stringof(Prefix, Word).
+
+extract_prefix(String,Word,RestIn,PrevL,Leng,Pref):-
+   Leng is PrevL + 1,
+   append(Prefix,  [Car], String),
+   stringof(Prefix, Word),
+   mcon(Car, RestIn, Pref).
+
+check_prefix(Pre,1,Pre):-
+   !,
+   pref(Pre,Length).
+
+check_prefix(Pref,Length,Pre):-
+   0<Length,
+   stringof(Morph, Pref),
+   reverse(Morph,P),
+   stringof(P, Pre),
+   pref(Pre,Length).
+
+pref(se,2).
+pref(ri,2).
+pref(re,2).
+pref(ap,2).
+pref(ar,2).
+pref(as,2).
+pref(ad,2).
+pref(ac,2).
+pref(ag,2).
+pref(af,2).
+pref(al,2).
+pref(an,2).
+pref(am,2).
+pref(at,2).
+pref(av,2).
+pref(co,2).
+pref(di,2).
+pref(de,2).
+pref(ef,2).
+pref(ec,2).
+pref(es,2).
+pref(im,2).
+pref(in,2).
+pref(il,2).
+pref(ir,2).
+pref(oc,2).
+pref(of,2).
+pref(op,2).
+pref(ot,2).
+pref(pr,2).
+pref(s,1).
+pref(e,1).
+pref(i,1).
+pref(uc,2).
+pref(cir,3).
+pref(coe,3).
+pref(con,3).
+pref(col,3).
+pref(com,3).
+pref(cor,3).
+pref(dis,3).
+pref(dif,3).
+pref(esp,3).
+pref(fra,3).
+pref(man,3).
+pref(per,3).
+pref(pos,3).
+pref(pre,3).
+pref(pro,3).
+pref(ris,3).
+pref(rag,3).
+pref(rac,3).
+pref(rat,3).
+pref(rin,3).
+pref(rim,3).
+pref(sod,3).
+pref(soc,3).
+pref(sog,3).
+pref(sof,3).
+pref(som,3).
+pref(sor,3).
+pref(sot,3).
+pref(suc,3).
+pref(sud,3).
+pref(sue,3).
+pref(sop,3).
+pref(sos,3).
+pref(sov,3).
+pref(sup,3).
+pref(sus,3).
+pref(tra,3).
+pref(ante,4).
+pref(anti,4).
+pref(bene,4).
+pref(capo,4).
+pref(coin,4).
+pref(equi,4).
+pref(fram,4).
+pref(frap,4).
+pref(genu,4).
+pref(male,4).
+pref(prov,4).
+pref(rare,4).
+pref(sovr,4).
+pref(sopr,4).
+pref(stra,4).
+pref(tran,4).
+pref(trat,4).
+pref(tras,4).
+pref(vili,4).
+pref(appar,5).
+pref(contr,5).
+pref(croce,5).
+pref(croci,5).
+pref(disil,5).
+pref(extra,5).
+pref(frain,5).
+pref(inter,5).
+pref(intra,5).
+pref(intro,5).
+pref(lique,5).
+pref(retro,5).
+pref(ricon,5).
+pref(ripro,5).
+pref(sotto,5).
+pref(stupe,5).
+pref(sopraf,6).
+pref(compro,6).
+pref(intrav,6).
+pref(intrat,6).
+pref(soprag,6).
+pref(soprav,6).
+pref(sovrap,6).
+pref(accondi,7).
+pref(contrad,7).
+pref(contrap,7).
+pref(contraddi,9).
+
+irr_verb(Morf, Prim, Codes) :-
+    prefixation(Morf, Cl, SubCl, Form, Prim, Coniug),
+    Prim=Pre+Root, Word=Root,
+    mcon(Pre, Root, NWord),
+   findall(Code, collect_codes(NWord, PrimCodes, Word, Cl, SubCl, Form, Coniug, Code), Codes).
+
+collect_codes(NWord, PrimCodes, Word, Cl, SubCl, Form, Coniug, Code):-
+    call_dictionaries(NWord, PrimCodes, Word),
+    decode(PrimCodes, Cl, SubCl, Form, NWord, Coniug, Code).
+
+decode(PrimCodes, Cl, SubCl, 1, Primo, Coniug, Code) :-
+   on(Code, PrimCodes),
+   term_to_atom(C,Code),
+   C=v:i-v:_:Rest.
+
+decode(PrimCodes, Cl, SubCl, Form, Primo, Coniug, Codes) :-
+   Form\=1,
+   on(CodeA, PrimCodes),
+   term_to_atom(C,CodeA),
+   C=v:i-v:_:Rest,
+   Code=v:Coniug-Cl-SubCl-Form-Primo:Rest,
+   term_to_atom(Code,Codes).
+
+supp_verb(Morf, Prim, Codes) :-
+   irv(Morf, Cl, SubCl, Form, Prim, Coniug),
+   findall(Code, collect_codes(Prim, PrimCodes, Morf, Cl, SubCl, Form, Coniug, Code), Codes).
+
+collect_codes(Prim, PrimCodes, Cl, SubCl, Form, Coniug, Code):-
+   lexx(N, Ds, Prim, Prim, PrimCodes, dizionario),
+   !,
+   decode(PrimCodes, Cl, SubCl, Form, Prim, Coniug, Code).
+
+call_dictionaries(Prim, PrimCodes, _):-
+    lexx(N, Ds, Prim, Prim, PrimCodes, dizionario).
+
+call_dictionaries(_, PrimCodes, Prim):-
+    sup_lex(Prim, PrimCodes, ml),!.
+
+sup_lex(Root, Codes, ml) :-
+   ml(Root, Codes),
+   !.
+
+/****
+• ml(+morpheme, -codesList).
+• Morfemi con lista parziale di codici. Il dizionario viene ulteriormente consultato.
+****/
+
+ml(cid,      ['v:i-v:2:tr']).
+ml(clud,     ['v:i-v:2:tr', 'v:i-v:2:intr', 'v:i-v:2:rifl']).
+ml(cing,     ['v:i-v:2:tr', 'v:i-v:2:rifl']).
+ml(conosc,      ['v:i-v:2:tr']).
+ml(corg,     ['v:i-v:2:tr']).
+ml(corr,     ['v:i-v:2:intr']).
+ml(cuot,     ['v:i-v:2:tr']).
+ml(cut,      ['v:i-v:2:tr']).
+ml(d,      ['v:i-v:3:intr', 'v:i-v:3:rifl', 'v:i-v:3:rifl:rec', 'v:i-v:3:tr']).
+ml(dig,      ['v:i-v:2:tr']).
+ml(du,     ['v:i-v:2:tr', 'v:i-v:2:intr', 'v:i-v:2:rifl', 'v:i-v:2:intr:pron']).
+ml(dulg,     ['v:i-v:2:intr']).
+ml(emerg,      ['v:i-v:2:intr']).
+ml(fend,     ['v:i-v:2:tr', 'v:i-v:2:intr:pron', 'v:i-v:2:rifl:rec']).
+ml(figg,     ['v:i-v:2:tr', 'v:i-v:2:intr']).
+ml(fligg,      ['v:i-v:2:tr']).
+ml(flett,     ['v:i-v:2:tr', 'v:i-v:2:intr']).
+ml(lid,      ['v:i-v:2:tr']).
+ml(lig,      ['v:i-v:2:tr']).
+ml(lud,      ['v:i-v:2:tr', 'v:i-v:2:intr']).
+ml(man,      ['v:i-v:2:intr']).
+ml(merg,      ['v:i-v:2:intr']).
+ml(mov,      ['v:i-v:2:tr', 'v:i-v:2:rifl', 'v:i-v:2:intr']).
+ml(nett,     ['v:i-v:2:tr']).
+ml(pell,     ['v:i-v:2:tr']).
+ml(plod,   ['v:i-v:2:intr','v:i-v:2:tr']).
+ml(prim,     ['v:i-v:2:tr']).
+ml(rig,      ['v:i-v:2:tr']).
+ml(scriv,      ['v:i-v:2:tr']).
+ml(sig,      ['v:i-v:2:tr']).
+ml(sist,      ['v:i-v:2:intr']).
+ml(stingu,   ['v:i-v:2:tr', 'v:i-v:2:rifl']).
+ml(suad,     ['v:i-v:2:intr', 'v:i-v:2:tr']).
+ml(suef,      ['v:i-v:1:tr']).
+ml(sum,      ['v:i-v:2:intr']).
+ml(surg,     ['v:i-v:2:intr']).
+ml(solv,     ['v:i-v:2:tr']).
+ml(tund,     ['v:i-v:2:tr']).
+ml(vad,      ['v:i-v:2:tr', 'v:i-v:2:intr']).
+ml(vell,     ['v:i-v:2:tr']).
+ml(verg,     ['v:i-v:2:intr']).
+ml(volv,     ['v:i-v:2:intr']).
+
+
+nmorpho(N, Morpho, MorphoStr, Rest, TopDown, NMorpho, Code, Rest) :-
+   look_ahead2(N, Ds, TopDown, Rest),
+   lex_lookup(N, [v], Ds, Morpho, NMorpho, Code).
+
+nmorpho(N, Morph, MorphoStr, Rest, TopDown, NewRoot, Code, Rest1) :-
+   look_ahead4(N, TopDown, Rest, Root, Rest1),
+   mcon(Morph, Root, NewRoot),
+   lex_lookup(N, [v], _, NewRoot, NewRoot, Code).
+
+nmorpho(_, _, String, RestIn, TopDown, Morpho, Code, RestOut) :-
+   append(Prefix,  [Car], String),
+   stringof(Prefix, Word),
+   mcon(Car, RestIn, RestMid),
+   stringof(Lw, RestMid),
+   length(Lw, N),
+   N < 6,
+   nmorpho(N, Word, Prefix, RestMid, TopDown, Morpho, Code, RestOut).
+
+search_inter(NewMo, Rest, Morpho, NCode, Morpho):-
+    NewMo=ecco,
+    Code=inter,
+    Morpho=ecco,
+    c_case(Rest,Case),
+    append([encl=Rest, case=Case], [Code], NCode).
+
+look_ahead2(N, _, K, J).
+
+look_ahead4(N, _, Rest, Root, R1) :-
+    Rest\='',   
+   pal(N, Rest,Root,R1), !.
+
+look_ahead4(N, cw(_, _), Rest, Root, R1) :-
+    Rest\='',   
+   pal(N, Rest,Root,R1), !.
+
+
+define_cat(Cat, CCat) :-
+   !,
+   (on('clit:double', Cat),
+    CCat='clit:double'
+    ;
+    on('clit:proenc', Cat),
+    CCat='clit:proenc'
+    ;
+    on('clit:enc', Cat),
+    CCat='clit:enc'
+    ;
+    on('clit:r_enc', Cat),
+    CCat='clit:r_enc'
+    ), !.
+
+find_clit(Codes, RestOut, CCat, MorphoSt, NCli, Cli) :-
+    (atomic(Codes),Code=Codes;
+      is_list(Codes),on(v:Rest,Codes),Code=v:Rest), 
+    findclit(Code, RestOut, CCat, MorphoSt, NCli, Cli),!.
+
+findclit(_, RestOut, CCat, MorphoSt, [], []) :- !.
+
+findclit(v:Rest, RestOut, CCat, MorphoSt, ne, Cli) :-
+%   !,
+   (RestOut=ar;RestOut=er;RestOut=ir;RestOut=r),!.
+
+findclit(v:Rest, RestOut, CCat, MorphoSt, NCli, Cli) :-
+   !,
+   ( 
+    CCat='clit:double', 
+    dvow(RestOut),
+    monosyl(m, MorphoSt, Pre),
+    Cli=NCli
+    ;
+    CCat='clit:r_enc',
+    check_sdoub(MorphoSt, NCli, Cli),
+    dvow(RestOut),
+    monosyl(m, MorphoSt, Pre)
+    ;
+    CCat='clit:proenc',
+    (monosyl(m, MorphoSt, Pre),
+     Pre\=[], 
+     length(Pre, N),
+     N > 2,
+     Rest='i-v:Con'
+      ;
+     monosyl(m, MorphoSt, Pre),
+     Rest='i-v:Con',
+     \+ dvow(RestOut)
+      ;
+     monosyl(m, MorphoSt, Pre),
+     Rest='i-v:Con',
+     length(Pre, N),
+     N > 2
+     ;
+     Rest='i-v:Con',
+     length(MorphoSt, N),
+     N > 3
+     ;
+     Rest\='i-v:Con',
+     length(MorphoSt, N),
+     N >= 3
+     ), Cli=NCli    
+    ;
+    CCat='clit:enc',
+    (monosyl(p, MorphoSt, Pre),
+     Rest=i-v:Con
+      ;
+     monosyl(m, MorphoSt, Pre),
+     Rest='i-v:Con',
+     \+ dvow(RestOut)
+      ;
+     Rest\='i-v:Con'),    
+    Cli=NCli
+    ), !.
+
+check_sdoub(String, Doub, Cli) :-
+      doubl_cl(Doub, Cli),
+      monosyl(m, String, Pre).
+
+monosyl(_, [], []) :- !.
+
+monosyl(T, String, Pref) :-
+      reverse(String, RevS),
+      RevS=[Car|Prefix],
+      det_cons_vow(T, Car, Prefix, Pref, 0, 0).
+
+det_cons_vow(m, Car, [], [], V, C) :-
+      nonvar(V), nonvar(C),
+      V < 3,
+      C < 4.
+
+det_cons_vow(p, Car, _, _, V, C) :-
+      nonvar(V), nonvar(C),!.
+
+det_cons_vow(T, Car, [NCar|Pref], Pref, 1, 1) :-
+      tvow(Car), 
+      V1 is 1 + 1,
+      det_cons_vow(T, NCar, Pref, Pre, V1, 1).
+
+det_cons_vow(T, Car, [NCar|Pref], Pref, 0, C) :-
+      dvow(Car), 
+      V1 is 0 + 1,
+      det_cons_vow(T, NCar, Pref, Pre, V1, C).
+
+det_cons_vow(T, Car, [NCar|Pref], Pref, 0, C) :-
+      vow(Car), 
+      V1 is 0 + 1,
+      det_cons_vow(T, NCar, Pref, Pre, V1, C).
+
+det_cons_vow(T, Car, [NCar|Pref], Pref, 1, 1) :-
+      co(Car), 
+      C1 is 1 + 1,
+      det_cons_vow(T, NCar, Pref, Pre, V, C1).
+
+det_cons_vow(T, Car, [NCar|Pref], Pref, V, 0) :-
+      Car\=p, 
+      C1 is 0 + 1,
+      det_cons_vow(T, NCar, Pref, Pre, V, C1).
+
+doubl_cl(cci, ci).
+doubl_cl(ccela, cela).
+doubl_cl(ccele, cele).
+doubl_cl(ccelo, celo).
+doubl_cl(cceli, celi).
+doubl_cl(ccene, cene).
+doubl_cl(lla, la).
+doubl_cl(lle, le).
+doubl_cl(llo, lo).
+doubl_cl(lli, li).
+doubl_cl(mmi, mi).
+doubl_cl(mmela, mela).
+doubl_cl(mmele, mele).
+doubl_cl(mmelo, melo).
+doubl_cl(mmeli, meli).
+doubl_cl(mmene, mene).
+doubl_cl(nne, ne).
+doubl_cl(tti, ti).
+doubl_cl(ttela, tela).
+doubl_cl(ttele, tele).
+doubl_cl(ttelo, telo).
+doubl_cl(tteli, teli).
+doubl_cl(ttene, tene).
+
+dvow(a).
+dvow(i).
+
+tvow(i).
+
+co(r).
+
+vow(e).
+vow(o).
+vow(u).
+ 
+check_appr_clit(Mor, Sc, Rest, Case, Class) :-
+   v_class(Mor, Sc, Class),
+   c_case(Rest,Cases),
+   case_class(Class, Cases, Case),
+   (Class=cop, Rest\=ti; Class\=cop).
+
+v_class(_, intr:imp, intr):-!.
+v_class(_, tr:intr, intr):-!.
+v_class(_, tr:intr, tr):-!.
+v_class(_, tr:rifl, tr):-!.
+v_class(_, intr:pron, rifl):-!.
+v_class(_, intr:rifl, rifl):-!.
+v_class(_, rifl:rec, rifl):-!.
+v_class(V, intr, Out):-
+   (supporto(V), Out=vsupp;
+     progr(V), Out=vprog).
+v_class(_, Class, Class):-!.
+
+
+
+case_class(Class, [], Case) :- !.
+
+case_class(intr, Cases, Caso) :-
+  Cases=[Case|Rest],
+  case_class(intr, Case, Cas1),
+  Rest=[Cas],
+  case_class(intr, Cas, Cas2),
+  append([Cas1], [Cas2], Caso),!.
+
+case_class(intr, Cases, Caso) :-
+  Cases=[Case|Rest],
+  case_class(intr, Case, Caso),!.
+
+case_class(intr, Case, Cas) :-
+  on(Case, [abl, nom, part, dat]),
+  Cas=Case,!.
+
+case_class(intr, Case, Cas) :-
+  on(Case, [dat+nom, dat+acc, dat+abl, abl+nom, dat+part]),
+  Cas=Case,!.
+
+case_class(Class, Cases, Caso) :-
+  on(Class, [tr, cop]),
+  Cases=[Case|Rest],
+  case_class(tr, Case, Cas1),
+  Rest=[Cas],
+  case_class(tr, Cas, Cas2),
+  append([Cas1], [Cas2], Caso),!.
+
+case_class(Class, Cases, Cas) :-
+  on(Class, [tr, cop]),
+  Cases=[Case|Rest],
+  case_class(tr, Case, Cas),!.
+
+case_class(Class, Case, Cas) :-
+  on(Class, [tr, cop]),
+  on(Case, [dat, abl, acc, nom, part]),
+  Cas=Case,!.
+
+case_class(Class, Case, Cas) :-
+  on(Class, [tr, cop]),
+  on(Case, [dat+nom, dat+acc, dat+abl, abl+nom, dat+part]),
+  Cas=Case,!.
+
+case_class(rifl, Cases, Caso) :-
+  Cases=[Case|Rest],
+  case_class(rifl, Case, Cas1),
+  Rest=[Cas],
+  case_class(rifl, Cas, Cas2),
+  append([Cas1], [Cas2], Caso),!.
+
+case_class(rifl, Cases, Cas) :-
+  Cases=[Case|Rest],
+  case_class(rifl, Case, Cas),
+  !.
+
+case_class(rifl, Case, Cas) :-
+  on(Case, [dat+nom, dat+acc, dat+abl, abl+nom, dat+part]),
+  Cas=Case,!.
+
+case_class(rifl, [Case], Cas) :-
+  on(Case, [nom, acc, abl, dat, part]),
+  Cas=Case,!.
+
+case_class(rifl, Case, Cas) :-
+  on(Case, [nom, acc, abl, dat, part]),
+  Cas=Case.
+
+case_class(vprog, Case, Cas) :-
+  on(Case, [dat, abl, acc, nom, part]),
+  case_class(tr, Case, Cas),!.
+
+case_class(vsupp, Case, Cas) :-
+  on(Case, [dat, abl, acc, nom, part]),
+  case_class(tr, Case, Cas),!.
+
+case_class(vprog, Case, Cas) :-
+  on(Case, [dat+nom, dat+acc, dat+abl, abl+nom, dat+part]),
+  Cas=Case,!.
+
+case_class(vsupp, Case, Cas) :-
+  on(Case, [dat+nom, dat+acc, dat+abl, abl+nom, dat+part]),
+  Cas=Case,!.
+
+check_verb_codes(Codes, Coniug, SC, Top):-
+   Top=cw(_,_),
+   (atomic(Codes),Code=Codes; 
+      is_list(Codes), on(v:Co,Codes), Code=v:Co),
+   extr_code(Code, Coniug, SC).
+
+extr_code(Code, Coniug, SC):-
+   Code=v:i-v:Coniug:SC, !.
+
+extr_code(Code, Coniug, SC):-
+    Code=v:Coniug-Cl-SubCl-Form-Prim:SC, !.
+
+extr_code(Code, Coniug, SC):-
+    Code=v:Coniug:Sc:Sub,
+    SC=Sc:Sub,!.
+
+extr_code(Code, Coniug, SC):-
+    Code=v:Coniug:SC, !.
+
+extr_vcode(Code, Coniug, Sc, v:i-v:Coniug:Sc):-
+   Code=v:i-v:Coniug:SC, !.
+
+extr_vcode(Code, Coniug, Sc, v:Coniug-Cl-SubCl-Form-Prim:Sc):-
+    Code=v:Coniug-Cl-SubCl-Form-Prim:SC, !.
+
+extr_vcode(Code, Coniug, Ss, v:Coniug:Ss):-
+    Code=v:Coniug:Sc:Sub,
+    SC=Sc:Sub,!.
+
+extr_vcode(Code, Coniug, Sc, v:Coniug:Sc):-
+    Code=v:Coniug:SC, !.
+    
+extr_vcode(Codes, Coniug, Sc, Conig):-
+   (atomic(Codes),Code=Codes; 
+      is_list(Codes), on(v:Co,Codes), Code=v:Co),
+    extr_vcode(Code, Coniug, Sc, Conig),!.
+
+extr_code(Code, SC):-
+    Code=inter,!.
+
+check_verb_codes(Code, _, Top):-
+   Top=sufx(_,_,_,_,_,_),
+    Code=dv.
+
+check_verb_codes(Code, _, Top):-
+   Top=sufx(_,_,_,_,_,_,_),
+    Code=dv.
+
+look_ahead3(N, cw(_, _), Rest, '') :- 
+    N < 5,
+    cli(N, Rest), !.
+
+look_ahead3(6, cw(_, _), Rest, '') :- 
+    Rest\='',
+    clx(6, Rest, Cats), 
+    on('clit:proenc', Cats),!.
+
+cli(N, Des) :-
+   clx(N, Des, ['clit:proenc']).
+
+des(N, Des, Dds) :-
+   plx(N, Des, Dds),
+   !.
+
+pal(5, gerei,gi,erei).
+pal(7, geresti,gi,eresti).
+pal(7, gerebbe,gi,erebbe).
+pal(7, geremmo,gi,eremmo).
+pal(7, gereste,gi,ereste).
+pal(9, gerebbero,gi,erebbero).
+
+pal(4, gerò,gi,erò).
+pal(5, gerai,gi,erai).
+pal(4, gerà,gi,erà).
+pal(6, geremo,gi,eremo).
+pal(6, gerete,gi,erete).
+pal(7, geranno,gi,eranno).
+
+pal(2, ce,ci,e).
+pal(2, ai,ai,i).
+pal(2, bi,bi,i).
+pal(2, ci,ci,i).
+pal(2, di,di,i).
+pal(2, fi,fi,i).
+pal(2, gi,gi,i).
+pal(2, li,li,i).
+pal(2, mi,mi,i).
+pal(2, ni,ni,i).
+pal(2, ii,i,ii).
+pal(2, oi,oi,i).
+pal(2, pi,pi,i).
+pal(2, ri,ri,i).
+pal(2, ti,ti,i).
+pal(2, ui,ui,i).
+pal(2, vi,vi,i).
+pal(2, zi,zi,i).
+pal(3, rii,ri,ii).
+pal(5, aiamo,ai,iamo).
+pal(5, biamo,bi,iamo).
+pal(5, ciamo,ci,iamo).
+pal(5, diamo,di,iamo).
+pal(5, fiamo,fi,iamo).
+pal(5, giamo,gi,iamo).
+pal(5, liamo,li,iamo).
+pal(5, miamo,mi,iamo).
+pal(5, niamo,ni,iamo).
+pal(5, oiamo,oi,iamo).
+pal(5, piamo,pi,iamo).
+pal(5, riamo,ri,iamo).
+pal(5, tiamo,ti,iamo).
+pal(5, viamo,vi,iamo).
+pal(5, uiamo,ui,iamo).
+pal(5, ziamo,zi,iamo).
+pal(3, gli,gli,i).
+pal(4, bino,bi,ino).
+pal(4, pino,pi,ino).
+
+pal(3, ino,i,ino).
+
+pal(5, ciuta,c,uta).
+pal(5, ciuto,c,uto).
+pal(5, ciute,c,ute).
+pal(5, ciuti,c,uti).
+
+pal(3, rii,ri,i).
+pal(3, dii,di,i).
+pal(3, nii,ni,i).
+
+pal(5, cetto,ci,etto).
+pal(5, cetta,ci,etta).
+pal(5, cette,ci,ette).
+pal(5, cetti,ci,etti).
+
+
+pal(4, cerò,ci,erò).
+pal(5, cerai,ci,erai).
+pal(4, cerà,ci,erà).
+pal(6, ceremo,ci,eremo).
+pal(6, cerete,ci,erete).
+pal(7, ceranno,ci,eranno).
+
+pal(5, cerei,ci,erei).
+pal(7, ceresti,ci,eresti).
+pal(7, cerebbe,ci,erebbe).
+pal(7, ceremmo,ci,eremmo).
+pal(7, cereste,ci,ereste).
+pal(9, cerebbero,ci,erebbero).
+
+pal(7, hissimo, hi, issimo).
+pal(7, hissima, hi, issima).
+pal(7, hissime, hi, issime).
+pal(7, hissimi, hi, issimi).
+
+ocrvd(amo, 1, indic, pres, 1, p).
+ocrvd(amo, 1, subj, pres, 1, p).
+ocrvd(ate, 1, subj, pres, 2, p).
+ocrvd(no,  1, subj, pres, 3, p).
+ocrvd(amo, 	1, imp, pres, 1, p).
+ocrvd(ate,    1, imp, pres, 2, p).
+ocrvd(no,    1, imp, pres, 3, p).
+
+prvd('',    1, indic, pres, 2, s).
+prvd(hi,    1, indic, pres, 2, s).
+prvd(hiamo, 1, indic, pres, 1, p).
+prvd('',    1, subj, pres, 1, s).
+prvd('',    1, subj, pres, 2, s).
+prvd('',    1, subj, pres, 3, s).
+prvd(herò,   1, indic, fut, 1, s).
+prvd(herai,  1, indic, fut, 2, s).
+prvd(herà,   1, indic, fut, 3, s).
+prvd(heremo, 1, indic, fut, 1, p).
+prvd(herete, 1, indic, fut, 2, p).
+prvd(heranno,1, indic, fut, 3, p).
+
+/* PRESENTE CONGIUNTIVO 1 */
+prvd(hi,    1, subj, pres, 1, s).
+prvd(hi,    1, subj, pres, 2, s).
+prvd(hi,    1, subj, pres, 3, s).
+prvd(hiamo, 1, subj, pres, 1, p).
+prvd(hiate, 1, subj, pres, 2, p).
+prvd(hino,  1, subj, pres, 3, p).
+
+prvd(herei,    		1, cond, pres, 1, s).
+prvd(heresti,    		1, cond, pres, 2, s).
+prvd(herebbe,   		 1, cond, pres, 3, s).
+prvd(heremmmo, 		1, cond, pres, 1, p).
+prvd(hereste,      1, cond, pres, 2, p).
+prvd(herebbero,  1, cond, pres, 3, p).
+
+prvd('',    1, imp, pres, 2, s).
+prvd(hi,    1, imp, pres, 2, s).
+prvd(hino,    1, imp, pres, 3, p).
+prvd(hiamo, 		1, imp, pres, 1, p).
+
+root_occl(Des, Root, M, T, P, N) :-
+  nonvar(Root),
+  leg_ocvd(Des, 1, M, T, P, N),
+  stringof(String, Root),
+  (Des\='',
+   check_plos(Des,String,Suf)
+   ;
+   check_plosh(Des,String,Suf)).
+
+check_plos(Des,String,Suf):-
+   append(Prefix,  [Car], String),
+   (var(Suf),
+   NSuf=Car
+   ; 
+    mcon(Car, Suf, NSuf)
+    ),
+   (NSuf = g
+    ;
+    NSuf = c),!.
+
+check_plosh(Des,String,Suf):-
+   append(Prefix,  [Car], String),
+   (var(Suf),
+    NSuf=Car
+    ;
+    mcon(Car, Suf, NSuf)
+    ),
+   NSuf=i,
+   append(NPref,  [Car1], Prefix),
+   mcon(Car1, NSuf, NSu),
+   append(Pref,  [Car2], NPref),
+   mcon(Car2, NSu, Su),
+   check_themeoc(Des, Pref, Su).
+
+check_themeoc(Des, String, Suf) :-
+%  Des = '',
+   (Suf = ghi
+    ;
+    Suf = chi),!.
+
+root_pal(Des, Root, M, T, P, N) :-
+  nonvar(Root),
+  leg_prvd(Des, 1, M, T, P, N),
+  stringof(String, Root),
+  extract_theme(Des,String,Word,0,Leng).
+
+leg_ocvd(Des, 1, M, T, P, N):-
+  prvd(Des, 1, M, T, P, N).
+
+leg_ocvd(Des, 1, M, T, P, N):-
+  ocrvd(Des, 1, M, T, P, N).
+
+leg_prvd(Des, 1, M, T, P, N):-
+  prvd(Des, 1, M, T, P, N).
+
+leg_prvd(Des, 1, imp, pres, P, N):-
+  rvd(Des, 1, imp, pres, P, N),
+   (P=3, N=s
+    ;
+    P\=1).
+
+leg_prvd(Des, 1, indic, pres, P, N):-
+  rvd(Des, 1, indic, pres, P, N),
+  (P=2, N=p
+  ;
+   P=1, N=s
+  ;
+   P\=1, P\=2).
+
+palrots(ci).
+palrots(gi).
+
+check_theme(Des, String, Suf, Leng) :-
+  Leng < 3,
+  Des = '',
+  palrots(Suf),!.
+
+check_theme(Des, String, Suf, Leng) :-
+  Leng < 3,
+  prvd(Des, 1, _, _, _, _),
+  palrots(Suf),!.
+
+check_theme(Des, String, Suf, Leng) :-
+   Leng < 3,
+   extract_theme(Des,String,Suf,Leng,Nl).
+
+extract_theme(Des,String,Suf,0,1):-
+   append(Prefix,  [Car], String),
+   Car=i,
+   append(NPref,  [Car1], Prefix),
+   mcon(Car1, NSuf, NSu),
+   check_theme(Des, NPref, NSu, 1).
+
+extract_theme(Des,String,Suf,PrevL,Leng):-
+   nonvar(Suf),
+   Leng is PrevL + 1,
+   append(Prefix,  [Car], String),
+   mcon(Car, Suf, NSuf),
+   NSuf=i,
+   append(NPref,  [Car1], Prefix),
+   mcon(Car1, NSuf, NSu),
+   check_theme(Des, NPref, NSu, Leng).
+
+suf_nums(PhraseIn, Feats1) :-
+   nonvar(PhraseIn),
+   suf_num(PhraseIn, Form, Numb),
+   Form\=[],
+   (Numb=card,
+    Feats1=[cat=num, pred=Form, type=Numb]
+    ;
+    Numb=ord,
+    stringof(List,PhraseIn),
+    reverse(List,[V|Rev]),
+    reverse(Rev,Revs),
+    stringof(Revs,New),
+    mcon(New,o,Pred),
+    Feats1=[cat=num, pred=Pred, type=Numb]
+    ),
+   !.
+
+suf_num(M, Pred, Type):-
+   (is_list(M),stringof(M,Morph),Mo=M
+   ;
+   atomic(M),stringof(Morphs,M),Mo=Morphs,Morph=M),
+   seg_num(Form,Mo,Morph,Suf,0,Forms),
+   nonvar(Form),
+   !,
+   (Form=[Num],
+    nm(Num,_,Numb),
+    Pred=Numb, Type=card
+    ;
+    count_numb(Form, Pred, Type)
+    ).
+
+finnumm(A-Na, B-Nb, C-Nc, D-Nd, E):-
+   ( multip(A, 0),
+     multip(B, 1), AA is Na * Nb,
+      multip(C, 0),
+       multip(D, 0), E is AA + Nc + Nd
+    ;
+     multip(A, 1),
+      multip(B, 0),
+       multip(C, 1), AA is Nb * Nc,
+        E is AA + Na + Nd
+    ),!.
+
+/*
+A==>millenovecentotrenta+due
+B==>millenovecento+trenta
+C==>millenove+cento
+D==>mille+nove
+
+A==>duecentoventotto+mila
+B==>duecentovent+otto
+C==>duecento+vent
+D==>due+cento
+*/
+
+findnumm(A-Na, B-Nb, C-Nc, D-Nd, E-Ne, F):-
+   (
+    multip(A, 0),
+     multip(B, 1), AA is Na * Nb,
+      multip(C, 0),
+      multip(D, 0), BB is Nc + Nd,
+      (multip(E, 0), F is AA + BB + Ne
+       ;
+       multip(E, 1), F is (AA + BB) * Ne
+       )
+      ;
+     multip(A, 1),
+      multip(B, 0),
+       multip(C, 1), AA is Nb * Nc,
+        F is AA + Na + Nd + Ne
+     ), !.
+
+
+multip(Num, 1):-
+      (Num=milione; Num=mila; Num=mille; Num=cento),!.
+
+multip(Num, 0):-
+      (Num\=milione, Num\=mila, Num\=cento),!.
+
+count_numb([A, B, C, D], E, ord) :-
+    D=Aa+Bb,
+    C=_+Cc,
+    B=_+Dd,
+    A=_+N2,
+    nm(N2,_,ord),
+    nm(Dd,_,Nd),
+    nm(Cc,_,Nc),
+    nm(Bb,_,Nb),
+    nm(Aa,_,Na),
+    finnumm(Aa-Na, Bb-Nb, Cc-Nc, Dd-Nd, E), !.
+
+count_numb([A, B, C, D], F, card) :-
+    D=Aa+Bb,
+    C=_+Cc,
+    B=_+Dd,
+    A=_+Ee,
+    Ee\=ord,
+    nm(Aa,_,Na),
+    nm(Bb,_,Nb),
+    nm(Cc,_,Nc),
+    nm(Dd,_,Nd),
+    nm(Ee,_,Ne),
+    findnumm(Aa-Na, Bb-Nb, Cc-Nc, Dd-Nd, Ee-Ne, F), !.
+
+count_numb([A, B, C], Numb, ord) :-
+    C=Num1+Num2,
+    B=Nu1+Nu2,
+    A=N1+N2,
+    nm(N2,_,ord),
+    nm(Nu2,_,Num),
+    nm(Num2,_,N),
+    nm(Num1,_,Ni),
+    Numb is Ni + Num + N,!.
+
+count_numb([A, B, C], Numb, card) :-
+    C=Num1+Num2,
+    B=Nu1+Nu2,
+    A=N1+N2,
+    nm(Num2,_,Nu),
+    nm(Nu2,_,Num),
+    nm(N2,_,N),
+    nm(Num1,_,Ni),
+    Numb is (Ni + Nu + Num) * N, !.
+
+count_numb([A, B], Numb, ord) :-
+    B=Num1+Num2,
+    A=Nu1+Nu2,
+    nm(Nu2,_,ord),
+    nm(Num2,_,Num),
+    nm(Num1,_,N),
+    Numb is N + Num, !.
+
+count_numb([A, B], Numb, pro:Number) :-
+    B=Num1+Num2,
+    A=Nu1+Nu2,
+    nm(Nu2,_,Number),
+    (Number=s; Number=p),
+    nm(Num2,_,Num),
+    nm(Num1,_,N),
+    Numb is N + Num, !.
+
+count_numb([A, B], C, card) :-
+    B=Num1+Num2,
+    A=Nu1+Nu2,
+    nm(Num2,_,Nu),
+    nm(Nu2,_,Num),
+    nm(Num1,_,N),
+    findnum(Nu2, Num, Num2, Nu, N, C), !.
+%    Numb is Nu + Num + N, !.
+/* tre.cento.quindici - tre.cento.mila - tre.cento.quindici.mila 
+  trentotto.mila sessantottomila */
+
+
+count_numb([A+B], Num, ord) :-
+    nm(B,_,ord),
+    nm(A,_,Num), !.
+
+count_numb([A+B], C, card) :-
+    nm(B,_,Nu),
+    nm(A,_,Num),
+    findnu(Num, B, Nu, C), !.
+
+
+findnum(Last, A, Sec, C, D, E):-
+    integer(A),integer(C),integer(D),
+     (
+      (Sec=milione; Sec=mila; Sec=cento),
+      F is D * C
+      ;
+      F is D + C),
+     (
+      (Last=milione; Last=mila; Last=cento),
+      E is A * F
+      ;
+      E is A + F).
+
+findnu(A, B, C, D):-
+    integer(A),integer(C),
+    (
+     (B=milione; B=mila; B=cento),
+     D is A * C
+    ;
+     D is C + A).
+
+seg_num([],[W], _,Suf,PrevL,[]):- !.
+
+seg_num(Fms,[], '"',Suf,PrevL,Fms):- 
+    !.
+
+seg_num(Fms,[M],Word,Suf,PrevL,Fms):- 
+     !.
+
+seg_num(Rest,M,Word,Suf,0,Fms):-
+   valid_num(Form,M,_,Word,NSuf,PrevL),
+   append(Fms, [Form], Rest).
+
+seg_num(Rest,M,Word,Suf,PrevL,Fms):-
+   0<PrevL,
+   valid_num(Form,M,Word,Suf,NSuf,PrevL),
+   append(Fms, [Form], NFms),
+   seg_num_suf(Rest,M,NWord,NSuf,0,NFms).
+
+seg_num(Form,M,Word,Suf,PrevL,Fms):-
+   extract_s(M,NWord,Suf,PrevL,Leng,NewSuf),
+   nonvar(NWord),
+   stringof(Morph, NWord),
+   seg_num(Form,Morph,NWord,NewSuf,Leng,Fms).
+
+seg_num_suf(Form,M,Word,Suf,PrevL,Fms):-
+   extract_s(M,NWord,Suf,PrevL,Leng,NewSuf),
+   nonvar(NWord),
+   stringof(Morph, NWord),
+   seg_num(Form,Morph,NWord,NewSuf,Leng,Fms).
+
+valid_num(Form,M,Word,Suf,NSuf,0):-
+    nm(Suf,Length,N),
+    Form=Suf,
+    NSuf='"'.
+
+valid_num(Form,M,Word,Suf,NSuf,Length):-
+    nm(Suf,Length,N),
+    Form=Word+Suf,
+    NSuf='"'.
+
+checkmemb(Fms):-
+   member(B,Fms),var(B),!.
+
+suf_vname(M, Form):-
+   stringof(Morph, M),
+   seg_suf(Forms,Morph,Word,Suf,0,Form),!.
+
+seg_suf([],[W], _,Suf,PrevL,[]):- !.
+
+seg_suf(Fms,[], '"',Suf,PrevL,Fms):- !.
+
+seg_suf(Fms,[M],Word,Suf,PrevL,Fms):- 
+     \+ atomic(M),
+     one_char(M, Leng),
+     integer(Leng), 
+     1<Leng, !.
+seg_suf(Rest,M,Word,Suf,PrevL,[Form|Fms]):-
+   valid_suf(Form,M,Word,Suf,NSuf,PrevL),
+   seg_sec_suf(Rest,M,NWord,NSuf,PrevL,Fms).
+
+seg_suf(Form,M,Word,Suf,PrevL,Fms):-
+   extract_s(M,NWord,Suf,PrevL,Leng,NewSuf),
+   nonvar(NWord),
+   stringof(Morph, NWord),
+   seg_suf(Form,Morph,NWord,NewSuf,Leng,Fms).
+
+seg_sec_suf(Form,M,Word,Suf,PrevL,Fms):-
+   extract_s(M,NWord,Suf,PrevL,Leng,NewSuf),
+   nonvar(NWord),
+   stringof(Morph, NWord),
+   seg_suf(Form,Morph,NWord,NewSuf,Leng,Fms).
+
+valid_suf(Form,M,Word,Suf,NSuf,Length):-
+    0 < Length,
+    check_suffix(Word, Length, Suf, Form, NSuf).
+
+check_suffix(Word, Length, Suf, Form, NSuf) :-
+    check_s(Length,Suf, Mark),
+    Form=Mark+Word+Suf,
+    NSuf=Suf.
+
+check_suffix(Word, Length, Suf, Form, NSuf):-
+    ch_s(Length,Suf, verb),
+    Form=verb+Word+Suf,
+    NSuf=Suf.
+
+check_suffix(Word, Length, Suf, Form, NSuf):-
+    ch_s(Length,Suf, verb),
+    Form=v+Word+Suf,
+    Suf \= 'à',
+    NSuf='"'.
+
+one_char('"', Leng) :- !.
+one_char([], Leng) :- !.
+one_char(Word, Leng) :-
+  stringof(String, Word),
+  extract_s(String,Nword,RestIn,0,Leng,Suf),
+  sec_char(Nword, Leng).
+
+sec_char('"', 1) :- !.
+
+sec_char([], Leng) :- !.
+
+sec_char(Word, PrevL) :-
+  stringof(String, Word),
+  extract_s(String,Nword,RestIn,PrevL,Leng,Suf),
+  1<Leng.
+
+extract_s([],_,RestIn,PrevL,PrevL,Suf):- !.
+
+extract_s(String, Word, RestIn, 0,1,Car):-
+   append(Prefix, [Car], String),
+   stringof(Prefix, Word).
+
+extract_s(String,Word,RestIn,PrevL,Leng,Suf):-
+   append(Prefix, [Car], String),
+   Leng is PrevL + 1,
+   stringof(Prefix, Word),
+   nonvar(RestIn),
+   concat(Car, RestIn, Suf).
+
+check_s(Length, Suff, Mark):-
+   nonvar(Suff),
+   is_suf(Suff, Code, Mark).   
+
+is_suf(Su, Code, Mark) :-
+%   s(Su, Codes),
+   sf(Su, Codes),
+   on(CodeAtm, Codes),
+   term_to_atom(Code,CodeAtm),
+   (Code=suff:C:I, integer(I), C=v, Mark=v; 
+    Code=suff:C1:C2:G, Mark=nverb;
+    Code=el2:C:G, Mark=nverb;
+    Code=suff:C1:C2, Mark=nverb, \+ integer(C2); 
+    Code=el2:C, Mark=nverb).
+
+ch_s(Length,Suff, Mark):-
+   nonvar(Suff),
+   is_v(Suff, Mark).
+
+is_v(Su, Mark) :-
+   plx(N, Su, Codes),
+   on(dn, Codes), on(dv, Codes), Mark=verb.
+
+suf_name(M, Form):-
+   PrevL = 0,
+   stringof(Morph, M),
+   seg_su(Form,Morph,Word,Suf,PrevL,Forms),!.
+
+seg_su([],[], '"',Suf,PrevL,Fms):- !.
+
+seg_su(Fms,[], '"',Suf,PrevL,Fms):- !.
+
+seg_su(Rest,M,Word,Suf,PrevL,Fms):-
+   valid_su(Form,M,Word,Suf,PrevL),
+   append(Fms, [Form], NFms),
+   seg_sec_suf(Rest,M,NWord,Suf,PrevL,NFms).
+
+seg_su(Form,M,Word,Suf,PrevL,Fms):-
+   extract_s(M,NWord,Suf,PrevL,Leng,NewSuf),
+   nonvar(NWord),
+   stringof(Morph, NWord),
+   seg_su(Form,Morph,NWord,NewSuf,Leng,Fms).
+
+seg_sec_su(Form,M,Word,Suf,PrevL,Fms):-
+   extract_s(M,NWord,Suf,PrevL,Leng,NewSuf),
+   nonvar(NWord),
+   stringof(Morph, NWord),
+   seg_su(Form,Morph,NWord,NewSuf,Leng,Fms).
+
+valid_su(Form,M,Word,Suf,Length):-
+    check_su(Length,Suf),
+    Form=Word+Suf.
+
+check_su(Length,Suff):-
+   nonvar(Suff),
+   is_suff(Suff, Code),   
+   (Code=suff:C1:C2:G;
+    Code=suff:C1:C2; 
+    Code=el2:C:G; 
+    Code=el2:C).
+
+is_suff(Su, Code) :-
+%   s(Su, Codes),
+   sf(Su, Codes),
+   on(Code, Codes).
+
+
+spotdate(Word, Cat):-
+%      pname(Word, W),
+      term_to_atom(Word, W),
+      stringof(String, W),
+      reverse(String, Morph),
+      length(Morph, Ly),
+      (
+      Ly \= 4,
+      Cat=[num-Word]
+      ;
+      Ly = 4, 
+      append(Prefix,  [C], Morph),
+%      pname(C, Car),
+      (
+       C=1,
+       Cat=[date-mille]
+      ;
+       C\=1,
+      Cat=[num-Word]
+      )
+      ),!.
+
+
+spot_date(Word, Cat):-
+      stringof(String, Word),
+      reverse(String, Morph),
+      append(Prefix,  [C], Morph),
+%      pname(C, Car),
+      integer(C),
+      Ind = 0,
+      spot_period(Prefix, C, Ind, Cat).
+
+spot_period(Morph, Ca, Ind, Cat-Pred):-
+      append(Prefix,  [Car], Morph),
+      Car='/',
+      append(Npre,  [C], Prefix),
+%      pname(C, NC),
+      integer(C),
+      append(Pre,  [CarN], Npre),
+      (
+       CarN='/',
+       (identify_month(C, Mont),
+        Prey=Pre
+       ;
+        append(Prey,  [Cn], Pre),
+%        pname(Cn, CarN),
+        integer(Cn),
+        concat(C, Cn, Cmn),
+%        pname(Cmn, Cmo),
+        identify_month(Cmn, Mont)
+       ),
+       reverse(Prey, Py),
+       length(Py, Ly),
+       (Ly = 4,
+        Cat=[date]
+        ;
+        Ly=1, 
+        Cat=[sect]),
+        stringof(Py, Yea),
+%        pname(Year, Year),
+        Pred=Ca-Mont-Year
+       ;
+       reverse(Prefix, Py),
+       (remove('/', Py, Nu),
+        remove('/', Nu, Nuu),
+       length(Nuu, Ly),
+       (Ly = 9,
+        Cat=[num-billion],
+        Num=billion
+        ; 
+        Ly = 3,
+        Cat=[sect], Num=ger
+        ;
+        remove('/', Nuu, Nuo),
+        length(Nuo, 4),
+        Cat=[sect], Num=ger)
+       ; 
+       remove('/', Py, Nu),
+       length(Nu, Ly),
+       (Ly = 6,
+        Cat=[num-million],
+        Num=million
+        ; 
+        length(Py, 3),
+        Cat=[num-thousand],
+        Num=thousand
+        ; 
+        Ly = 4,
+        Cat=[sect], Num=ger
+        )
+       ;
+       stringof(Py, Ye),
+       concat('.', Ye, Nn),     
+       Cat=[num],
+       Num=Nn
+       ),
+       concat(Ca, Num, Pred)
+       ),
+       !.
+
+spot_period(Morph, Ca, Ind, Feat):-
+      NInd is Ind + 1,
+      NInd < 3,
+      append(Prefix,  [C], Morph),
+%      pname(C, Car),
+      integer(C),
+      concat(Ca, C, Cat),
+      spot_period(Prefix, Cat, NInd, Feat).
+
+identify_month(Int, Mont):-
+      (Int=01, Mont=janua
+      ;Int=02, Mont=februa
+      ;Int=03, Mont=march
+      ;Int=04, Mont=april
+      ;Int=05, Mont=may
+      ;Int=06, Mont=june
+      ;Int=07, Mont=july
+      ;Int=08, Mont=august
+      ;Int=09, Mont=septem
+      ;Int=1, Mont=janua
+      ;Int=2, Mont=februa
+      ;Int=3, Mont=march
+      ;Int=4, Mont=april
+      ;Int=5, Mont=may
+      ;Int=6, Mont=june
+      ;Int=7, Mont=july
+      ;Int=8, Mont=august
+      ;Int=9, Mont=septem
+      ;Int=10, Mont=octobe
+      ;Int=11, Mont=novemb
+      ;Int=12, Mont=decemb).
+
+/* 7 */
+num_cats(File, Word-Sign, [num], Cat) :-
+      integer(Word), Cat=[num-Sign],
+      !.
+
+num_cats(File, Word, [num], Cat) :-
+      integer(Word),
+      spotdate(Word, Cat),
+      !.
+
+num_cats(File, Word, Feats, [Lemma]) :-
+   spot_date(Word, Feats-Lemma),
+   !.
+
+num_cats(File, Word, Cat, [NW]) :-
+      stringof(String, Word),
+      reverse(String, Morph),
+      append(Prefix,  [C], Morph),
+%      pname(C, Car),
+      integer(C),
+   (on(Per, Morph),
+    Per='%',
+    remove('%', String, Num),
+    stringof(Num, NW),    
+%    pname(NW, NWo),
+    Cat=[per_cento]
+    ;
+    Cat=[num], NW=Word),
+    !.
+
+num_cats(File, Word, [num], [Word]) :-
+      integer(Word),
+      !.

@@ -1,0 +1,2924 @@
+﻿:- style_check(-singleton).
+
+
+/* ************************************************************************ */
+
+cont_discorso(N,Args) :-
+       N1 is N - 1,
+       Args=[ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX)/_|Altri],
+       stato(N1,Stato),
+       contdiscs(Stato,N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri),
+       !.
+
+contdiscs(resume,N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri) :-
+      disc_resume(N,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri),
+      !.
+
+contdiscs(Stato,N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri) :-
+      (Stato=cambia;Stato=retaining;Stato=shifting),
+      disc_cambia(N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri),
+      !.
+
+contdiscs(Stato,N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri) :-
+       (Stato=retaining;Stato=cambia;Stato=resume),
+      disc_retain(N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri),
+      !.
+
+contdiscs(Stato,N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri) :-
+      disc_cont(N,N1,Stato,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri),
+      !.
+    
+/* • -sc  r_prin, r_prop, a_prin, a_sec, State=continua
+30 il Pred è un sc che sostituisce il pron indefinito */
+create_disc_grid2(N, SnX-TestaY-sc, Pred, Altri, r_prin, r_prop, a_prin, a_sec, continua):-
+       nonvar(TestaY),
+       principale(Prin),
+       proposto(ref_ex(_,TestaY,TabX,PersX,GenX,NumX,CcX,FX/RX)),
+       retract(proposto(Pro)),
+       retract(principale(Prin)),
+       assert(stato(N,continua)),
+       assert(proposto(nil)),
+       assert(principale(Prin)),
+       recover_sec(altri, ref_ex(_,TestaY,TabX,PersX,GenX,NumX,CcX,FX/RX), Altri, N),!.     
+
+create_disc_grid2(N, TestaX-sc, Ref1, Altri, r_prin, r_prop, a_prin, a_sec, continua):-
+       nonvar(TestaX),
+       principale(Prin),
+       N1 is N - 1,
+       one(altri(ref_ex(_,TestaY,TabA,PersA,GenA,NumA,CatA,_),N1)),
+       retract(proposto(Pro)),
+       retract(principale(Prin)),
+       assert(stato(N,continua)),
+       assert(proposto(nil)),
+       assert(principale(Ref1)),
+       recover_sec(altri, ref_ex(_,TestaY,TabA,PersA,GenA,NumA,CatA,_), Altri, N),!.     
+
+
+/* • -sc  r_prop, r_altri, a_prin, a_sec, State=continua
+31 il best candidate e' il principale e il proposto diviene secondario */
+create_disc_grid2(N, TestaX-sc, Ref1, Altri, r_prop, r_altri, a_prin, a_sec, 
+        continua) :-
+       principale(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       retract(principale(_)),
+       assert(principale(Ref1)),        
+       retract(proposto(Prop)),
+       assert(proposto(nil)),       
+       retract(secondario(_)),
+       assert(secondario(ref_ex(SnP,PredP,_,PersP,GenP,NumP,CatP,_))),
+       asserisci_altri(Altri,N),
+       assert(stato(N,continua)),!.
+
+
+create_disc_grid2(N, TestaX-sc, Ref1, Altri, r_prop, r_altri, a_prin, a_sec, 
+        continua) :-
+       retract(proposto(ref_ex(SnP,PredP,TabP,PersP,GenP,NumP,CatP,_))),
+       assert(proposto(nil)),       
+       retract(secondario(_)),
+       assert(secondario(ref_ex(SnP,PredP,_,PersP,GenP,NumP,CatP,_))),
+       retract(principale(_)),
+       assert(principale(Ref1)),        
+       asserisci_altri(Altri,N),
+       assert(stato(N,continua)),!.
+
+/* • -sc  r_sec, r_prin, a_prop, a_sec, State=continua
+32 il best candidate e' il secondario che diviene principale e il primo degli altri diviene secondario */
+create_disc_grid2(N, TestaX-sc, Ref1, Altri, r_sec, r_prin, a_prop, a_sec, 
+       continua) 
+       :-
+       secondario(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       one(altri(ref_ex(_,TestaP,TabA,PersA,GenA,NumA,_,_),N1)),
+       elimina(ref_ex(Sn,TestaP,_,Pers,Gen,Num,Cat,_/_)/_,Altri, La),
+       principale(Prin),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(Ref1)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       retract(secondario(_)),
+       assert(secondario(ref_ex(Sn,TestaP,_,Pers,Gen,Num,Cat,_))),
+       asserisci_altri(La,N),
+       assert(stato(N,retaining)),!.
+
+/* • 8 lo stato è cambia: si cerca un sc e lo si sostituisce al pronome indefinite come new main */
+
+disc_cambia(N,N1,ref_ex(SnX,TestaX-sc,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+/*    
+(elimina(ref_ex(SnY,indefinite-sc,_,Pers,Gen,Num,Cat,_/_)/_,Altri,La)
+     ;
+     La=Altri),
+*/
+    create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, r_prin, r_prop, a_prin, a_sec, continua),
+       !.
+
+disc_cambia(N,N1,ref_ex(SnX,indefinite-sc,TabX,PersX,GenX,NumX,CcX,FX/Tema),Altri)
+    :-
+    TabX=[+ ref, + def, nil, nil, + pro, + ana, + me],
+    search_sc(N, TestaX, Testa2, Pred, FX),
+    search_dmod(Pred,Id),
+    create_disc_grid2(N, indefinite, Pred, Altri, r_prin, r_prop, a_prin, a_sec, continua),
+       !.
+
+/* • 1 il primo è uguale al proposto */
+disc_cambia(N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   (TestaX=T-sc, Ref=ref_ex(SnX,T,TabX,PersX,GenX,NumX,CcX,FX/RX);
+    TestaX\=T-sc, Ref=ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX)),
+   create_disc_grid3(N, Ref, Altri, r_prop, r_prin, a_prin, a_sec, continua),
+   !.
+
+disc_cambia(N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   TestaX=T-sc, Ref=ref_ex(SnX,T,TabX,PersX,GenX,NumX,CcX,FX/RX),
+    create_disc_grid2(N, TestaX-sc, Ref, Altri, r_prop, r_altri, a_prin, a_sec, continua),
+   !.
+
+disc_cambia(N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+      principale(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_)),
+      search_sc(N, TestaX, Testa2, Testa2, FX),
+      create_disc_grid3(N, ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_), Altri, r_prin, r_prop, a_prin, a_sec, 
+        continua),
+       !.
+
+/* • 2  lo stato e' cambia
+    si passa in continua: il primo argomento è un nome proprio e ne esiste un secondo con la stessa funzione grammaticale. Assieme costituiscono un set da coriferire con il proposto nome comune plurale. Si chiamano i fatti corrispondenti ai nomi dal model e si cerca la proprieta corrispondente, se coincide si continua con il proposto e si mette in secondario quello precedente   */
+
+disc_cambia(N,N1,ref_ex(SnX,TestaX,[+ref,def0,nil,nil,-pro,-ana,-class],PersX,GenX,sing,CcX,FX/RX),Altri)
+   :-
+   Altri\=[],
+   proposto(ref_ex(_,TestaP,_,PersP,GenP,plur,_,_)),
+   nogen_member(ref_ex(SnY,TestaY,[+ref,def0,nil,nil,-pro,-ana,-class],PersY,GenY,sing,CatY,FX/RY)/Py, Altri),
+   fact(_,name, [TestaY, Id], 1, univ, univ),
+   in(_, Id, Idx),
+   fact(_,isa,[ind:Idx,class:TestaP],1,Temp, Loc),
+   set(_, Idy),
+   card(_, Idy, 2),
+   in(_, Idy, Idx),
+   elimina(ref_ex(SnY,TestaY,_,_,_,_,_,_/_)/_,Altri,L),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnX,TestaP,_,PersP,GenP,NumP,CatY,FX/RX))),               
+   retract(secondario(Sec)),
+   assert(secondario(Sec)),
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   assert(stato(N,cambia)),
+   asserisci_altri(L,N),
+   !.
+
+disc_cambia(N,N1,Ref1,Altri):-
+   Ref1=ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),
+   noton(+pro, TabX),
+   (nogen_member(sociale,CcX), Feat=sociale;
+    nogen_member(legale,CcX), Feat=legale;
+    nogen_member(sostanza,CcX), Feat=sostanza),
+   create_disc_grid4(N, Ref1, Altri, Feat, continua),
+   !.
+
+/* • 4 lo stato e' cambia si passa in continua: il primo è uguale al proposto   */
+disc_cambia(N,N1,Ref1,Altri)
+   :-
+   create_disc_grid3(N, Ref1, Altri, r_prop, r_altri, a_prin, a_sec, continua),
+    !.
+
+/* • 3  lo stato e' cambia
+    si passa in retaining: il primo argomento e' indefinito ed il secondo coriferisce al proposto oppure ad altri: il primo viene sistemato in proposto e il secondo in secondario  */
+
+disc_cambia(N,N1,Ref1,Altri)
+   :-
+   create_disc_grid3(N, Ref1, Altri, r_prop, r_altri, a_prop, a_sec, retaining),
+    !.
+
+/* • 6 lo stato e' cambia
+    si passa in continua: l'argomento proposto e altri dello stato precedente coincidono con i primi due dello stato attuale - quindi i due argomenti vengono sistemati come proposto e secondario   */
+
+disc_cambia(N,N1,Ref1,Altri)
+   :-
+   (create_disc_grid3(N, Ref1, Altri, r_altri, r_prop, a_prop, a_sec, continua) 
+    ; 
+   create_disc_grid3(N, Ref1, Altri, r_altri, r_prop, a_prop, a_sec, retaining) 
+    ),
+    !.
+/* • 7 lo stato è cambia: il secondo argomento è uguale al primo degli altri o al proposto, si passa in retaining */
+
+/* • 10 il primo è un oggetto */
+disc_cambia(N,N1,ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R),Altri)
+   :-
+   nogen_member(oggetto,Cat),!, 
+  (R=tema_nonaff
+    ;
+   elimina(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CatY,sogg_foc/tema_nonaff)/_,
+           Altri,La)),
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CatY,_/_))),
+   proposto(ref_ex(SnP,TestaP,TabP,PersP,GenP,NumP,CatP,_)),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnP,TestaP,_,PersP,GenP,NumP,CatP,_))),
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   asserisci_altri(La,N),
+   asserta(po_view(N,TestaP)),
+   assert(stato(N,continua)),
+   !.
+
+/* il primo è indefinito e non ci sono altri argomenti che riprendono quello proposto precedentemente */
+
+disc_cambia(N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   Altri\=[],
+   proposto(ref_ex(SnY,TestaP,TabP,PersP,GenP,NumP,_,_)),
+   TabX = [+ref,-def,nil,nil,-pro,-ana,+class],
+   (
+    (nogen_member(sociale,CcX)
+     ;nogen_member(role,CcX)),
+    current_main_loc(N1, luogo, LocInfo),
+    arg(1, LocInfo, Ind),
+    arg(2, LocInfo, Pred),
+    infer_mereology(TestaX,Pred),
+    retract(proposto(_)),
+    retract(principale(_)),
+    retract(secondario(_)),
+    assert(principale(ref_ex(SnY,TestaP,_,PersP,GenP,NumP,_,_))),
+    assert(stato(N,cambia)),
+    assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+    assert(secondario(nil)),
+    asserisci_altri(Altri,N)
+   ;
+
+    retract(proposto(_)),
+    retract(principale(_)),
+    retract(secondario(_)),
+    assert(principale(nil)),
+    assert(stato(N,retaining)),
+    assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+    assert(secondario(ref_ex(SnY,TestaP,_,PersP,GenP,NumP,_,_))),
+    asserisci_altri(Altri,N)),
+    !.
+
+
+/* 1  lo stato e' retaining
+    si passa in continua: il proposto è un nome proprio che viene
+ripreso da una sua proprietà conosciuta nel mondo; si cerca il fatto
+che asserisce questa proprietà che deve coincidere con la testa del
+primo argomento della frase corrente    */
+disc_retain(N,N1,ref_ex(SnX,TestaX-sc,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+      proposto(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_)),
+      search_sc(N, TestaX, Testa2, [], FX),
+      create_disc_grid5(N, SnX-TestaX-sc, Altri, r_prop, r_altri, a_prin, a_sec, continua),
+        !.
+
+disc_retain(N,N1,ref_ex(SnX,TestaX-sc,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+      principale(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_)),
+      search_sc(N, TestaX, [], [], FX),
+      create_disc_grid2(N, TestaX-sc, Pred, Altri, r_prin, r_prop, a_prin, a_sec, 
+        continua),
+       !.
+
+disc_retain(N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   Altri\=[],
+   proposto(ref_ex(_,TestaP,_,PersP,GenP,NumP,Cat,_)),
+   Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+   TabX = [+ref,+def,nil,Card,-pro,-ana,+class],
+   NumX=sing,
+   fact(_,name, [TestaP, Id], 1, Temp, Loc),
+   in(_, Id, Idx),
+   fact(_,isa,[ind:Idx,class:TestaX],1,Te,Lo),
+   principale(ref_ex(_,TestaX,_,Pers,Gen,Num,Cc,F/R)),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnX,TestaP,_,PersP,GenP,NumP,Cat,FX/RX))),               
+   retract(secondario(_)),
+   assert(secondario(ref_ex(_,TestaY,_,PersY,GenY,NumY,CcY,FY/RY))),
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   assertz(risolto(N, SnX, TestaX, TestaP)),     % memorizza risolti 
+   assert(stato(N,resume)),
+   asserisci_altri(LA,N),
+   !.
+
+/* 2 c'è un proposto nella frase precedente */
+disc_retain(N,N1,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   Altri\=[],
+   proposto(ref_ex(SnP,TestaP,_,PersP,GenP,NumP,Cat,_)),
+   TabX = [+ref,def0,nil,nil,-pro,-ana,-class],
+   NumX=sing,
+   fact(_,name, [TestaX, Id], 1, Temp, Loc),
+   in(_, Id, Idx),
+   fact(_,isa,[ind:Idx,class:TestaP],1,Te,Lo),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnP,TestaP,_,PersP,GenP,NumP,Cat,FX/RX))),               
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   assertz(risolto(N, SnX, TestaP, TestaX)),     % memorizza risolti 
+   assert(stato(N,resume)),
+   asserisci_altri(Altri,N),
+   !.
+
+
+/*  3  lo stato attuale e_ continua o resume e il primo argomento e_ un deittico quantificato: maggiore, altri, ecc.  */
+disc_retain(N,N1,Ref1,Altri) :-
+   create_disc_grid3(N, Ref1, Altri, r_prop, r_prin, a_prin, a_sec, cont_analyze),
+   !.
+
+/* 4 */
+disc_retain(N,N1,Ref1,Altri) :-
+   create_disc_grid3(N, Ref1, Altri, r_prop, r_altri, a_prin, a_sec, continua),
+   !.
+
+
+/* 6 */
+disc_retain(N,N1,Ref1,Altri) :-
+   Ref1=ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),
+   noton(+pro, TabX),
+   (nogen_member(sociale,CcX), Feat=sociale;
+    nogen_member(legale,CcX), Feat=legale;
+    nogen_member(sostanza,CcX), Feat=sostanza),
+   create_disc_grid4(N, Ref1, Altri, Feat, continua),
+   !.
+
+ /* 5 */
+disc_retain(N,N1,Ref1,Altri)
+   :-
+   create_disc_grid3(N, Ref1, Altri, r_prin, r_altri, a_prin, a_sec, ContCamb),
+   !.
+
+/* • 1 */
+/* • 13 */
+disc_cont(N,N1,Stato,ref_ex(SnX,TestaX-sc,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+  (Stato=continua;Stato=resume;Stato=shifting),
+   nonvar(TabX),
+   (TabX=[+ ref, + def, nil, nil, - pro, + ana, + me, - subj]
+    ;
+    TabX=[+ ref, + def, nil, nil, + pro, + ana, + me]
+    ;
+    TabX=[+ ref, + def, nil, nil, + pro, - ana, + me]),
+   (
+    Altri=[ref_ex(SnY,TestaY-sc,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+    create_disc_grid(N, N1, SnY-TestaY-sc, SnX-TestaX-sc, LA, r_prin, r_sec, a_prin, a_sec, continua)
+     ;
+    Altri=[ref_ex(SnY,TestaY-sc,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+    create_disc_grid(N, N1, SnY-TestaY-sc, SnX-TestaX-sc, LA, r_prin, r_altri, a_prin, a_sec, continua)
+     ;
+    Altri=[ref_ex(SnY,TestaY-sc,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+    create_disc_grid2(N, SnY-TestaY-sc, TestaX, LA, r_prin, r_prop, a_prin, a_sec, continua)
+    ;
+    create_disc_grid2(N, pron, TestaX, Altri, r_prin, r_prop, a_prin, a_sec, continua)
+    ;
+    create_disc_grid5(N, TestaX, Altri, r_prin, r_altri, a_prin, a_sec, continua)
+    ),
+    !.
+
+
+disc_cont(N,N1,Stato,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+      TabX = [+ref,def0,nil,Card,-pro,-ana,-class],
+      principale(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_)),
+      search_sc(N, TestaX, Testa2, Pred, FX),
+       create_disc_grid2(N, Pred-sc, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, r_sec, r_prin, a_prop, a_sec, continua), 
+       !.
+
+disc_cont(N,N1,Stato,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+    elimina(ref_ex(SnY,indefinite,_,Pers,Gen,Num,Cat,_/_)/_,Altri,La),
+    create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       La, r_prin, r_prop, a_prin, a_sec, continua),
+       !.
+
+disc_cont(N,N1,Stato,ref_ex(SnX,indefinite,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+      principale(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_)),
+      search_sc(N, indefinite, Testa2, Pred, FX),
+      create_disc_grid5(N, Pred, Altri, r_prin, r_sec, a_prin, a_sec, continua),
+       !.
+
+disc_cont(N,N1,Stato,Ref1,Altri)
+   :-
+   Ref1=ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),
+   noton(+pro, TabX),
+   (nogen_member(sociale,CcX), Feat=sociale;
+    nogen_member(legale,CcX),Feat=legale;
+    nogen_member(sostanza,CcX), Feat=sostanza),
+   create_disc_grid4(N, Ref1, Altri, Feat, continua),
+   !.
+
+/*  • 3  lo stato attuale e_ continua o resume e il primo argomento e_ un deittico quantificato: maggiore, altri, ecc.  */
+disc_cont(N,N1,Stato,Ref1,Altri)
+   :-
+   Stato = cont_analyze,        
+   create_disc_grid3(N, Ref1, Altri, r_prin, r_altri, a_prin, a_sec, cont_analyze),
+   !.
+
+/* 1  lo stato e'continua: il secondario è un nome proprio che viene
+ripreso da una sua proprietà conosciuta nel mondo; si cerca il fatto
+che asserisce questa proprietà che deve coincidere con la testa del
+primo argomento della frase corrente    */
+disc_cont(N,N1,continua,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   Altri\=[],
+   secondario(ref_ex(_,TestaP,_,PersP,GenP,NumP,Cat,_)),
+   Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+   TabX = [+ref,+def,nil,Card,-pro,-ana,+class],
+   NumX=sing,
+   fact(_,name, [TestaP, Id], 1, Temp, Loc),
+   in(_, Id, Idx),
+   fact(_,isa,[ind:Idx,class:TestaX],1,Te,Lo),
+   principale(ref_ex(_,TestaX,_,Pers,Gen,Num,Cc,F/R)),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnX,TestaP,_,PersP,GenP,NumP,Cat,FX/RX))),               
+   retract(secondario(_)),
+   assert(secondario(ref_ex(_,TestaY,_,PersY,GenY,NumY,CcY,FY/RY))),
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   assertz(risolto(N, SnX, TestaX, TestaP)),     % memorizza risolti 
+   assert(stato(N,resume)),
+   asserisci_altri(LA,N),
+   !.
+
+/* • 4 lo stato attuale è continua: il principale e il secondario vengono inferiti dal modello e sono rispettivamente il best candidate e il secondo; il principale precedente non corrisponde al best match*/ 
+disc_cont(N,N1,Stato,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   (Stato = continua ; Stato = cont_analyze),           
+   Altri\=[],
+   principale(ref_ex(_,TestaP,_,Pers,Gen,Num,Cc,F/R)),
+   TestaP\=TestaX,
+   Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+   RX\=tema_bound,
+   ( TabX \= [+ref,+def,nil,nil,-pro,-ana,-class],
+     TabY \= [+ref,+def,nil,nil,-pro,-ana,-class]),
+   fact(_,name, [TestaX, Id], 1, univ, univ),
+   fact(_,name, [TestaY, Id1], 1, univ, univ),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),               
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY))),
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   assert(stato(N,resume)),
+   asserisci_altri(LA,N),
+   !.
+/* • 5 lo stato attuale è continua: esiste un candidato che è sogg_foc, e viene messo nel principale; il best candidate viene messo nel secondario */ 
+disc_cont(N,N1,Stato,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   (Stato = continua ; Stato = cont_analyze),        
+   Altri\=[],
+   elimina(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,sogg_foc/_)/_,Altri,L),
+   TabX = [+ref,+def,nil,nil,-pro,-ana,-class],
+   fact(_,name, [TestaX, Id], 1, univ, univ),
+   in(_, Id, Idx),
+   fact(_,isa,[ind:Idx,class:TestaP],1,Te,Lo),
+   principale(ref_ex(_,TestaP,_,Pers,Gen,Num,Cc,F/R)),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY))),
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),               
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   assert(stato(N,shifting)),
+   asserisci_altri(L,N),
+   !.
+
+/* • 6 il principale non coincide con il best candidate e nemmeno il secondario oppure è vuoto; il best candidate esiste nel modello e viene messo nel proposto mentre il principale precedente viene messo nel secondario */
+disc_cont(N,N1,Stato,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   (Stato = retaining ; Stato = continua ; Stato = cont_analyze),        
+   principale(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,F/R)),
+   TestaP\=TestaX,
+   (secondario(ref_ex(SnS,TestaS,_,Per,Ge,Nu,C,_)),
+    TestaX\=TestaS
+    ;
+    secondario(nil)),
+   (TabX = [+ref,+def,nil,Card,-pro,-ana,+class],
+    (Num=plur,
+     trova_card(SnX,NumX,Part, Quant, Card,Card0),
+     card(_, Id, Card0),
+      (in(_,Idx,Id),
+       fact(_,isa,[ind:Idx,class:TestaX],1,Te,Lo)
+       ;
+       set(_, Id),
+      fact(_,isa,[ind:Id,class:TestaX],1,Te,Lo))
+    ;
+    Num=sing),
+    fact(_,isa,[ind:Idx,class:TestaX],1,Te,Lo)
+   ;
+   (TabX = [+ ref, def0, nil, nil, - pro, - ana, - class]
+    ;
+    TabX = [+ ref, + def, nil, nil, + pro, + ana, + me]),
+   fact(_,name,[TestaX,Id],1,Te,Lo)),
+   retract(proposto(_)),
+   assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,F/R))),               
+   retract(principale(_)),
+   assert(principale(nil)),
+%   assertz(risolto(N, SnX, TestaX, TestaX)),     % memorizza risolti 
+   assert(stato(N,resume)),
+   asserisci_altri(Altri,N),
+   !.
+
+/* • 7 il best candidate coincide con il principale e non con il secondario ed esiste un nome proprio negli altri: poi il best candidate è una proprietà nel modello e il secondario asserisce un fatto relativo ad esso; il nome proprio della lista Altri viene cercato nel modello e diviene proposto mentre il best candidate diviene secondario */
+disc_cont(N,N1,Stato,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   (Stato = continua ; Stato = cont_analyze),        
+   Altri\=[],
+   principale(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,F/R)),
+   TestaP=TestaX,
+   secondario(ref_ex(SnS,TestaS,_,Per,Ge,Nu,C,_)),
+   TestaX\=TestaS,
+   Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+   TabY = [+ ref, def0, nil, nil, - pro, - ana, - class],
+   Nu=NumY,
+   fact(_,isa,[ind:Idx,class:TestaX],1,T,L),
+   fact(_,TestaS,[Idx],1,Te,Lo),
+   fact(_,name,[TestaY,Id],1,Tem,Loc),
+   in(_,Id,Idx),
+   retract(proposto(_)),
+   assert(proposto(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY))),
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),               
+   retract(principale(_)),
+   assert(principale(nil)),
+   assert(stato(N,resume)),
+   asserisci_altri(Altri,N),
+   !.
+
+disc_cont(N,N1,Stato,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+   (Stato = continua ; Stato = cont_analyze),        
+   principale(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,F/R)),
+   TestaP=TestaX,
+   secondario(ref_ex(SnS,TestaS,_,Per,Ge,Nu,C,_)),
+   TestaX\=TestaS,
+   (Altri=[],
+    retract(secondario(_)),
+    assert(secondario(ref_ex(SnS,TestaS,_,Per,Ge,Nu,C,_))),        
+    asserisci_altri(Altri,N)
+   ;
+    recover_sec(altri,Altri,N)
+   ),
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+   assert(stato(N,continua)),
+   !.
+
+/* • 8  stato precedente : continua o retaining
+   il primo argomento della frase attuale coincide con quello principale stato = continua */
+
+disc_cont(N,N1,Stato,Ref1,Altri)
+   :-
+   (Stato = continua ; Stato = retaining ; Stato = cont_analyze),
+   create_disc_grid3(N, Ref1, Altri, r_prin, r_altri, a_prin, a_sec, continua), 
+     !.
+
+/* • 9 stato precedente : continua o retaining
+   il primo argomento della frase attuale non coincide con quello principale l' argomento principale e' comunque membro della lista argomenti della frase attuale stato = retaining  */
+
+disc_cont(N,N1,Stato,Ref1,Altri)
+   :-
+   (Stato = continua ; Stato = retaining ; Stato = cont_analyze),
+   create_disc_grid3(N, Ref1, Altri, r_altri, r_prop, a_prop, a_sec, Stato),
+   !.
+
+/* • 10 */
+disc_cont(N,N1,retaining,Ref1,Altri)
+   :-
+create_disc_grid3(N, Ref1, Altri, r_prin, r_prop, a_prin, a_sec, continua),
+   !.
+
+/* • 11 */
+disc_cont(N,N1,retaining,Ref1,Altri)
+   :-
+create_disc_grid3(N, Ref1, Altri, r_prop, r_prin, a_prin, a_sec, continua),
+   !.
+
+
+/* • 12 il principale viene introdotto ed è il primo nella lista degli argomenti, il secondario è il principale precedente ed è presente nella lista degli args come lista */
+disc_cont(N,N1,continua,ref_ex(Sn,Testa,_,Per,Ge,Nu,Ca,_/_),Altri)
+   :-
+   Altri\=[],
+   principale(ref_ex(Sn1,Testa1,_,Pers1,Gen1,Num1,Cat1,_/_)),
+   nogen_member(ref_ex(SnX,Testa2,_,Pers,Gen,Num,Cat,_/_)/_,Altri),
+   nogen_member(Testa1,Testa),
+   retract(principale(_)),
+    assert(principale(ref_ex(Sn1,Testa1,_,Pers1,Gen1,Num1,Cat1,_/_))),               
+    retract(proposto(_)),
+    assert(proposto(ref_ex(SnX,Testa2,_,Pers,Gen,Num,Cat,_/_))),
+    retract(secondario(_)),
+    assert(secondario(ref_ex(Sn,Testa,_,Per,Ge,Nu,Ca,_/_))),
+    elimina(ref_ex(SnX,Testa2,_,Pers,Gen,Num,Cat,_/_)/_,Altri, LA),
+    asserisci_altri(LA,N),
+    assert(stato(N,retaining)),!.
+
+
+/* 14 Il primo ref_ex della frase corrente è secondario della precedente: diventa proposto.C'è un'anafora che riprende il principale della precedente: diventa topic secondario.
+ */
+
+disc_cont(N,N1,Stato,Ref1,Altri)
+   :-
+   create_disc_grid3(N, Ref1, Altri, r_sec, r_prin, a_prop, a_sec, continua),
+   !.
+
+/* 15 */
+disc_cont(N,N1,Stato,Ref1,Altri)
+   :-
+   create_disc_grid3(N, Ref1, Altri, r_altri, r_prop, a_prop, a_sec, retaining),
+   !.
+
+recover_sec(altri, [], Altri, N) :-
+    scarica_secondario(N),
+    assert(secondario(nil)),
+    asserisci_altri(Altri,N),
+    !.
+recover_sec(altri, ref_ex(SnY,indefinite,_,PersY,GenY,NumY,CcY,FY/RY), Altri, N) 
+    :-
+    secondario(Sec),
+    retract(secondario(_)),
+    assert(secondario(Sec)),
+    asserisci_altri(Altri,N),
+    !.
+
+recover_sec(altri, ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY), Altri, N) 
+    :-
+    nogen_member(sociale,CcY),
+    secondario(Sec),
+    retract(secondario(_)),
+    assert(secondario(Sec)),
+    asserisci_altri(Altri,N),
+    asserta(altri(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY),N)),
+    !.
+
+recover_sec(altri, Ref1, Altri, N) :-
+    scarica_secondario(N),
+    assert(secondario(Ref1)),
+    asserisci_altri(Altri,N),
+    !.
+
+recover_sec(_, [], N) :-
+    retract(secondario(_)),
+    assert(secondario(nil)),
+    asserisci_altri([],N),
+    !.
+
+recover_sec(nil, Altri, N) :-
+   (
+    secondario(ref_ex(_,Testa2,_,_,_,_,_,_/_)),
+    efface(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,FS/RS)/_,Altri,Altri1),
+    retract(secondario(_)),
+    assert(secondario(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,FS/RS))),
+    asserisci_altri(Altri1,N)
+    ;
+    scarica_secondario(N),
+    asserisci_altri(Altri,N),
+    assert(secondario(nil))
+    ), !.
+
+recover_sec(altri, Altri, N) :-
+    Altri\=[], 
+    Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+    Py < 125,
+    retract(secondario(Sec)),
+    (TabY\=[+ ref, + def, nil, nil, + pro, - ana, + class],
+    check_human_sec(N,ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY),Altri,LA)
+    ;
+    assert(secondario(nil)),
+    asserisci_altri(Altri,N)),
+    !.
+
+recover_sec(altri, Altri, N) :-
+    (secondario(Sec),
+     retract(secondario(_)),
+     assert(secondario(Sec))
+     ;
+     retract(secondario(_)),
+     assert(secondario(nil))
+    ),
+    asserisci_altri(Altri,N),
+    !.
+
+recover_sec(prop, Altri, N) :-     
+    Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+    scarica_proposto(N),
+    scarica_secondario(N),
+    check_human_sec(N,ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY),Altri,LA),
+    !.
+
+check_human_sec(N,ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY),Altri,LA):- 
+    (nogen_member(role,CcY);nogen_member(sociale,CcY);nogen_member(umano, CcY);nogen_member(hum,CcY);
+     nogen_member(hum_set,CcY);nogen_member(soc,CcY)),
+    !,
+    assert(secondario(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY))),
+    asserisci_altri(LA,N).
+
+check_human_sec(N,_,Altri,LA):- 
+    assert(secondario(nil)),
+    asserisci_altri(Altri,N),
+    !.
+/* • -sc  r_prin, r_altri, a_prin, a_sec, State=continua
+33 ci sono due pronomi individuati dal sc, il best candidate e' il principale e il primo degli altri diviene secondario */
+create_disc_grid(N, N1, SnY-TestaY-sc, SnX-TestaX-sc, Altri, r_prin, r_sec, a_prin, a_sec, continua) :-
+       secondario(ref_ex(_,TestaY,TabA,PersA,GenA,NumA,CatA,_)),
+       principale(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(nil)),
+       assert(stato(N,continua)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaY,TabA,PersA,GenA,NumA,CatA,_),Altri, N),!.     
+
+create_disc_grid(N, N1, SnY-TestaY-sc, SnX-TestaX-sc, Altri, r_prin, r_altri, a_prin, a_sec, continua) :-
+       one(altri(ref_ex(_,TestaY,TabA,PersA,GenA,NumA,CatA,_),N1)),
+       principale(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(nil)),
+       assert(stato(N,continua)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(SnY,TestaY,TabA,PersA,GenA,NumA,CatA,_),Altri, N),!.     
+
+/* • -sc  r_sec, r_prin, a_prop, a_sec, State=continua
+35 il best candidate e' il secondario che diviene principale e il primo degli altri diviene secondario */
+create_disc_grid5(N, SnX-TestaX-sc, Altri, r_sec, r_prop, a_prin, a_sec, 
+       continua) 
+       :-
+       nonvar(TestaX),
+       secondario(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       retract(principale(_)),
+       assert(stato(N,continua)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       retract(proposto(Prop)),
+       assert(proposto(nil)),
+       recover_sec(altri, Prop, Altri, N),     
+       !.
+
+create_disc_grid5(N, SnX-TestaX-sc, Altri, r_prop, r_sec, a_prin, a_sec, 
+       continua) 
+       :-
+       proposto(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       retract(principale(_)),
+       assert(stato(N,continua)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       retract(proposto(Prop)),
+       assert(proposto(nil)),
+       recover_sec(altri, Altri, N),     
+       !.
+
+create_disc_grid5(N, SnX-TestaX-sc, Altri, r_prop, r_altri, a_prin, a_sec, 
+       continua) 
+       :-
+       proposto(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       retract(principale(_)),
+       assert(stato(N,continua)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       retract(proposto(Prop)),
+       assert(proposto(nil)),
+       one(altri(ref_ex(_,TestaY,_,PersA,GenA,NumA,CatA,_),N1)),
+       recover_sec(altri, ref_ex(_,TestaY,_,PersA,GenA,NumA,CatA,_), Altri, N),     
+       !.
+
+create_disc_grid5(N, SnX-TestaX-sc, Altri, r_prop, r_altri, a_prin, a_sec, 
+        continua) :-
+       N1 is N - 1,
+       one(altri(ref_ex(_,TestaX,TabA,PersA,GenA,NumA,CatA,_),N1)),
+       retract(principale(_)),
+       assert(principale(ref_ex(_,TestaX,_,PersA,GenA,NumA,CatA,_))),        
+       retract(proposto(ref_ex(SnP,PredP,TabP,PersP,GenP,NumP,CatP,_))),
+       assert(proposto(nil)),       
+       retract(secondario(_)),
+       assert(secondario(ref_ex(SnP,PredP,_,PersP,GenP,NumP,CatP,_))),
+       asserisci_altri(Altri,N),
+       assert(stato(N,continua)),!.
+
+create_disc_grid5(N, Pred, Altri, r_prin, r_sec, a_prin, a_sec, 
+       continua) 
+       :-
+       nonvar(Pred),
+       principale(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       (TestaX=Pred;on(Pred,TestaX)),
+       retract(principale(_)),
+       assert(stato(N,continua)),
+       assert(principale(ref_ex(SnX,Pred,_,PersX,GenX,NumX,CcX,FX/RX))),
+       retract(proposto(Prop)),
+       assert(proposto(nil)),
+       recover_sec(altri, Prop, Altri, N),     
+       !.
+
+/* 37 */
+create_disc_grid5(N, Pred, Altri, r_prin, r_altri, a_prin, a_sec, 
+       continua) 
+       :-
+       nonvar(Pred),
+       principale(ref_ex(_,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)),
+       (TestaX=Pred;on(Pred,TestaX)),
+       retract(principale(_)),
+       assert(stato(N,continua)),
+       assert(principale(ref_ex(SnX,Pred,_,PersX,GenX,NumX,CcX,FX/RX))),
+       retract(proposto(Prop)),
+       assert(proposto(nil)),
+       one(altri(ref_ex(_,TestaY,_,PersA,GenA,NumA,CatA,_),N1)),
+       recover_sec(altri, ref_ex(_,TestaY,_,PersA,GenA,NumA,CatA,_), Altri, N),     
+       !.
+
+disc_resume(N,ref_ex(SnX,TestaX,[+ref,def0,nil,nil,-pro,-ana,-class],PersX,GenX,sing,CcX,FX/RX),Altri)
+   :-
+   Altri\=[],
+   principale(ref_ex(_,TestaP,_,PersP,GenP,plur,_,_)),
+   nogen_member(ref_ex(SnY,TestaY,[+ref,def0,nil,nil,-pro,-ana,-class],PersY,GenY,sing,CatY,FX/RY)/Py, Altri),
+   fact(_,name, [TestaY, Id], 1, univ, univ),
+   in(_, Id, Idx),
+   fact(_,isa,[ind:Idx,class:TestaP],1,Temp, Loc),
+   set(_, Idy),
+   card(_, Idy, 2),
+   in(_, Idy, Idx),
+   elimina(ref_ex(SnY,TestaY,_,_,_,_,_,_/_)/_,Altri,L),
+   retract(principale(_)),
+   assert(principale(ref_ex(SnX,TestaP,_,PersP,GenP,NumP,CatY,FX/RX))),               
+   secondario(Sec),
+   retract(secondario(_)),
+   assert(secondario(Sec)),
+   retract(proposto(_)),
+   assert(proposto(nil)),
+   assertz(risolto(N, SnX, TestaX, TestaP)),     % memorizza risolti 
+   assertz(risolto(N, SnY, TestaT, TestaP)),     % memorizza risolti 
+   assert(stato(N,continua)),
+   asserisci_altri(L,N),
+   !.
+
+disc_resume(N,ref_ex(SnX,TestaX-sc,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+      proposto(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_)),
+      search_sc(N, TestaX, Testa2, [], FX),
+      create_disc_grid5(N, SnX-TestaX-sc, Altri, r_prop, r_altri, a_prin, a_sec, continua),
+        !.
+
+disc_resume(N,ref_ex(SnX,TestaX-sc,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+      principale(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_)),
+      search_sc(N, TestaX, [], [], FX),
+      create_disc_grid2(N, TestaX-sc, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Altri, r_prin, r_prop, a_prin, a_sec, 
+        continua),
+       !.
+
+disc_resume(N,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+     proposto(ref_ex(SnP,Pred,TabP,PersP,GenP,NumP,_,_)),
+     secondario(ref_ex(_,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+     search_dmod(Pred,Id),
+     (TestaX=Pred 
+        ;
+      TestaX\=Pred,  
+      search_dmod(TestaX,Id)
+      ),
+      retract(proposto(_)),
+      assert(proposto(nil)),
+      retract(secondario(_)),
+      principale(X), 
+      (X\=nil,
+       retract(principale(X)),
+       assert(secondario(X))
+       ;
+       X=nil, retract(principale(X)),
+       assert(secondario(ref_ex(_,TestaA,_,PersA,GenA,NumA,CatA,_)))
+       ),
+      assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),        
+      asserisci_altri(Altri,N),
+      assert(stato(N,continua)),
+        !.
+
+disc_resume(N,ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri)
+   :-
+      (proposto(ref_ex(_,Pred,TabP,PersP,GenP,NumP,CatP,_)),
+       secondario(ref_ex(_,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+       on(ref_ex(_,TestaA,_,PersA,GenA,NumA,_,_)/_, Altri)
+       ;
+       secondario(ref_ex(_,Pred,TabP,PersP,GenP,NumP,CatP,_)),
+       proposto(ref_ex(_,TestaA,TabA,PersA,GenA,NumA,CatA,_))
+       ),
+       search_dmod(Pred,Id),
+       principale(X), 
+       (X\=nil,
+       retract(principale(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY)))
+       ;
+        X=nil, retract(principale(X))
+       ),
+        assert(principale(ref_ex(SnY,Pred,_,PersP,GenP,NumP,CatP,_))),        
+        retract(proposto(_)),
+       (TestaX=Pred, assert(proposto(nil))
+        ;
+        assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))
+        )),
+        retract(secondario(_)),
+        assert(secondario(ref_ex(_,TestaA,_,PersA,GenA,NumA,CatA,_))),
+        asserisci_altri(Altri,N),
+        assert(stato(N,continua)),
+        !.
+
+disc_resume(N,Ref1,Altri) :-
+   create_disc_grid3(N, Ref1, Altri, r_prop, r_prin, a_prin, a_sec, continua),
+   !.
+
+discorso(N,[]) :-
+       N1 is N - 1,
+       stato(N1,Stato),
+   assert(stato(N,Stato)),
+   !.
+
+discorso(1,Args) :-
+    Args\=[],
+   (elimina(
+      ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R)/_, Args, La),F=foc
+   ; elimina(
+      ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R)/_, Args, La),F=sogg_foc,Tab \= [+ref,Def,Part,nil,+pro,-ana,+class]
+; elimina(
+      ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R)/_, Args, La),F=sogg_top
+   ; elimina(
+      ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R)/_, Args, La),F=topic
+   ; elimina(
+      ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R)/_, Args, La),F=fuoco
+   ),
+   !,
+   assert(principale(ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R))),
+   assert(proposto(nil)),
+   assert(secondario(nil)),
+   asserisci_altri(La,1),
+   assert(stato(1,shifting)).
+
+discorso(1,Args) :-
+    Args\=[],
+   Args=[ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R)/_|ListaAltri],
+   !,
+   assert(proposto(ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R))),
+   assert(principale(nil)),
+   assert(secondario(nil)),
+   asserisci_altri(ListaAltri,1),
+   assert(stato(1,cambia)).
+
+/* lo stato e' shifting
+    si passa in continua */
+
+discorso(N,Args) :-
+    Args\=[],
+       N1 is N - 1,
+       stato(N1,shifting),
+       efface(ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R)/Px,Args,La),
+       principale(ref_ex(_,Testa,_,Pers,Gen,Num,Cat1,_/_)),
+        (secondario(ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY))
+         ;
+         altri(ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY),N1)
+         ),
+       (fact(_,name, [TestaY, Id], 1, univ, univ);
+       fact(_,isa,[ind:Id,class:TestaY],1,Temp, Loc)),
+       retract(proposto(_)),
+       assert(proposto(nil)),
+       retract(principale(_)),
+       assert(principale(ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R))),
+       retract(secondario(_)),
+       assert(secondario(ref_ex(SnY,TestaY,_,PersY,GenY,NumY,CcY,FY/RY))),
+       assert(stato(N,continua)),
+       asserisci_altri(La,N).
+
+discorso(N,Args) :-
+    Args\=[],
+       N1 is N - 1,
+       stato(N1,shifting),
+       efface(ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R)/Px,Args,La),
+       principale(ref_ex(_,Testa,_,Pers,Gen,Num,Cat1,_/_)),
+        (secondario(ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY))
+         ;
+         altri(ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY),N1)
+         ),
+       TabY = [+ref,def0,nil,nil,-pro,-ana,-class],
+       Num=sing,
+       fact(_,name, [TestaY, Id], 1, univ, univ),
+       in(_, Id, Idx),
+       fact(_,isa,[ind:Idx,class:TestaP],1,Temp, Loc),
+       elimina(ref_ex(Snp,TestaP,_,_,_,_,_,_/_)/_,La,L),
+       retract(proposto(_)),
+       assert(proposto(ref_ex(Snp,TestaY,_,PersY,GenY,NumY,CcY,FY/RY))),
+       retract(principale(_)),
+       assert(principale(nil)),
+       retract(secondario(_)),
+       assert(secondario(ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,_/R))),
+       assert(stato(N,resume)),
+       asserisci_altri(L,N).
+
+discorso(N,Args) :-
+    Args\=[],
+       N1 is N - 1,
+       stato(N1,shifting),
+       efface(ref_ex(SnX,Testa,Tab,Pers,Gen,Num,Cat,F/R)/Px,Args,La),
+       principale(ref_ex(_,Testa,_,Pers,Gen,Num,Cat1,_/_)),
+       retract(proposto(_)),
+       retract(secondario(_)),
+       retract(principale(_)),
+       assert(principale(ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,_/R))),
+       assert(proposto(nil)),
+       assert(secondario(nil)),
+       assert(stato(N,continua)),
+       asserisci_altri(La,N).
+
+/* lo stato e' qualsiasi -
+   non si puo' passare ne in cambia ne in retaining
+   allora si passa in shifting se c'e' in FUOCO o TOPIC
+ N.B. al primo passaggio in cambia si asserisce come argomento
+      secondario quello principale della frase precedente */
+
+discorso(N,Args) :- 
+    Args\=[],
+       1<N,
+       N1 is N - 1,
+       elimina(ref_ex(SnY,Testa,_,Pers,Gen,Num,Cat,Fun/_)/_,Args,La),
+       (Fun=fuoco ; Fun=foc ; Fun=sogg_foc ; Fun=sogg_top),
+      (principale(ref_ex(SnX,Testa1,_,Pers1,Gen1,Num1,Cat1,_/_)),
+       Testa1\=Testa,
+       scarica_secondario(N),
+       assert(secondario(ref_ex(SnX,Testa1,_,Pers1,Gen1,Num1,Cat1,_/_)))
+      ;
+       principale(ref_ex(SnX,Testa1,_,Pers1,Gen1,Num1,Cat1,_/_)),
+       Testa1=Testa,
+       scarica_secondario(N),
+       one(altri(Ref1,N1)),       
+       assert(secondario(Ref1))
+      ;
+       principale(nil)),
+       retract(principale(_)),
+       assert(principale(ref_ex(SnY,Testa,_,Pers,Gen,Num,Cat,_/_))),
+       retract(proposto(_)),
+       assert(proposto(nil)),
+       asserisci_altri(La,N),
+       assert(stato(N,shifting)),
+       !.
+/* il best candidate non matcha con il principale né con il proposto ma esiste nel DM; 1. il secondario ha le stesse cat sem del best candidate allora il proposto o il principale viene messo nel secondario e nel principale viene messo il best candidate; 2. il principale è vuoto e il proposto viene messo nel secondario, mentre il best candidate diventa il proposto; 3.lo stesso di 2*/ 
+
+discorso(N,Args) :- 
+       1<N,
+       N1 is N - 1,
+       Args\=[],
+       Args=[ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)/_|Altri],
+       define_most_relevant(Tests),
+       on(TestaX,Tests),
+       matcha_all(N1, ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX), Type,Funct, TestaX),
+       (Type\=principale,
+        retract(secondario(Sec)),
+        retract(principale(Prin)),
+        retract(proposto(_)),
+        assert(secondario(Prin))
+        ;
+        Type\=secondario,
+        retract(principale(Prin)),
+        retract(secondario(Sec)),
+        retract(proposto(_)),
+        assert(secondario(Sec))
+        ;
+        Type\=proposto,
+        retract(proposto(Sec)),
+        assert(secondario(Sec))
+        ),
+        assert(proposto(nil)),
+        assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       assert(stato(N,continua)),
+       asserisci_altri(Altri,N),
+       !.
+
+discorso(N,Args) :- 
+       1<N,
+       N1 is N - 1,
+       Args=[ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)/_|Altri],
+       fetch_sc(N1, Factive, Change, Rel, VerbCat, DiscDom, Test),
+       nonvar(Test),
+       Test\=TestaX,
+       secondario(ref_ex(SnY,Test,TabY,PersY,GenY,NumY,CcY,FY/RY)),
+       retract(secondario(_)),
+       assert(secondario(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       retract(principale(_)),
+       assert(principale(ref_ex(SnY,Test,_,PersY,GenY,NumY,CcY,FY/RY))),
+       retract(proposto(_)),
+       assert(proposto(nil)),
+       assert(stato(N,continua)),
+       asserisci_altri(Altri,N),
+       !.
+
+discorso(N,Args) :- 
+    Args\=[],
+       1<N,
+       N1 is N - 1,
+   Args=[ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)/_|Altri],
+   (proposto(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,F/R)),
+    State=retaining;
+   principale(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,F/R))),
+   TestaP\=TestaX,
+   (TabX = [+ref,+def,nil,Card,-pro,-ana,+class],
+    (NumX=plur,
+     card(_, Id, Card0),
+      (in(_,Idx,Id),
+       fact(_,isa,[ind:Idx,class:TestaX],1,Te,Lo)
+       ;
+       set(_, Id),
+      fact(_,isa,[ind:Id,class:TestaX],1,Te,Lo)),
+    State=resume
+    ;
+    NumX=sing),
+    fact(_,isa,[ind:Idx,class:TestaX],1,Te,Lo),
+    State=resume
+    ;
+    TabX = [+ ref, def0, nil, nil, - pro, - ana, - class],
+    fact(_,name,[TestaX, Idx],1,Te,Lo),
+    State=resume
+    ;
+    TabX = [+ ref, def0, nil, nil, - pro, - ana, - class]
+   ),
+   (
+   secondario(ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)),
+   controlla_cat1(CcY,CcX),
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,_/_))),
+   retract(principale(_)),
+   (nonvar(State);var(State), State=shifting),
+    assert(stato(N,State)),
+   assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+   retract(proposto(_)),
+   assert(proposto(nil))
+   ;
+   principale(P), P\=nil,
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,F/R))),               
+   retract(principale(_)),
+   assert(principale(P)),
+   retract(proposto(_)),
+   (TestaX=indefinite,
+   assert(proposto(nil)),
+   (nonvar(State);var(State), State=continua),
+    assert(stato(N,State))
+    ;
+    TestaX\=indefinite,
+    assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+   (nonvar(State);var(State), State=retaining),
+    assert(stato(N,State)))
+   ;
+   retract(secondario(_)),
+   assert(secondario(ref_ex(SnP,TestaP,_,Pers,Gen,Num,Cc,F/R))),               
+   retract(principale(_)),
+   assert(principale(nil)),   
+   (nonvar(State);var(State), State=retaining),
+   assert(stato(N,State)),
+   retract(proposto(_)),
+   assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)))
+   ),
+   asserisci_altri(Altri,N),
+   !.
+
+
+discorso(N,Args) :-
+   cont_discorso(N,Args),!.
+
+
+discorso(N,[Ref1/_|Altri]) :- 
+   create_disc_grid3(N,Ref1, 
+       Altri, r_prin, r_altri, a_prin, a_sec, continua),
+   !.
+
+discorso(N,[Ref1/_|Altri]) :- 
+   create_disc_grid3(N,Ref1, 
+       Altri, r_prin, r_altri, a_prin, a_sec, cambia),
+   !.
+
+discorso(N,[Ref1/_|Altri]) :- 
+   create_disc_grid3(N,Ref1, 
+       Altri, r_prop, r_altri, a_prop, _, retaining),
+   !.
+
+discorso(N,Args) :-
+    Args\=[],
+   elimina(
+      ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R)/_, Args, La),
+   (F=sogg;F=ogg;F=ogg2;F=obl;F=obl1;F=obl2),
+   deafult_hierarchy(N,F,Testa,Stato),
+   asseriscigerachia(N, ref_ex(SnX,Testa,_,Pers,Gen,Num,Cat,F/R), La, Stato),!.
+
+discorso(N,Args) :-
+    asserta(altri([], N)),
+    assert(stato(N,cambia)),
+    !.
+
+
+matcha_all(NumFrase, Ref1, Type,Funct, TestaX):-
+    matcha(NumFrase, Ref1, Type, TestaX),!.
+matcha_all(NumFrase, Ref1, altri,Funct, TestaX):-
+    matcha(NumFrase, Ref1, altri,Funct, TestaX),!.
+
+define_most_relevant(Test):-
+   p_assert_entities_relevance(Ents),
+   p_sorted_entities(Ents, [_-Ind|SortedEnts]),
+   findall(Prop, proprietam(Ind,Prop), Ps),
+    sort(Ps,Test),!.
+
+deafult_hierarchy(N,F,Testa,Stato):-
+   principale(P), P\=nil,
+   P=.. [ref_ex,Ind,Test|_],
+   (Test=Testa, Stato=continua;
+    Stato=cambia),
+   !.
+deafult_hierarchy(N,F,Testa,Stato):-
+   proposto(P), P\=nil,
+   P=.. [ref_ex,Ind,Test|_],
+   (Test=Testa, Stato=cambia;
+    Stato=retaining),
+   !.
+deafult_hierarchy(N,F,Testa,Stato):-
+   secondario(P), P\=nil,
+   P=.. [ref_ex,Ind,Test|_],
+   (Test=Testa, Stato=resume;
+    Stato=continua),
+   !.
+deafult_hierarchy(N,F,Testa,Stato):-
+   N1 is N - 1,
+   altri(Ref,N1),
+   Ref=ref_ex(_,TestaA,TabA,PersA,GenA,NumA,_,_),
+   (TestA=Testa, Stato=shifting;
+    Stato=retaining),
+   !.
+
+deafult_hierarchy(N,F,Testa,retaining):-!.
+
+asseriscigerachia(N, R, La, Stato):-
+   (retract(proposto(_));true),
+   assert(proposto(R)),
+   (retract(principale(_));true),
+   assert(principale(nil)),
+   (recover_sec(nil, La, N)
+    ;
+    recover_sec_fail(nil, La, N)),  
+    assert(stato(N,Stato)),
+   !.
+
+recover_sec_fail(nil, Altri, N) :-     
+    Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+    assert(secondario(ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY))),
+    asserisci_altri(LA,N),
+    !.
+recover_sec_fail(nil, [], N) :-     
+     asserta(altri([],N)),
+     assert(secondario(nil)),
+    !.
+
+scarica_secondario(_) :- retract(secondario(nil)).
+
+scarica_secondario(N) :- retract(secondario(X)),
+                        X\=nil,
+                        ( arg(2, X, Head),
+                          Head=indefinite
+                         ;
+                          asserta(altri(X,N))
+                         ).
+
+% scarica_proposto(_) :- retract(proposto(nil)).
+scarica_proposto(N) :- retract(proposto(X)),
+                         asserta(altri(X,N)).
+
+asserisci_altri([],_) :- !.
+asserisci_altri([Primo/_|Coda],Frase) :-
+                     asserisci_altri(Coda,Frase),
+                     asserta(altri(Primo,Frase)).
+
+lista_altri(N) :-
+   altri(X,N),
+   write(X),
+   nl,fail.
+lista_altri(_).
+
+lista_altri(N, Altri) :-
+   findall(X, altri(X,N), Altri),!.
+
+writeiffalt([], Type):-!.
+
+writeiffalt(X, Type):-
+   X\=nil,
+   write(Type),
+   writeseq(X),
+   nl,!.
+
+writeiff(nil, Type):-!.
+
+writeiff(X, Type):-
+   X\=nil,
+   write(Type),
+   write(X),
+   nl,!.
+
+stampa_stato(Win, N) :-
+   active_output_win(Win),
+   proposto(X),
+   writeiff(X, 'EXPECTED TOPIC : '),
+   principale(Y),
+   writeiff(Y, 'MAIN TOPIC : '),
+   secondario(Z),
+   writeiff(Z, 'SECONDARY TOPIC : '),
+   lista_altri(N, Altri),
+   writeiffalt(Altri, 'POTENTIAL TOPICS : '),
+   stato(N,Stato),
+   write(stato(N,Stato)),nl,
+   ! .
+stampa_stato(_, _).
+
+/*
+create_disc_grid = con dieci argomenti
+    create_disc_grid(N, N1, SnY-TestaY-sc, SnX-TestaX-sc, LA, r_prin, r_sec, a_prin, a_sec, continua)
+create_disc_grid2 = con nove argomenti
+    create_disc_grid2(N, SnY-TestaY-sc, TestaX, LA, r_prin, r_prop, a_prin, a_sec, continua)
+    ;
+    create_disc_grid2(N, TestaY-sc, TestaX, LA, r_prin, r_prop, a_prin, a_sec, continua)
+    ;
+    create_disc_grid2(N, pron, TestaX, Altri, r_prin, r_prop, a_prin, a_sec, continua)
+create_disc_grid3 = con otto argomenti
+    create_disc_grid3(N, TestaX, Altri, r_prin, r_altri, a_prin, a_sec, continua)
+create_disc_grid4 = con cinque argomenti
+   create_disc_grid4(N, Ref1, Altri, sociale, continua),
+*/
+
+/* r_prin, r_prop, a_prin, a_sec, continua
+1  esiste un principale e un proposto: il principale matcha con il best candidate e viene messo nel principale, mentre il proposto viene messo nel secondario 
+*/
+create_disc_gridp(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Altri) 
+       :-
+       proposto(ref_ex(SnP,TestaP,TabP,PersP,GenP,NumP,CatP,_)),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(nil)),
+       assert(stato(N,continua)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaP,_,PersP,GenP,NumP,CatP,_),Altri, N),!.     
+
+
+create_disc_gridp_ind(N, ref_ex(SnX,indefinite,TabX,PersX,GenX,NumX,CcX,FX/RX), Altri)
+       :-
+       principale(Prin),
+       proposto(Pro),
+       Prin\=nil, Pro\=nil,
+       retract(proposto(Pro)),
+       retract(principale(Prin)),
+       assert(stato(N,retaining)),
+       assert(proposto(Pro)),
+       assert(principale(Prin)),
+       recover_sec(altri, ref_ex(SnX,indefinite,_,PersX,GenX,NumX,CcX,FX/RX), Altri, N),!.     
+
+/* si filtra il caso di un best candidate definito e sociale */
+create_disc_gridpr(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro, Altri, St) 
+       :-
+       TabX=[+ref,Def,nil,nil,-pro,-ana,+class], Def= +def,
+       nogen_member(sociale, CcX),
+       principale(Prin),
+       Prin\=nil,
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(nil)),
+       retract(secondario(Sec)),
+       assert(secondario(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       assert(stato(N,continua)),
+       assert(principale(Prin)),
+       asserisci_altri(Altri,N),!.     
+
+create_disc_gridpr(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro, Altri, retaining) 
+       :-
+       principale(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(nil)),
+       (on(+pro, TabX),State=continua;
+        noton(+pro, TabX), State=cambia),
+       assert(stato(N,State)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaA,_,PersA,GenA,NumA,CatA,_),Altri, N),!.     
+
+create_disc_gridpr(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro, Altri, continua) 
+       :-
+       principale(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(nil)),
+       (on(+pro, TabX),State=continua;
+        noton(+pro, TabX), State=cambia),
+       assert(stato(N,State)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaA,_,PersA,GenA,NumA,CatA,_),Altri, N),!.     
+
+/* r_prop, r_prin, a_prin, a_sec, State=cont_analyze
+7  esiste un proposto: il proposto matcha con il best candidate che e' un nom_subst e viene messo nel principale: il principale viene messo nel secondario */
+create_disc_gridpr(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro, Altri, cont_analyze) 
+       :-
+       TabX = [+ref,Def,Part,nil,+pro,-ana,+class],
+       Part\=nil,nonvar(Def),
+       principale(Prin), Prin\=nil,
+       retract(proposto(_)),
+       retract(principale(ref_ex(SnY,Testa2,_,PersS,GenS,NumS,CatS,_/_))),
+       assert(proposto(nil)),
+       assert(stato(N,cont_analyze)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,Testa2,_,PersS,GenS,NumS,CatS,_/_), Altri, N),!.     
+
+/* r_prop, r_prin, a_prin, a_sec, State=cont_analyze
+ 8  non esiste principale */
+create_disc_gridpr(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),  
+       ref_ex(_,TestaX,TabP,PersP,GenP,NumP,_,_), Altri, cont_analyze) 
+       :-
+       TabX = [+ref,Def,Part,nil,+pro,-ana,+class],
+       Part\=nil,nonvar(Def),
+       retract(principale(nil)),
+       retract(proposto(_)),
+       assert(proposto(nil)),
+       assert(stato(N,cont_analyze)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(nil, Altri, N),!.     
+
+create_disc_gridal(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       ref_ex(_,TestaX,TabP,PersP,GenP,NumP,_,_), Altri, continua)
+       :- 
+       principale(Prin),
+       Prin\=nil,
+       retract(principale(ref_ex(SnS,TestaS,TabS,PersS,GenS,NumS,CatS,_))),
+       retract(proposto(_)),
+       assert(proposto(nil)),
+       (on(+pro, TabX),State=continua;
+        noton(+pro, TabX), State=cambia),
+       assert(stato(N,State)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaS,_,PersS,GenS,NumS,CatS,_),Altri, N),!.     
+
+/* • r_prop, r_altri, a_prop, State=retaining
+8 escape condition, no coherence, new individual introduced */
+create_disc_gridal(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro, Altri, Cat, continua)
+       :-
+       TabX = [+ref,Def,nil,nil,-pro,-ana,+class],
+       Def= -def,
+       on(umano, Cat),
+       retract(principale(_)),
+       assert(principale(Pro)),
+       recover_sec(prop, Altri, N),
+       (on(umano,CcX),
+       assert(stato(N,cambia)),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)))
+        ;
+       assert(proposto(nil)),
+       assert(stato(N,continua)),
+       asserisci_altri([ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)/_],N)),
+       !.     
+
+/* r_prop, r_altri, a_prin, a_sec, State=retaining/continua
+10  non e' indefinito - il proposto è nella lista altri */
+create_disc_gridal(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro, Altri, Cat, Continua)
+       :- 
+       TabX=[+ref, def0, nil, nil, -pro, -ana, -class],
+       Altri\=[],
+       nogen_member(sociale, CatP),
+       retract(principale(_)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       retract(proposto(_)),
+       assert(stato(N,retaining)),
+       assert(proposto(nil)),
+       recover_sec(altri, ref_ex(_,TestaP,TabP,PersP,GenP,NumP,CatP,_),Altri, N),!.     
+
+
+create_disc_gridal(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro, Altri, Cat,
+       continua)
+       :- 
+       Altri\=[],
+       Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+       nonvar(Pro),
+       Pro=.. [ref_ex,Id,TestaP|_],
+       TestaP = TestaY,
+       retract(principale(nil)),
+       assert(principale(Pro)),
+       retract(proposto(_)),
+       (on(+pro, TabP),State=continua;
+        noton(+pro, TabP), State=cambia),
+       assert(stato(N,State)),
+       assert(proposto(nil)),
+       recover_sec(altri, ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX),LA, N),!.     
+
+/* r_prop, r_altri, a_prin, a_sec, State=continua
+14  non c'e' un secondario */
+create_disc_gridal(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Pro, Altri, Cat, continua)
+       :- 
+       principale(Prin),
+       Prin\=nil,
+       nonvar(Pro),
+       Pro=.. [ref_ex,Id,TestaP|_],
+       TestaP = TestaX,
+       retract(principale(ref_ex(SnS,TestaS,TabS,PersS,GenS,NumS,CatS,_))),
+       retract(proposto(_)),
+       assert(proposto(nil)),
+       (on(+pro, TabX),State=continua;
+        noton(+pro, TabX), State=cambia),
+       assert(stato(N,State)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaS,_,PersS,GenS,NumS,CatS,_),Altri, N),!.     
+
+create_disc_gridal(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Pro, Altri, Cat, continua)
+       :- 
+       principale(nil),
+       nonvar(Pro),
+       Pro=.. [ref_ex,Id,TestaP|_],
+       TestaP = TestaX,
+       retract(principale(_)),
+       retract(proposto(_)),
+       assert(proposto(nil)),
+       (on(+pro, TabX),State=continua;
+        noton(+pro, TabX), State=cambia),
+       assert(stato(N,State)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, Altri, N),!.     
+
+create_disc_gridalt(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro,
+                     Altri, LA, TestaP, TestaY, N1, retaining) 
+       :- 
+       on( '-def', TabX),
+       TestaX\=TestaP,
+       one(altri(ref_ex(_,TestaA,TabA,PersA,GenA,NumA,_,_),N1)),
+       (TestaP = TestaY; TestaA = TestaY) ,
+       retract(principale(nil)),
+       assert(principale(nil)),
+       assert(stato(N,retaining)),
+       retract(proposto(_)),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, Altri,LA, N),!.     
+
+/* r_prop, r_altri, a_prop, a_sec, State=retaining
+10  non e' indefinito - il proposto è nella lista altri */
+create_disc_gridalt(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro,
+                     Altri, LA, TestaP, TestaP, N1, retaining) 
+       :- 
+       retract(principale(nil)),
+       assert(principale(nil)),
+       retract(proposto(_)),
+       assert(stato(N,retaining)),
+       assert(proposto(Altri)),
+       recover_sec(altri, ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX),LA, N),!.     
+
+/* r_prop, r_altri, a_prop, a_sec, State=continua
+11 il best candidate è ricavato dal sc e non matcha nessuno dei precedenti 
+topics */
+create_disc_gridalt(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Pro,
+                     Altri, LA, TestaP, TestaP, N1, continua) 
+       :- 
+       one(altri(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_),N1)),
+       (TestaP \= TestaX, TestaA \= TestaX),       
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(Pro)),
+       assert(stato(N,retaining)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaA,TabA,PersA,GenA,NumA,CatA,_),LA, N),!.     
+
+/* • r_prop, r_altri, a_prin, a_sec, State=Retaining
+12 il proposto matcha con il best candidate, poi esiste un secondario e il principale e' uguale a nil; il secondo candidate esiste nel primo degli altri e viene messo in proposto, il proposto precedente viene messo in principale e il secondario resta li'*/
+
+create_disc_gridalt(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Pro,
+                     Altri, LA, TestaX, TestaY, N1, Retaining)
+       :-
+       on(+def,TabX),
+       secondario(ref_ex(SnS,TestaS,TabS,PersS,GenS,NumS,CatS,_)),
+       principale(nil),
+       one(altri(ref_ex(_,TestaA,TabA,PersA,GenA,NumA,CatA,_),N1)),
+       TestaA=TestaY,
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(Altri)),
+       assert(stato(N,retaining)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaS,_,PersS,GenS,NumS,CatS,_), LA, N),!.     
+
+/* ???  • r_prop, r_altri, a_prop, State=retaining
+15 escape condition, no coherence, new individual introduced */
+create_disc_gridalt(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Pro,
+                     Altri, LA, TestaX, TestaY, N1, retaining)
+       :-
+       on( '-def',TabX),
+       one(altri(ref_ex(_,TestaA,TabA,PersA,GenA,NumA,_,_),N1)),
+       retract(principale(_)),
+       assert(principale(nil)),
+       assert(stato(N,retaining)),
+       recover_sec(prop, Altri, N),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       !.     
+
+create_disc_gridaltp(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, Prin, Testa1, TestaA, retaining)
+       :- 
+       Altri\=[], 
+       Testa1\=TestaX,
+       Altri=[ref_ex(SnY,Testa1,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+       retract(principale(_)),
+       assert(principale(ref_ex(SnY,Testa1,_,PersY,GenY,NumY,CcY,FY/RY))),
+       assert(stato(N,retaining)),
+       retract(proposto(_)),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(nil, LA, N),!.     
+
+/* r_altri, r_prop, a_prop, a_sec, State=retaining
+17  esiste nella lista altri il match con il best candidate e viene messo nel proposto il proposto viene messo nei potential- nemmeno il secondario matcha con il best candidate*/
+create_disc_gridaltp(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, Prin, Testa1, TestaA, retaining)
+       :- 
+       TestaX\=Testa1,
+       secondario(ref_ex(_,TestaP,_,Pers,Gen,Num,Cat,_/_)),
+       TestaP\=TestaX,
+       assert(stato(N,retaining)),
+       retract(principale(_)),
+       assert(principale(nil)),
+       recover_sec(prop, Altri, N),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       !.     
+
+/* r_altri, r_prop, a_prop, a_sec, State=retaining
+18  il best candidate non matcha con il principale e viene messo nel proposto mentre il principale attuale e' membro della lista degli altri */
+create_disc_gridaltp(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, Prin, Testa1, TestaA, continua)
+       :- 
+       Altri\=[],
+       on(Ref/_, Altri),
+       Testa1\=TestaX,
+       Ref=ref_ex(_,Testa,_,Pers,Gen,Num,Cat,_/_), 
+       Testa\=Testa1,
+       \+ nogen_member(oggetto,CcX),
+       retract(principale(_)),
+       assert(principale(nil)),
+       retract(proposto(_)),
+       assert(stato(N,retaining)),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, Prin, Altri, N),
+       !.     
+
+/* r_altri, r_prop, a_prop, a_sec, State=continua
+20 il best candidate è indefinite, e il principale è nella lista altri; il best candidate diventa il primo dei potential, il principale viene riasserito e il secondo della lista altri diventa il proposto */
+create_disc_gridaltp(N, ref_ex(SnX,indefinite,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, Prin, Testa1, TestaA, continua)
+       :-
+      Altri\=[],
+      Altri=[ref_ex(SnY,Testa1,TabY,PersY,GenY,NumY,CcY,_/_)/Py|LA],
+      retract(principale(_)),
+      assert(principale(Prin)),               
+      retract(proposto(_)),
+      assert(stato(N,continua)),
+      assert(proposto(nil)),
+      recover_sec(altri, LA, N),!.     
+
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri, 
+       r_prin, r_prop, a_prin, a_sec, continua):-
+       principale(ref_ex(_,TestaX,TabA,PersA,GenA,NumA,_,_)),
+       (TestaX\=indefinite,
+       create_disc_gridp(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Altri)
+        ;
+        TestaX=indefinite,
+       create_disc_gridp_ind(N, ref_ex(SnX,indefinite,TabX,PersX,GenX,NumX,CcX,FX/RX), Altri)),
+       !.
+
+/* • r_prop, r_prin, a_prin, a_sec, State=retaining
+4  esiste un proposto e un principale: il proposto matcha con il best candidate e viene messo nel principale,mentre il principale viene messo nel secondario 
+*/
+
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),Altri, 
+       r_prop, r_prin, a_prin, a_sec, St):-
+       proposto(ref_ex(SnA,TestaX,TabA,PersA,GenA,NumA,CatA,_)),
+       create_disc_gridpr(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+                ref_ex(SnA,TestaX,TabA,PersA,GenA,NumA,CatA,_), Altri, St),
+       !.       
+
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), Altri, 
+       r_prop, r_altri, a_prin, a_sec, St):-
+       proposto(ref_ex(_,TestaP,TabP,PersP,GenP,NumP,Cat,F/R)),
+       create_disc_gridal(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+            ref_ex(_,TestaP,_,PersP,GenP,NumP,Cat,F/R), Altri, Cat, St),
+       !.
+       
+/* r_prop, r_altri, a_prop, a_sec, State=retaining
+9  esiste un proposto e una lista altri: il primo best candidate non mAtcha e viene messo nel proposto, mentre il secondo best candidate matcha con il proposto o il primo degli altri e viene messo nel secondario ed e' indefinito */
+
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+                     Altri,r_prop, r_altri, a_prop, a_sec, St):-
+       proposto(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+       Altri\=[],
+       Altri=[ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY)/Py|LA],
+       N1 is N - 1,
+       create_disc_gridalt(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+           ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_), 
+           ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,CcY,FY/RY), LA, TestaA, TestaY, N1, St),
+       !.       
+
+/* r_prop, r_altri, a_prin, a_sec, State=continua
+13  esiste un proposto che matcha con il best candidate e viene messo nel principale e un secondario che viene riasserito */
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, r_prop, r_sec, a_prin, a_sec, continua) 
+       :- 
+       proposto(ref_ex(_,TestaX,TabP,PersP,GenP,NumP,_,_)),
+       secondario(ref_ex(SnS,TestaS,TabS,PersS,GenS,NumS,CatS,_)),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(nil)),
+       (on(+pro, TabX),State=continua;
+        noton(+pro, TabX), State=cambia),
+       assert(stato(N,State)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, ref_ex(_,TestaS,_,PersS,GenS,NumS,CatS,_), Altri, N),!.     
+
+
+/* • r_altri, r_prop, a_prop, a_sec, State=retaining
+16  esiste un proposto e il primo della lista altri che matcha con il best candidate e viene messo nel proposto; poi anche il principale esiste nella lista Altri */
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, r_altri, r_prop, a_prop, a_sec, St) 
+       :- 
+       N1 is N - 1,
+       altri(ref_ex(_,TestaA,TabA,PersA,GenA,NumA,_,_),N1),
+       principale(Prin),
+       Prin\=nil,
+       principale(ref_ex(_,Testa1,_,Pers1,Gen1,Num1,Cat1,_/_)),
+       create_disc_gridaltp(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, Prin, Testa1, TestaA, St),
+       !.
+
+ /* • r_prin, r_altri, a_prin, a_sec, State=cont_analyze
+21  esiste un principale che matcha con il best candidate
+il principale matcha il best candidate che e' un nom_subst */
+
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, r_prin, r_altri, a_prin, a_sec, St) 
+       :- 
+       principale(Prin),
+       Prin\=nil,
+       principale(ref_ex(_,Testa1,TabP,PersP,GenP,NumP,_,_)),
+       (on(Testa1, TestaX); Testa1=TestaX),
+       create_disc_gridaltpa(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, Prin, Testa1, St),
+       !.
+
+/* • r_sec, r_prin, a_prop, a_sec, State=continua
+24  il best candidate matcha con il secondario che viene messo nel proposto, 
+il principale viene mantenuto nel principale */
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, r_sec, r_prin, a_prop, a_sec, continua) 
+       :-
+       secondario(ref_ex(_,TestaX,TabP,PersP,GenP,NumP,_,_)),
+       principale(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(stato(N,retaining)),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       assert(principale(ref_ex(SnA,TestaA,_,PersA,GenA,NumA,CatA,_))),
+       recover_sec(altri, Altri, N),!.     
+
+/* r_sec, r_prin, a_prop, a_sec, State=continua
+25  non esiste principale */
+create_disc_grid3(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, r_sec, r_prin, a_prop, a_sec, continua) 
+       :-
+       secondario(ref_ex(_,TestaX,TabP,PersP,GenP,NumP,_,_)),
+       principale(nil),
+       retract(principale(_)),
+       recover_sec(prop, Altri, N),
+       assert(stato(N,retaining)),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       assert(principale(nil)),
+       !.     
+
+create_disc_gridaltpa(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX),  
+              Altri, Prin, Testa1, cont_analyze) 
+       :-
+       TabX=[+ref,Def,Part,nil,+pro,-ana,+class],
+       Part\=nil,nonvar(Def),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(proposto(nil)),
+       assert(stato(N,cont_analyze)),
+       assert(principale(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(nil, Altri, N),!.     
+
+
+/* r_prin, r_altri, a_prin, a_sec, State=cambia
+23  il principale viene messo nel secondario e il best candidate nel proposto 
+*/
+create_disc_gridaltpa(N, ref_ex(SnX,TestaX,TabX,PersX,GenX,NumX,CcX,FX/RX), 
+       Altri, Prin, Testa1, cambia) 
+       :- 
+       TestaX\=_-sc,
+       Testa1\=TestaX,
+       secondario(ref_ex(SnY,TestaY,TabY,PersY,GenY,NumY,_,_)),
+       TestaY\=TestaX,       
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(principale(nil)),
+       assert(stato(N,cambia)),
+       assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+       recover_sec(altri, Prin, Altri, N),
+       !.     
+
+verif_cats(Cats, N, T):-
+        nonvar(Cats),
+        nogen_member(role,Cats),
+        !.
+verif_cats(Cats, N, T):-
+        notmembro(role,Cats),
+        asserta(po_view(N,T)),
+        !.
+
+verify_prin_prop(Cats,N,Prop,Testa1):-
+        principale(Prin),               
+        (Prin\=nil,
+         arg(2, Prin, Testa),
+         verif_cats(Cats, N, Testa),
+         retract(principale(_)),
+         assert(principale(Prin)),
+         retract(secondario(_)),
+         assert(secondario(Prop))
+        ;
+         verif_cats(Cats, N, Testa1),
+         retract(principale(_)),
+         assert(principale(Prop))),
+         retract(secondario(_)),
+         assert(secondario(nil)),
+         !.
+
+/* •  sociale
+26 membership determines the discourse choice */
+create_disc_grid4(N, ref_ex(SnX,TestaX,[+ref,Def,Part,Card,-pro,-ana,+class],PersX,GenX,NumX,CcX,FX/RX), Altri, sociale, continua) 
+        :-
+        Def= +def,
+        proposto(Prop),
+        Prop\=nil,
+        arg(2, Prop, Testa1),
+         TestaX\=Testa1,
+        current_main_loc(N1, luogo, LocInfo),
+        arg(2, LocInfo, Pred),
+        included(TestaX,Pred),   
+        assert(stato(N,continua)),
+        retract(proposto(_)),
+        assert(proposto(nil)),
+        verify_prin_prop(CcX,N,Prop,Testa1), 
+        asserisci_altri([ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)/_],N),
+        !.
+
+/* features
+27 si controllano le features del nome comune con la feature passata in alto 
+*/
+create_disc_grid4(N, ref_ex(SnX,TestaX,[+ref,Def,Part,Card,-pro,-ana,+class],PersX,GenX,NumX,CcX,FX/RX), Altri,sostanza, continua) 
+       :-
+       (Def= +def; Def=def0),
+       proposto(Prop), Prop\=nil,
+       secondario(ref_ex(_,TestaS,TabP,PersP,GenP,NumP,_,_)),
+       principale(nil),
+       retract(proposto(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_))),
+       nogen_member(sociale,CatA),
+       asserta(po_view(N,TestaS)),
+       assert(stato(N,continua)),
+       retract(principale(nil)),
+       retract(secondario(_)),
+       assert(secondario(nil)),
+       assert(proposto(nil)),
+       assert(principale(ref_ex(_,TestaS,_,PersP,GenP,NumP,_,_))),
+       asserisci_altri([ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)/_],N),
+       !.
+
+create_disc_grid4(N, ref_ex(SnX,TestaX,[+ref,Def,Part,Card,-pro,-ana,+class],PersX,GenX,NumX,CcX,FX/RX), Altri,sostanza, continua) 
+       :-
+       (Def= +def; Def=def0),
+       proposto(Prop),
+       principale(Prin),
+       Prop\=nil,
+       Prin\=nil,
+       retract(proposto(Prop)),
+       retract(principale(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_))),
+       assert(stato(N,continua)),
+       asserta(po_view(N,TestaA)),
+       assert(proposto(nil)),
+       assert(principale(ref_ex(SnA,TestaA,_,PersA,GenA,NumA,CatA,_))),
+       asserisci_altri([ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)/_],N),
+       recover_sec(altri, Prop, Altri, N),!.
+
+/* features
+29 si controllano le features del nome comune con la feature passata in alto 
+*/
+create_disc_grid4(N, ref_ex(SnX,TestaX,[+ref,Def,Part,Card,-pro,-ana,+class],PersX,GenX,NumX,CcX,FX/RX), Altri,Feature, continua) 
+       :-
+       (Def= +def; Def=def0),
+       principale(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+       nogen_member(Feature,CcX),
+       (
+       (nogen_member(sostanza,CcX),
+        verif_cats(CcX, N, TestaA),
+        asserta(altri(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX), N)),
+        recover_sec(nil, Altri, N),
+        retract(proposto(Prop)),
+        retract(principale(_)),
+        assert(stato(N,continua)),
+        assert(proposto(nil)),
+        assert(principale(ref_ex(SnA,TestaA,_,PersA,GenA,NumA,CatA,_)))
+        ;
+        nogen_member(sostanza,CcX),
+        secondario(ref_ex(_,TestaS,TabP,PersP,GenP,NumP,_,_)),
+        TestaS=TestaA,
+        asserta(altri(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX), N)),
+        recover_sec(nil, Altri, N),
+        retract(proposto(Prop)),
+        retract(principale(_)),
+        assert(stato(N,continua)),
+        assert(proposto(nil)),
+        assert(principale(ref_ex(SnA,TestaA,_,PersA,GenA,NumA,CatA,_)))
+        ;
+        Pro\=nil,
+        arg(2, Prop, Testa),
+        Testa=TestaX,
+        verif_cats(CcX, N, TestaA),
+        retract(secondario(_)),
+        assert(secondario(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+        asserisci_altri(Altri,N),
+        retract(proposto(Prop)),
+        retract(principale(_)),
+        assert(stato(N,continua)),
+        assert(proposto(nil)),
+        assert(principale(ref_ex(SnA,TestaA,_,PersA,GenA,NumA,CatA,_))))
+         ;     
+        verif_cats(CcX, N, TestaA),
+        retract(secondario(_)),
+        retract(proposto(Prop)),
+        retract(principale(_)),
+        assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+        assert(stato(N,retaining)),
+        assert(principale(nil)),
+        assert(secondario(ref_ex(SnA,TestaA,_,PersA,GenA,NumA,CatA,_))),
+        asserisci_altri(Altri,N)
+       ),
+       !.     
+     
+create_disc_grid4(N, ref_ex(SnX,TestaX,[+ref,Def,Part,Card,-pro,-ana,+class],PersX,GenX,plur,CcX,FX/RX), Altri,Feature, continua) 
+       :-
+       (Def= +def; Def=def0),
+       proposto(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+       nogen_member(Feature,CcX),
+       retract(proposto(_)),
+       retract(principale(_)),
+       verif_cats(CcX, N, TestaA),
+        assert(proposto(ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX))),
+        assert(stato(N,retaining)),
+       assert(principale(ref_ex(SnA,TestaA,_,PersA,GenA,NumA,CatA,_))),
+       recover_sec(nil, Altri, N),!.
+
+create_disc_grid4(N, ref_ex(SnX,TestaX,[+ref,Def,Part,Card,-pro,-ana,+class],PersX,GenX,NumX,CcX,FX/RX), Altri,Feature, continua) 
+       :-
+       (Def= +def; Def=def0),
+       proposto(ref_ex(SnA,TestaA,TabA,PersA,GenA,NumA,CatA,_)),
+       nogen_member(Feature,CcX),
+       retract(proposto(_)),
+       retract(principale(_)),
+       assert(stato(N,continua)),
+       verif_cats(CcX, N, TestaA),
+       assert(proposto(nil)),
+       asserisci_altri([ref_ex(SnX,TestaX,_,PersX,GenX,NumX,CcX,FX/RX)/_],N),
+       assert(principale(ref_ex(SnA,TestaA,_,PersA,GenA,NumA,CatA,_))),
+       recover_sec(nil, Altri, N),!.
+
+/***********
+• disc_domain(+factivity,
+   +noFrase, +root, +funRole, +semCat, +mood, +performative, +precDiscDom,
+   -discDom, -subjConsc). ••
+***********/
+disc_domain(_,
+   NoFr, Root, _/Role, SemCat, _, prescr, subjective(_-_, Index, Pred), 
+   objective, nil) 
+   :-
+   genre(legal), Role\=hypoth.
+
+disc_domain(nonfactive,
+   NoFr, _, _, _, _, _, _, subjective,SubjConsc)
+   :-
+   subject_of_consciousness(NoFr,SubjConsc), SubjConsc\=nil.
+
+
+/* implicit_subjective */
+disc_domain(_,
+   NoFr, _, _, _, _, exclamative, _, implicit_subjective,
+   SubjConsc) 
+   :-
+   subject_of_consciousness(NoFr,SubjConsc), SubjConsc\=nil.
+
+disc_domain(_,NoFr, _, _, modale, _, _, _, implicit_subjective,
+   SubjConsc) 
+   :-
+   subject_of_consciousness(NoFr,SubjConsc), SubjConsc\=nil.
+
+disc_domain(_,NoFr, _, _, _, cond, _, _, implicit_subjective,
+   SubjConsc) 
+   :-
+   subject_of_consciousness(NoFr,SubjConsc), SubjConsc\=nil.
+
+disc_domain(_,NoFr, _, _, CatSem, _, _, PrecDom, implicit_subjective,
+   SubjConsc) 
+   :-
+   stative_cat(CatSem),
+   subjective_boundary(PrecDom),
+   subject_of_consciousness(NoFr,SubjConsc), SubjConsc\=nil.
+
+/* pre_subjective */
+disc_domain(_,
+   NoFr, Root, _,  SemCat, _, _, PrecDom, 
+   pre_subjective(NoFr-Root, Index, Pred)+explicit_subjective,
+   sc(NoFr-Root, Index, Pred))
+   :-
+   has_refl_object(Root),
+   SemCat=riportivo,
+   Roles=[esperiente, actor, tema_nonaff],
+   on(Role, Roles),
+   nodo(Root)::sogg/Role::indice::Index,
+   nodo(Root)::sogg/Role::pred::Pred,
+   (PrecDom=pre_subjective(NoFr-Root, Index, Pred);
+    PrecDom=objective).
+
+disc_domain(_,
+   NoFr, Root, _,  SemCat, _, _, PrecDom, 
+   pre_subjective(NoFr-Root, Index, Pred)+explicit_subjective,
+   sc(NoFr-Root, Index, Pred))
+   :-
+   has_object(Root),
+   pre_subjective_cat(SemCat, Roles),
+   on(Role, Roles),
+   nodo(Root)::sogg/Role::indice::Index,
+   nodo(Root)::sogg/Role::pred::Pred,
+   (PrecDom=pre_subjective(NoFr-Root, Index, Pred);
+    PrecDom=objective).
+
+
+disc_domain(_,
+   NoFr, Root, _, SemCat, _, _, subjective, 
+   subjective(NoFr-Root, Index, Pred), sc(NoFr-Root, Index, Pred)) 
+   :-
+   genre(legal),
+   subject_of_consciousness(NoFr,SubjConsc).
+
+disc_domain(_,
+   NoFr, Root, _, SemCat, _, _, subjective, 
+   subjective(NoFr-Root, Index, Pred), sc(NoFr-Root, Index, Pred)) 
+   :-
+   \+ has_object(Root),
+   pre_subjective_cat(SemCat, Roles),
+   on(Role, Roles),
+   nodo(Root)::sogg/Role::indice::Index,
+   nodo(Root)::sogg/Role::pred::Pred.
+
+disc_domain(_,
+   NoFr, Root, _, SemCat, _, _, _, 
+   pre_subjective(NoFr-Root, Index, Pred), nil) 
+   :-
+   \+ has_object(Root),
+   pre_subjective_cat(SemCat, Roles),
+   on(Role, Roles),
+   nodo(Root)::sogg/Role::indice::Index,
+   nodo(Root)::sogg/Role::pred::Pred.
+
+/* explicit_subjective */
+disc_domain(_,
+   _, Root, FunRole, _, _, _, pre_subjective(Ident, Index, Pred), 
+   explicit_subjective, sc(Ident, Index, Pred)) 
+   :-
+   explicit_subjective_fun_role(FunRole).
+
+disc_domain(_,
+   NoFr, Root, _, _, _, dir_speech, _, explicit_subjective,
+   sc(NoFr-Root, Index, Pred)) 
+   :-
+   nodo(Root)::_/Role::indice::Index,
+   nodo(Root)::_/Role::pred::Pred.
+
+disc_domain(_,
+   NoFr, Root, _, SemCat, _, _, _, explicit_subjective,
+   SubjConsc) 
+   :-
+   SemCat = emotivo,
+   subject_of_consciousness(NoFr,SubjConsc).
+
+disc_domain(_,
+   NoFr, Root, _, _, _, ask, _, explicit_subjective,
+   sc(NoFr-Root, Index, Pred)) 
+   :-
+   SemCat = stato,
+   nodo(Root)::_/Role::indice::Index,
+   nodo(Root)::_/Role::pred::Pred.
+
+
+disc_domain(factive,
+   NoFr, Root, _, _, ind, _, _, objective, nil) 
+   :-
+   genre(legal),
+   proposto(Ref),
+   arg(2,Ref,Pred).
+
+disc_domain(factive,
+   NoFr, Root, _, esistenza, ind, inform, objective, subjective,
+   sc(NoFr-Root, Index, Pred)) 
+   :-
+   1<NoFr,
+   (po_view(NoFr, Pred)
+   ;
+   PFr is NoFr - 1,
+   po_view(PFr, Pred)),
+   current_main_loc(NoFr, luogo, NewRef),
+   arg(1, NewRef, Id),
+   loc(_, Id, [arg:main_sloc, arg:_]).
+
+disc_domain(factive,
+   NoFr, Root, _, attivita, ind, _, objective, subjective,
+   sc(NoFr-Root, Index, Pred)) 
+   :-
+   1<NoFr,
+   nodo(Root)::sogg/tema_bound::indice::_,
+   PNoF is NoFr - 1,
+   topic(PNoF, main, Id),
+   fact(_, name, [Pred, Id], 1, univ, univ).
+
+
+/* objective */
+disc_domain(_,_, _, _, SemCat, _, Performative, _, 
+   objective,  nil) 
+   :-
+   SemCat \= stato,
+   SemCat \= modale,
+   Performative \= exclamative.
+
+disc_domain(factive,
+   NoFr, _, _, stato, _, _, subjective, subjective,SubjConsc)
+   :-
+   genre(legal),
+   subject_of_consciousness(NoFr,SubjConsc).
+
+disc_domain(factive,
+   NoFr, Root, _, _, ind, Perf, Dom, subjective, SubjConsc) 
+   :-
+			genre(legal),
+   subject_of_consciousness(NoFr,SubjConsc).
+
+disc_domain(factive,
+   NoFr, Root, main/gerund, stato, _, _, _, subjective,
+   sc(NoFr-Root, Index, Pred))
+   :-
+   genre(legal),
+   principale(Main),
+   arg(1, Main, Index),
+   arg(2, Main, Pred).
+
+disc_domain(_,_, _, _, SemCat, _, Performative, _, 
+   objective,  nil) 
+   :- !.
+  
+stative_cat(stato).
+stative_cat(esistenza).
+
+
+subjective_boundary(implicit_subjective).
+subjective_boundary(explicit_subjective).
+subjective_boundary(pre_subjective(_, _, _)+explicit_subjective).
+subjective_boundary(subjective(_,_,_)).
+subjective_boundary(subjective).
+
+explicit_subjective_fun_role(fcomp/prop).
+explicit_subjective_fun_role(fcomp/propq).
+explicit_subjective_fun_role(vcomp/prop). 
+
+pre_subjective_cat(soggettivo, [esperiente, actor, agente, tema_nonaff]).
+pre_subjective_cat(ment_perloc, [esperiente, actor, agente, tema_nonaff]).
+pre_subjective_cat(presuppositivo, [actor]).
+pre_subjective_cat(emotivo, [esperiente, agente, tema_emotivo, actor]).
+% pre_subjective_cat(riportivo, [actor]).
+
+cog_w(regard).
+
+has_obj_f(Verb) :-
+   nodo(N)::ogg/form::nodo(N1),
+   nodo(N)::pred::Pred,
+   cog_w(Pred).
+
+has_object(Root) :-
+   nodo(Root)::ogg/_::nodo(_).
+
+has_refl_object(Root) :-
+   nodo(Root)::F/R::nodo(N),
+   F/R=ogg2/goal,
+   nodo(Root)::ogg2/_::indice::IndContr,
+   segui_catena_di_controllo(IndContr, CC),
+   nodo(Root)::ogg2/_::tab_ref::[+ ref, - pro, + ana, + me, - subj],
+   nodo(Root)::sogg/actor::indice::CC.
+
+subject_of_consciousness(NoFr, sc(INoFr, Index, Pred)) :-
+%   genre(legal),
+   PNoFr is NoFr - 1,
+   info(PNoFr, _, _, _, _, _, _, _, _, _, _, DiscDom, sc(INoFr, Index, Pred)),
+   nonvar(Pred),
+   !.
+/***************************
+disc_relation(
+   +NoFr, +View, +ClauseType,
+   +Relevance, +Intensionality, +Aspect,
+   [+PrecChange, +Change], [+PrecState, +State],
+   +Verb, +Support, [+PrecCatSem, +CatSem], 
+   +Focalizers,
+   +PrecDiscRel,
+   -DiscourseRelation).
+***************************/
+/*** setting 1 */
+disc_relation(
+   _, _, _,
+   _, factive, _,
+   _, [_, cambia],
+   _, _, _,
+   _,
+   _,
+   setting) 
+   :- 
+   genre(legal), !.
+
+/*** setting 2 */
+disc_relation(
+   _, _, _,
+   _, _, _,
+   _, [_, shifting],
+   _, _, _,
+   _,
+   _,
+   setting) 
+   :- !.
+
+/*** narration 3 */
+disc_relation(
+   1, _, _, _, _, _, _, _, _, _, _, _,
+   _,
+   narration) 
+   :- 
+   !.
+
+/*** obligation 4 */
+disc_relation(
+   _, social_engagement, _,
+   _, _, _,
+   _, _, 
+   _, shall, _,
+   _,
+   _,
+   obligation)
+   :- !.
+
+/*** inception 5 */
+disc_relation(
+   _, social_engagement, _/Role,
+   _, _, _,
+   _, _, 
+   _, _, _,
+   _,
+   _,
+   Relation)
+   :- 
+relation_role(Role, _, Relation).
+
+disc_relation(
+   _, social_engagement, _,
+   _, _, _,
+   _, _, 
+   _, Mod, _,
+   _,
+   _,
+   inception)
+   :- 
+   \+ modal_verb(Mod),!.
+
+/*** inception 6 */
+disc_relation(
+   _, _, _, 
+   _, _, _, 
+   _, _, 
+   Verb, _, _,
+   _,
+   _,
+   inception) 
+   :-
+   inception_verb(Verb),
+   !.
+
+/*** result 7 */
+disc_relation(
+   _, _, _,
+   _, _, _,
+   _, _,
+   Verb, _, _,
+   _,
+   _,
+   result) 
+   :-
+   result_verb(Verb),
+   !.
+
+/*** result 8 */
+disc_relation(
+   _, _, _/gerund, 
+   _, _, _, 
+   [culminated, culminated], _, 
+   Verb, _, _,
+   _,
+   PrecRel,
+   result) 
+   :-
+   \+ narration_verb(Verb),
+   (PrecRel=narration;
+    PrecRel=evidence),
+   !.
+
+/*** result 9 */
+disc_relation(
+   _, _, _/gerund, 
+   _, _, _, 
+   [culminated, culminated], _, 
+   Verb, _, _,
+   _,
+   egression(_),
+   result) 
+   :-
+   \+ narration_verb(Verb),
+   !.
+
+/*** ROLE 10 */
+disc_relation(
+   _, _, Fun/Role,
+   _, _, _,
+   [_, Change], _,
+   _, _, _,
+   _,
+   _,
+   Relation) :-
+   nogen_member(Fun, [adj, coord]), /* cfr. poiché ... e */
+   relation_role(Role, Change, Relation),
+   !.
+
+/*** ROLE 11 */
+disc_relation(
+   _, _, Fun/Role,
+   _, _, _,
+   [_, Change], _,
+   _, _, _,
+   _,
+   _,
+   Relation) :-
+   Role\=prop,
+   relation_role(Role, Change, Relation),
+   !.
+
+/*** result 12 */
+disc_relation(
+   _, _, _/prop, 
+   _, factive, stato, 
+   _, _, 
+   Verb, _, _,
+   _,
+   hypothesis,
+   result) 
+   :-
+   !.
+
+/*** evidence 13 */
+disc_relation(
+   _, _, _, 
+   _, _, _, 
+   _, _, 
+   _, _, _,
+   Focs,
+   _,
+   evidence) 
+   :-
+   nogen_member(Foc, Focs),
+   focalizer_type(Foc, evidence),
+   !.
+
+/*** evidence 14 */
+disc_relation(
+   _, _, _, 
+   background, _, _, 
+   [_, negated], _, 
+   _, _, _,
+   _,
+   _,
+   evidence) :-
+   !.
+
+/*** background 
+disc_relation(
+   _, _, _, 
+   background, nonfactive, _, _, _, _, _, _, _,
+   _,
+   background) :- !.
+*/
+
+/*** definition 15 */
+disc_relation(
+   _, _, main/_,
+   background, factive, stato, 
+   [_, null], _ ,
+   Verb, nil, [_,SemCat],
+   _,
+   _,
+   definition) 
+   :- 
+   genre(legal),
+   definition_verb(Verb),
+   !.
+
+/*** motivation 16 */
+disc_relation(
+   _, _, main/_,
+   background, factive, _, 
+   [_, null], [_, continua], 
+   _, _, [_,SemCat],
+   _,
+   _,
+   motivation) 
+   :- 
+   genre(legal),
+   !.
+
+/*** explanation 17 */
+disc_relation(
+   _, _, main/_,
+   background, factive, _, 
+   [_, null], [_, continua], 
+   _, _, [_,SemCat],
+   _,
+   _,
+   explanation) 
+   :- 
+   SemCat \= presuppositivo,
+   !.
+/* troppo generale
+disc_relation(
+   _, _, adj/_,
+   foreground, _, _, 
+   [_, culminated], _, 
+   Verb, _, _,
+   _,
+   _,
+   explanation) 
+   :- 
+   \+ narration_verb(Verb),
+   !.
+*/
+/*** explanation 18 */
+disc_relation(
+   _, _, main/_,
+   _, factive, stato, 
+   _, _, 
+   Verb, Modal, _,
+   _,
+   _,
+   explanation) 
+   :- 
+   (Verb=essere;Verb=be),
+   !.
+
+/*** parallel 19 */
+disc_relation(
+   _, _, _, 
+   _, _, _, 
+   _, _, 
+   _, stare, _,
+   _,
+   _,
+   parallel) :-
+   !.
+
+/*** contrast 20 */
+disc_relation(
+   _, _, _, 
+   foreground, _, _, 
+   [_, negated], _, 
+   Verb, Mod, _,
+   _,
+   _,
+   contrast) 
+   :-
+   \+ applic_verb(Verb),
+   \+ modal_verb(Mod),
+   !.
+
+/*** evaluation 21 */
+disc_relation(
+   _, internal_intensional, _, 
+   foreground, _, _, 
+   [_, gradual], _, 
+   _, _, _,
+   _,
+   _,
+   evaluation) 
+   :-
+   !.
+
+/*** evaluation 22 */
+disc_relation(
+   _, internal_intensional, _, 
+   background, _, _, 
+   [_, null], _, 
+   Verb, _, _,
+   _,
+   _,
+   evaluation) 
+   :-
+   evaluation_verb(Verb),
+   !.
+
+
+/*** evaluation 23 */
+disc_relation(
+   _, external, _, 
+   background, nonfactive, stato, 
+   [null, null], _, 
+   _, Mod, _,
+   _,
+   _,
+   evaluation) 
+   :-
+   \+ modal_verb(Mod),
+   !.
+
+/*** evaluation 24 */
+disc_relation(
+   _, View, dir_speech/_, 
+   background, _, stato, 
+   [_, null], _, 
+   _, _, _, 
+   _,
+   _,
+   evaluation) :-
+   nogen_member(View, [internal, internal_intensional]),
+   !.
+
+
+/*** elaboration 25 */
+disc_relation(
+   _, _, _/gerund,
+   _, _, _, 
+   [_, Change], _, 
+   Verb, _, _,
+   _,
+   _,
+   elaboration) 
+   :-
+   \+ narration_verb(Verb),
+   Change \= null,
+   !.
+
+/*** elaboration 26 */
+disc_relation(
+   _, external, _/prop, 
+   foreground, factive, _, 
+   [_, gradual], _, 
+   _, _, _,
+   _,
+   _,
+   elaboration) 
+   :-
+   !.
+
+/*** elaboration 27 */
+disc_relation(
+   _, _, fcomp/_,
+   background, _, Aspect, 
+   [_, Change], _, 
+   _, _, [presuppositivo, _], 
+   _,
+   _,
+   elaboration) 
+   :-
+   nogen_member(Change, [null, gradual]),
+   Aspect \= stato,
+   !.
+
+/*** elaboration 28 */
+disc_relation(
+   _, View, report/_, 
+   background, _, _, 
+   [_, null], _, 
+   _, _, _, 
+   _,
+   _,
+   elaboration) :-
+   nogen_member(View, [internal, internal_intensional]),
+   !.
+/*** description
+disc_relation(
+   _, View, _, 
+   background, _, _, 
+   [_, null], _, 
+   _, _, _, 
+   _,
+   _,
+   description) :-
+   nogen_member(View, [internal, internal_intensional]),
+   !.
+
+disc_relation(
+   _, external, _, 
+   background, _, stato, 
+   [_, null], _, 
+   _, _, _,
+   _,
+   _,
+   description) :-
+   !.
+ */
+/*** narration 29 */
+disc_relation(
+   _, _, _/gerund, _, _, _, 
+   [culminated, _], _,
+    _, _, _,
+   _,
+   narration,
+   narration) :- !.
+
+/*** narration 30 */
+disc_relation(
+   _, _, _/gerund, _, _, _, 
+   [culminated, _], _,
+    _, _, _,
+   _,
+   egression(_-_),
+   narration) :- !.
+/* troppo generale
+disc_relation(
+   _, _, _,
+   Relev, factive, Aspect, 
+   [_, Change], _, 
+   _, _, _, 
+   _,
+   _,
+   narration) 
+   :-
+   Relev \= background,
+   Aspect \= stato,
+   !.
+*/
+/*** result 31 */
+disc_relation(
+   _, _, _, _, _, _, 
+   [culminated, culminated], _, 
+   _, _, _, 
+   _,
+   narration,
+   result) :- !.
+
+/*** result 32 */
+disc_relation(
+   _, _, coord/prop,
+   _, _, _, 
+   _, _, 
+   _, _, [PrecSemCat, SemCat], 
+   _,
+   _,
+   result) 
+   :-
+   result_sequence(PrecSemCat, SemCat),
+   !.
+
+/*** 33 achievement
+Una volta determinato che si tratta di una egression cerca l'inizio del processo. Andando all'indietro se trova una inception oppure una narration immediatamente preceduta da una inception, quest'ultima e_ l'inizio. Altrimenti prende la prima narration disponibile
+ */
+disc_relation(
+   NoFr, external, _, 
+   foreground, factive, achiev_tr, 
+   [_, culminated], _, 
+   NewRel, _, _,
+   _,
+   _,
+   egression(PrecNoFr-Node)) 
+   :-
+   d_structure(
+      NoFr, Node, NoCl, Topics, inception, 
+      TempRel, MainRel, Stato, DiscMove, DiscLev),
+   analyze_relation(NoFr, PrecNoFr, MainRel, NewRel, Topics),
+   !.
+
+/*** evaluation 34 */
+disc_relation(
+   _, internal_extensional, _, 
+   _, _, _, 
+   _, _, 
+   _, _, _,
+   _,
+   _,
+   evaluation) 
+   :-
+   !.
+/* evidence 35 */
+disc_relation(
+   _, external, _/prop,
+   foreground, factive, achiev_tr, [culminated, culminated], 
+   [_,_], _, nil, [_, risultato], [],
+   _,
+   evidence)
+   :-
+   !.
+
+/*** narration 36 */
+disc_relation(
+   _, _, relp/prop,
+   _, factive, _, _, _, _, _, _, _,
+   _,
+   definition)
+   :-
+   genre(legal),!.
+
+/* obligation 37 */
+disc_relation(
+   _, external, _, 
+   background, nonfactive, stato, 
+   [null, null], _, 
+   _, Mod, _,
+   _,
+   _,
+   obligation) 
+   :-
+   modal_verb(Mod),
+   !.
+
+/* prohibition 38 */
+disc_relation(
+   _, _, _, 
+   foreground, _, _, 
+   [_, negated], _, 
+   Verb, _, _,
+   _,
+   _,
+   prohibition) 
+   :-
+   (applic_verb(Verb)
+    ;
+   definition_verb(Verb)),
+   !.
+
+/* obligation 39 */
+disc_relation(
+   _, _, _, 
+   background, nonfactive, _, 
+   [null, null], _, 
+   _, Mod, _,
+   _,
+   _,
+   permission) 
+   :-
+   perm_verb(Mod),
+   !.
+
+/*** definition 40 */
+disc_relation(
+   _, _, _, _, _, _, _, _, _, _, _, _,
+   _,
+   definition)
+   :-
+   genre(legal),!.
+
+/*** narration 41 */
+disc_relation(
+   _, _, _, _, _, _, _, _, _, _, _, _,
+   _,
+   narration).
+
+
+analyze_relation(NoFr, PrecNoFr1, MainRel, NewRel, Topics):- 
+   1<NoFr,
+   topic(NoFr,Type,Id1),
+   (Type=main; Type=expected),
+   (fact(In, isa, [_:Id1, _:Tes], 1, _, _)
+    ;
+    in(_,Id1,Ids),
+    fact(In, isa, [_:Ids, _:Tes], 1, _, _)),
+   nogen_member(Type1:Id:Tes, Topics),
+   (Type1=main; Type1=expected),
+%   MainRel=Rel(Args, _, _),
+    functor(MainRel,Rel,_),
+    arg(1,MainRel,Args),
+    nogen_member(Id:_, Args),
+    (
+     (fact(Inf, NewRel, Args, 1, _, _);
+     sit(Inf, NewRel, Args, 1, _, _)),
+     nogen_member(_:Id1, Args)
+     ;
+     infer_relation(NewRel, Rel, Args)),
+    !.
+
+infer_relation(NewRel, Rel, Args):-
+   (inception_verb(Rel);
+    social_engagement(Rel)),
+    nogen_member(Id:Rel1, Args),
+    cause_result(Rel1, NewRel),
+    !.
+
+social_engagement(decidere).
+social_engagement(promettere).
+social_engagement(decide).
+social_engagement(promise).
+
+result_sequence(attivita, risultato).
+result_sequence(attivita, cambiamento).
+result_sequence(percettivo, risultato).
+
+result_verb(riuscire).
+result_verb(manage).
+
+inception_verb(cominciare).
+inception_verb(mettersi).
+inception_verb(iniziare).
+inception_verb(start).
+inception_verb(begin).
+
+narration_verb(say).
+narration_verb(tell).
+narration_verb(dire).
+
+evaluation_verb(consider).
+evaluation_verb(considerare).
+
+obligation_verb(require).
+obligation_verb(demand).
+
+definition_verb(be).
+definition_verb(essere).
+definition_verb(mean).
+definition_verb(significare).
+
+relation_role(purpose, _, purpose).
+relation_role(advers, _, adverse).
+relation_role(cause, _, cause).
+relation_role(temp_coinc, _, circumstance).
+relation_role(result, culminated, result).
+relation_role(cond, _, condition).
+relation_role(motiv, _, motivation).
+relation_role(conc, _, evidence).
+relation_role(hypoth, _, hypothesis).
+
+focalizer_type(certo, evidence).
+focalizer_type(certamente, evidence).
+
+modal_verb(can).
+modal_verb(must).
+modal_verb(shall).
+modal_verb(may).
+modal_verb(potere).
+modal_verb(volere).
+modal_verb(dovere).
+modal_verb(will).
+modal_verb(ought).
+
+perm_verb(may).
+perm_verb(potere).
+
+
+applic_verb(apply).
+applic_verb(applicare).
+
+interpr_role(where, cond).
+interpr_role(if, cond).
+interpr_role(mentre, motiv).
+interpr_role(whereas, motiv).
+interpr_role(in_relation_to, motiv).
+interpr_role(quando, cond).
+interpr_role(when, cond).
+interpr_role(except, cond).
+interpr_role(unless, cond).
+interpr_role(provided_that, cond).
+subord_role(Subord, Role) :-
+    genre(legal),
+    interpr_role(Subord, Role), !.
+
+subord_role(così, result).
+subord_role(so, result).
+subord_role(ma, advers).
+subord_role(but, advers).
+subord_role(if, hypoth).
+subord_role(perché, cause).
+subord_role(because, cause).
+subord_role(poiché, cause).
+subord_role(mentre, temp_coinc).
+subord_role(since, cause).
+subord_role(while, temp_coinc).
+subord_role(as, temp_coinc).
+subord_role(quando, temp_coinc).
+subord_role(when, temp_coinc).
+subord_role(poi, temp_seq).
+subord_role(prima, temp_prec).
+subord_role(before, temp_prec).
+subord_role(then, temp_seq).
+subord_role(afterwards, temp_seq).
+subord_role(per, purpose).
+subord_role(in_so_far_as, hypoth).
+subord_role(in_order_to, purpose).
+subord_role(to_the_extent_that, hypoth).
+subord_role(even_if, conc).
+subord_role(even_though, conc).
+subord_role(however, conc).
+subord_role(tuttavia, conc).

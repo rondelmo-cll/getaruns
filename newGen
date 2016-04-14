@@ -1,0 +1,2866 @@
+﻿:- style_check(-singleton).
+
+
+genS([V,T,M,P,Args]):-
+   genS([V,T,M,P,Args], _).
+
+genS([Neg,V,T,M,P,Args]):-
+   genS([Neg,V,T,M,P,Args], _).
+
+genS(coord([V,T,M,P,Args],[V1,T1,M1,P1,Args1])):-
+   genS(coord([V,T,M,P,Args],[V1,T1,M1,P1,Args1]), _).
+
+genS(cause([V,T,M,P,Args],[V1,T1,M1,P1,Args1])):-
+   genS(cause([V,T,M,P,Args],[V1,T1,M1,P1,Args1]), _).
+
+genS(coord([V,T,M,P,Args],[V1,T1,M1,P1,Args1]), _):-
+  genS(coord([V,T,M,P,Args],[V1,T1,M1,P1,Args1],CP,Type,Arg), Sent, user),
+  gwriteargs(user, Arg).
+
+genS(cause([V,T,M,P,Args],[V1,T1,M1,P1,Args1]), _):-
+  genS(cause([V,T,M,P,Args],[V1,T1,M1,P1,Args1],CP,Type,Arg), Sent, user).
+
+genS([V,T,M,P,Aa], _):-
+  genS(s([V,T,M,P,Aa],CP,Type,Args), Sent),
+  write_output(user, Sent).  
+
+genS([Neg,V,T,M,P,Aa], _):-
+  genS(s([V,T,M,P,Aa],CP,Type,Args), Sent),
+  append(Sent, [not], SentN),
+  write_output(user, SentN).  
+
+genS(Infon, Sent) :-
+    kill(sbject),
+    assert(sbject(off)),
+    Infon=..[Testa|ArgoExtra],
+    append(ArgoExtra,[Sent,[]],Argo),
+    Call=..[Testa|Argo], 
+    Call,
+    !.
+
+write_output(OutWin, Sent):-
+    writeseq(OutWin,Sent),nl.
+
+eip(da, by, agent).
+
+eirel(maria, che, who):-!.
+    
+filter([], []):-!.
+
+filter([A|Rest], Sentence):-
+       var(A),
+       filter(Rest, Sentence).
+
+filter([nom(pr([]))|Rest], Sentence):-
+       filter(Rest, Sentence).
+
+filter([Coord, And|Sent], Sentence):-
+    list(Coord),
+    nonvar(And), 
+    (And=because;And=and),
+    filter(Coord, Sentence1),
+    kill(sbject),
+    assert(sbject(off)),
+    filter(Sent, Sentence2),
+    append(Sentence1, [And], Coord1),
+    append(Coord1, Sentence2, Sentence).
+
+filter([[adv(Avv)]|Sent], [Avv|Sentence]):-
+    filter(Sent, Sentence).
+
+filter(Sent, [subj(Subj)|Sentence]):-
+    sbject(off),
+    remove(nom(nom(Subj, Rel)), Sent, Sent1),
+    nonvar(Subj),
+    kill(sbject),
+    assert(sbject(on)),
+    filterrel(N, Rel, Sentence1),
+    filter(Sent1, Sentence2),
+    append(Sentence1, Sentence2, Sentence).
+
+filter(Sent, [subj(Subj)|Sentence]):-
+    sbject(off),
+    (remove(nom(nom(Subj)), Sent, Sent1),
+    nonvar(Subj)
+    ;
+    remove(pr(pr(Subj)), Sent, Sent1),
+    nonvar(Subj)),
+    kill(sbject),
+    assert(sbject(on)),
+    filter(Sent1, Sentence).
+
+filter([[pl_rlz(Place)]|Sent], [Loc|Sentence]):-
+    (atomic(Place), Loc=..[loc, Place]
+     ;
+     list(Place), 
+     remove(Prep, Place, Pl),
+     eip(Prep, P, Type),
+     nominal(Pl, N, Rest),
+     Loc=..[Type, P, N]),
+    (Rest=[], Sennt=Sent,
+     filter(Sennt, Sentence)
+      ;
+      Sennt=Rest,
+     filterrel(N, Sennt, Sentence)
+     ).
+
+filter([vit(Pred)|Sent], [pred(Pred)|Sentence]):-
+    filter(Sent, Sentence).
+
+filter([vt(Pred)|Sent], [pred(Pred)|Sentence]):-
+    filter(Sent, Sentence).
+
+filter([pr(pr(Pred))|Sent], [obj(Pred)|Sentence]):-
+    filter(Sent, Sentence).
+
+filter(Sent, Sent).
+
+filterrel(N, [rl(Pk)|Sent], [comp(Pred)|Sentence]):-
+    eirel(N, Pk, Pred),
+    filterrel(Sent, Sentence).
+
+filterrel([vit(Pred)|Sent], [pred(Pred)|Sentence]):-
+    filterrel(Sent, Sentence).
+
+filterrel([vt(Pred)|Sent], [pred(Pred)|Sentence]):-
+    filterrel(Sent, Sentence).
+
+filterrel([pr(pr(Pred))|Sent], [obj(Pred)|Sentence]):-
+    filter(Sent, Sentence).
+
+filterrel([nom(pr([]))|Sent], Sentence):-
+    filterrel(Sent, Sentence).
+
+nominal(Pl, Pl, []):-
+    atomic(Pl),
+    !.
+
+nominal(Pl, N, NP):-
+    list(Pl),
+    Pl=[nom(N, NP)],
+    !.
+
+nominal(Pl, N, NP):-
+    list(Pl),
+    Pl=[N],
+    !.
+
+% [vc(is), nom(pl_art_nom(dt(the), nom(child))), pred(dead), _2547, _2544]
+
+gwriteargs(OutWin, Sent):-
+    filter(Sent, Sent1),
+    gwritearg(OutWin, Sent1),!.
+
+gwritearg(OutWin, []):-!.
+gwritearg(OutWin, [First|Args]):-
+   nonvar(First),
+   writenl(OutWin, First),
+   gwritearg(OutWin, Args),!.
+gwritearg(OutWin, [First|Args]):-
+   gwritearg(OutWin, Args),!.
+
+
+morfo(inizio,W,nil):-
+  !.
+
+morfo(inizio,[_|_],cons):-
+  !.
+
+morfo(inizio,W,irco) :-
+   morfo(inizio,W,irre).
+ 
+morfo(inizio,W,irre) :-
+  stringof([A,B|_],W),
+  (A=s ; A='S'),
+  (B=p ; A='P'),
+  !.
+
+morfo(inizio,W,irre) :-
+  stringof([A,B|_],W),
+  (A=s ; A='S'),
+  (B=c ; A='P'),
+  !.
+
+morfo(inizio,W,irre) :-
+  stringof([A,B|_],W),
+  (A=g ; A='G'),
+  (B=n ; A='G'),
+  !.
+
+morfo(inizio,W,irre) :-
+  stringof([A,B|_],W),
+  (A=z ; A='Z'),
+  !.
+
+
+morfo(inizio,W,voca) :-
+  stringof([Voc|_],W),
+  member(Voc,[a,e,i,u,o,'A','E','I','U','O']),
+  !.
+
+morfo(inizio,W,irco):-
+  \+ morfo(inizio,W,voca),!.
+
+morfo(inizio,W,cons):-
+  \+ morfo(inizio,W,voca),
+  \+ morfo(inizio,W,irre).
+
+morfo(inizio,W,irro):-
+  morfo(inizio,W,voca).
+
+ag(Form, Head, [Gen, Num, Type, Feat]):-
+    a_engl(Head),
+   pred_a(Head, [Type], [Arg|_]),
+   Arg=C/F/Feat.
+
+
+/*********************
+SECONDO GENERATORE
+***********************/
+
+diz(that, rel, [_Gen,_Num,_Per,_Tipo]).
+
+diz(yesterday, avv, [def,conf(td<tr)]).
+diz(now, avv, [def,conf(td=tr)]).
+diz(tomorrow, avv, [def,conf(tr<td)]).
+
+diz(it, clit, [mas,sing,3,acc,[oggetto,neut]]).
+diz(him, clit, [mas,sing,3,acc,[umano]]).
+diz(him, clit, [mas,sing,3,dat,[umano]]).
+diz(her, clit, [fem,sing,3,acc,[umano]]).
+diz(her, clit, [fem,sing,3,dat,[umano]]).
+diz(he, pron, [mas,sing,3,nom,[umano]]).
+diz(she, pron, [fem,sing,3,nom,[umano]]).
+diz(he, pron, [mas,sing,3,nom,umano]).
+diz(she, pron, [fem,sing,3,nom,umano]).
+diz(it, pron, [mas,sing,3,nom,oggetto]).
+diz(he, pron, [mas,sing,3,nom,[man]]).
+diz(she, pron, [fem,sing,3,nom,[woman]]).
+diz(it, pron, [mas,sing,3,nom,[object]]).
+diz(they, pron, [mas,plur,3,nom,oggetto]).
+diz(they, pron, [mas,plur,3,nom,umano]).
+
+diz(of, spec, poss,Spto,Sptore).
+diz(to, spec, meta,Spto,Sptore).
+diz(by, spec, agente,Spto,Sptore).
+diz(by, spec, agent,Spto,Sptore).
+diz(from, spec, locat,Spto,Sptore).
+diz(at, spec, locat,Spto,Sptore).
+diz(in, spec, locat,Spto,Sptore).
+diz(with, spec, comit,Spto,Sptore).
+
+diz(Head, nome, [G,N,P,T,F], Form):-
+   nn(Head, Form, [G,N,P,T,F]),
+   !.
+
+diz(Head, nome, [G,N,P,prop,F], Head):-
+   pred_np(Head, nil, [F], _),
+   npro(Head, _, G),!.
+
+diz(Head, nome, [G,N,P,prop,F], Head):-
+   npro(Head, _, G),
+   spy_lower(Head,LowH,K),
+   (
+    pred_np(Head, nil, [F], _)
+    ;
+    pred_np(LowH, nil, [F], _)
+    ),!.
+
+diz(Head, nome, [G,N,P,T,F], For):-
+   pred_n(Head, nil, F, _),
+   n(Head, Form, G),
+   (Head=For, N=sing;Form=For, N=plur).
+
+diz(Head, nome, [G,N,P,T,F], For):-
+   atomic(Head),
+   super_pred_n(Head, _, F, _),
+   testag(Head,n(Form,Gen,N),Gen,N,3,C,nome),
+   (Head=For, N=sing;Form=For, N=plur).
+
+diz(Head, nome, [G,N,P,T,F], For):-
+   atomic(Head),
+   super_pred_np(Head, _, F, _),
+   testag(Head,nopro(Form,Gen,N),Gen,N,3,C,nopro),
+   (Head=For, N=sing;Form=For, N=plur).
+
+diz(Head, nome, [G,N,P,top,F], Form):-
+   nonvar(F),
+   diz(Form, pron, [G,N,P,C,F]).
+
+diz(Head, nome, [G,N,P,top,F], Form):-
+   nonvar(F),
+   diz(Form, clit, [G,N,P,C,F]).
+
+diz(Lemma, nome, [G,N,P,top,F], Lemma):-
+   n(Lemma,_,_),
+   trova_CatSem(n, Lemma, F).
+
+diz(Head, agg, [G,N,T,F], Form):-
+   ag(Form, Head, [G,N,T,F]).
+
+diz(an, ndet,[G,sing],un(Arg),irro).
+diz(a, ndet, [G,sing], una(Arg),cons).
+diz(the, det,[G,sing],la(Arg),irco).
+diz(the, det,[G,plur],i(Arg),cons).
+diz(Head, verbo_trans, V,[M,N,P,T], Feats, Form):-
+   vt(Form, Head, [M,N,P,T], Feats).
+
+diz(Head, verbo_cop, [M,N,P,T], Feats, Form):-
+   vc(Form, Head, [M,N,P,T], Feats).
+
+diz(Head, verbo_intr, [M,N,P,pres], Feats, Form):-
+   v(Form, Head, M, T, pres, N),
+   gen_cat_gramm(Head, intr, CatV, Feats).
+
+diz(Head, verbo_intr, [M,N,P,past], Feats, Form):-
+   v(Form, Head, M, pass, P, N),
+   gen_cat_gramm(Head, intr, CatV, Feats).
+
+diz(Head, verbo_intr, [M,N,P,imperf], Feats, Form):-
+   T=imp,
+   v(Form, Head, M, T, P, N),
+   gen_cat_gramm(Head, intr, CatV, Feats).
+
+diz(Head, verbo_trans, act, [M,N,P,pres], Feats, Form):-
+   v(Form, Head, M, pres, P, N),
+   gen_cat_gramm(Head, trans, CatV, Feats).
+
+diz(Head, verbo_trans, act, [M,N,P,past], Feats, Form):-
+   v(Form, Head, M, pass, P, N),
+   gen_cat_gramm(Head, trans, CatV, Feats).
+
+diz(Head, verbo_trans, act, [M,N,P,imperf], Feats, Form):-
+   T=imp,
+   v(Form, Head, M, T, P, N),
+   gen_cat_gramm(Head, trans, CatV, Feats).
+
+diz(Head, verbo_trans, act,[Modo,N,Gen,3,perf], Feats, [Aux, Form]):-
+   (au(Aux,have,Modo,pres,3,N);
+   aux(Aux,have,Modo,pres,3,N)),
+   find_part(Form, Head, Gen, Num),
+   gen_cat_gramm(Head, trans, CatV, Feats).
+
+diz(Head, verbo_trans, act,[Modo,N,Gen,3,pluperf], Feats, [Aux, Form]):-
+   (au(Aux,have,Modo,imp,3,N);
+   aux(Aux,have,Modo,imp,3,N)),
+   find_part(Form, Head, Gen, Num),
+   gen_cat_gramm(Head, trans, CatV, Feats).
+
+diz(Head, verbo_trans, pass, [Modo,N,Gen,P,perf], Feats, [Aux, Part, Form]):-
+   (au(Aux,be,Modo,pres,P,N);
+   aux(Aux,be,Modo,pres,P,N)),
+   find_part(Part, be, Gen, Num),
+   find_part(Form, Head, Gen, Num),
+   gen_cat_gramm(Head, CatGr, CatV, Feats).
+
+diz(Head, verbo_trans, pass, [Modo,N,Gen,P,past], Feats, [Aux, Part, Form]):-
+   (au(Aux,be,Modo,imp,P,N);
+   aux(Aux,be,Modo,imp,P,N)),
+   find_part(Part, be, Gen, Num),
+   find_part(Form, Head, Gen, Num),
+   gen_cat_gramm(Head, CatGr, CatV, Feats).
+
+diz(Head, verbo_intr, [Modo,N,Gen,3,perf], Feats, [Aux, Form]):-
+   aux(Aux,have,Modo,pres,3,N),
+   pp_ger(Form,Head),
+   gen_cat_gramm(Head, intr, CatV, Feats).
+
+diz(Head, verbo_intr, [Modo,N,Gen,P,perf], Feats, [Aux, Form]):-
+   aux(Aux,be,Modo,Tempo,pres,N),
+   v(Form, Head, Modo, ger, _,_),
+   gen_cat_gramm(Head, CatGr, CatV, Feats).
+
+diz(Head, verbo_intr, [Modo,N,P,Tense], Feats, Form):-
+   vi(Form, Head, [Modo, N,P, Tense], Feats).
+
+diz(Head, Type, [Modo,N,P,Tense], Feats, Form):-
+    recover_descriptions(Head, PredS),
+    on(Pred,PredS),
+    diz(Pred, Type, [Modo,N,P,Tense], Feats, Form),
+    !.
+diz(Head, aux, [Modo,N,P,Tense], Feats, Aux):-
+    aux(Aux,Head,Modo,T,P,N),
+    \+ contr(Aux, _, _, _),
+    (Tense=pres, T=Tense; Tense=past, T=pass),
+    !.
+
+
+extract_restr([sn/sogg/R/First|Args], [First, Rest]):-
+     (Args=[], Rest=[]
+      ;
+      Args=[Second|Third],
+     (Second=sn/ogg/tema_bound/_, Sec=[_|_];
+      Second=sn/ogg/R2/Sec;
+      Second=sn/ogg_avv/R2/Sec;
+      Second=sn/ogg2/Pp/R2/Sec;
+      Second=sp/obl/Pp/R2/Sec;
+      Second=sp/obl1/Pp/R2/Sec;
+      Second=_/prop/_, Sec=[prop];
+      Second=f/fcomp/Role/_, Sec=[Role];
+      Second=vcomp/prop/_/_, Sec=[prop]),
+     (Third=[], Rest=Sec;
+      Third\=[], 
+      (Third=pcomp/Ro/Thi;
+       Third=sp/obl2/Pp/R2/Sec;
+       Third=sp/obl/Pp/R2/Sec;
+       Third=vcomp/prop/_/_, Thi=[prop];
+       Third=_/prop/_, Thi=[prop]), Rest=[Sec, Thi])
+     ).
+      
+extract_restr([vcomp/propint/R/_, sn/ogg2/Pp/R2/Sec], [[R], Sec]):-!.
+
+extract_restr([expl/sogg/[]|Args], [Sec]):-
+    (Args=[], Sec=[]
+     ;
+     Ags\=[], Sec=[[], [prop]]).
+
+decode_args([], []):-!.
+
+decode_args([Args1|Args], [Arg1|Rest]):-
+    extract_restr(Args1, Arg),
+    member(CC, Arg),
+    member(CC, Arg1),
+    decode_args(Args, Rest).
+
+gen_cat_gramm(Head, CatG, CatV, DArgs):-
+     pred_vc(Head, CatG, CatV, Args),
+     decode_args(Args, DArgs).
+
+gen_cat_gramm(Head, trans, CatV, Args):-
+pred_vs(Head, trans, CatV, First-sogg, Role1, Arg1, Second-ogg, P1, Role2, Arg2, Third, P2, Role3, Arg3),
+   Args=[Arg1, Arg2].
+
+gen_cat_gramm(Head, intr, CatV, Arg1):-
+pred_vs(Head, intr, CatV, First-sogg, Role1, Arg1, Second, P1, Role2, Arg2, Third, P2, Role3, Arg3).
+
+gen_cat_gramm(Head, intr, CatV, Arg1):-
+% active_grammar(italiano),
+pred_vs(Head, inac, CatV, First-sogg, Role1, Arg1, Second, P1, Role2, Arg2, Third, P2, Role3, Arg3).
+
+gen_cat_gramm(Head, trans, CatV, Args):-
+% active_grammar(italiano),
+pred_vs(Head, trans, CatV, First, Role1, Arg1, Second, P1, Role2, Arg2, Third, P2, Role3, Arg3),
+   Args=[Arg1, Arg2, Arg3].
+
+gen_cat_gramm(Head, intr, CatV, Arg1):-
+pred_vs(Head, inac, CatV, First-sogg, Role1, Arg1, Second, P1, Role2, Arg2, Third, P2, Role3, Arg3).
+
+/*
+cat_gramm(Head, trans, CatV, Args):-
+active_grammar(english),
+pred_vs1(Head, trans, CatV, First-sogg, Role1, Arg1, Second-ogg, P1, Role2, Arg2, Third, P2, Role3, Arg3),
+   Args=[Arg1, Arg2].
+
+cat_gramm(Head, intr, CatV, Arg1):-
+active_grammar(english),
+pred_vs1(Head, intr, CatV, First-sogg, Role1, Arg1, Second, P1, Role2, Arg2, Third, P2, Role3, Arg3).
+
+
+cat_gramm(Head, trans, CatV, Args):-
+active_grammar(english),
+pred_vs1(Head, trans, CatV, First, Role1, Arg1, Second, P1, Role2, Arg2, Third, P2, Role3, Arg3),
+   Args=[Arg1, Arg2, Arg3].
+*/
+
+find_part(Form, Head, Gen, Num):-
+   (pp_rom(Form, _, _, _, Head), Gen=mas, Num=sing;
+    pp_rom(_, Form, _, _, Head), Gen=mas, Num=plur;
+    pp_rom(_,_,Form, _, Head), Gen=fem, Num=sing;
+    pp_rom(_,_,_,Form, Head), Gen=fem, Num=plur),!.
+
+nn(john, john, [mas,sing,3,prop,umano]).
+nn('John', john, [mas,sing,3,prop,umano]).
+nn(tree, tree, [mas,sing,3,com,plant_life]).
+
+au(are, be, ind, pres, 3, plur).
+au(has, have, ind, pres, 3, sing).
+vc(is, be, [ind,sing,3,pres], [_|_]).
+vc(was, be,[ind, sing,3,past], [_|_]).
+vc(are, be, [ind,plur,3,pres], [_|_]).
+vt(brings, bring, [ind,sing,3,pres],[[umano,animato],[eatable,readable]]).
+
+/*
+REGOLE
+*/
+coord(Restr1, Restr2, CP, prin(Prin, Prin1), [Fact1,and|Fact2])
+   -->
+  s(Restr1,Type,prin,Fact1),
+  [e],
+  s(Restr2,Type1,prin,Fact2).
+
+cause(Restr1, Restr2, CP, prin(Prin, Prin1), [Fact1,because|Fact2])
+   -->
+  s(Restr1,Type,prin,Fact1),
+  [perché],
+  s(Restr2,Type1,prin,Fact2).
+
+/*  s5  */
+
+s(act, Restr, vp, AdjArg, [VT, NOME2, SPL2])
+  -->
+     {member([top,nil,Num1,Head2],AdjArg)},   
+     s(act, Restr,verbo_trans,V,Constr,VT,Conc2),
+     aa(Restr, Conc, AdjArg, NOME2, SPL2),
+     {member(C,Conc), member(C,Conc2)}.
+
+
+
+s(act, Restr, vp, AdjArg, [VT, NOME2, SPL2])
+  -->
+   s(act, Restr,verbo_trans,V,Constr,VT,Conc2),
+   aa(Restr, Conc2, AdjArg, NOME2, SPL2).
+
+s(act, Restr, vp, AdjArg, [VT, NOME2, SPL2])
+  -->
+   s(act, Restr,verbo_intr,V,Constr,VT,Conc2),
+   s(AdjArg, SPL2).
+
+s(act, Restr, vp, AdjArg, [VT, NOME2, SPL2])
+  -->
+   s(act, Restr,verbo_cop,V,Constr,VT,Conc1),
+   aa(Restr, Conc1, AdjArg, Head2, SPL2).
+
+s(pass, Restr, vp, AdjArg, [VT, Head2, SPL2])
+  -->
+     {passive_rule(AdjArg, Adjs)},
+     s(pass, Restr,verbo_trans,V,Constr,VT,Conc2),
+     s(Adjs, SPL2).
+
+s(agg,Pred,Conc,ag(EW),Type)
+   -->
+   [W],
+   {diz(Pred, agg, Conc, W), member(Type,Conc), calld(Pred, EW)}.
+
+
+
+/*  s4  */
+
+s(Restr,cp,prin,[Rels,SPL|Fact])
+   -->
+  {Restr=[Voice,Tense,Mood,Pred,[Adj|AdjArg]], 
+    Adj=[Def,Head1],
+   NRestr=[Voice,Tense,Mood,Pred,AdjArg]}, 
+  s([Adj], Tense, SPL),
+  s(NRestr,main,Prin,Fact).
+
+s(Restr,main,prin,[V,NOME1,Head2,_,SPL2])
+   -->
+  {Restr=[pass,Tense,Mood,Pred,[Arg|AdjArg]], 
+     AdjArg=[Arg1|Obl],
+     append(Arg, Obl, AdjArgs),
+     Arg1=[Def,Spec,Num,Head1]}, 
+   s(Def-Spec,nome,Head1,Conc1,[_,1],SPL1,NOME1,Cat),
+    {checksubj(Def,Head1,Conc1,Num-Gen)},
+    ({var(Pred)}
+     ;
+     s(pass,[Tense,Mood,Pred,Num-Gen,Cat], vp, AdjArgs, [V,Head2, SPL2])).
+
+
+s(Restr,main,prin,[V,NOME1,Head2,SPL2,_])
+   -->
+  {Restr=[act,Tense,Mood,Pred,[Arg1|AdjArg]], Arg1=[Def,Spec,Num,Head1]}, 
+   s(Def-Spec,nome,Head1,Conc1,[_,1],SPL1,NOME1,Cat),
+    {checksubj(Def,Head,Conc1,Num-Gen)},
+    ({var(Pred)}
+     ;
+     s(act,[Tense,Mood,Pred,Num-Gen,Cat], vp, AdjArg, [V,Head2, SPL2])).
+
+s(Restr,main,prin,[V,Head,NOME1,_])
+   -->
+  {Restr=[Voice,Tense, Mood, Pred, [Arg1|Adj]], Arg1=[Def,Spec,Num,Head]}, 
+   s(Def-Spec,nome,Head,Conc1,[_,1],SPL,NOME1,Cat),
+   {checksubj(Def,Head,Conc1,Num-Gen)},
+   s([Tense,Mood,Pred,Num-Gen,Cat],verbo_intr,V,Conc,VIT,Conc2),
+   s(Adj, SPL1).
+
+s(Restr,main,prin,[V,Head,NOME1,_])
+   -->
+  {Restr=[Voice,Tense, Mood, Pred, [Arg1|Adj]], Arg1=[Def,Spec,Num,Head]}, 
+   s(Def-Spec,nome,Head,Conc1,[_,1],SPL,NOME1,Cat),
+   {checksubj(Def,Head,Conc1,Num-Gen)},
+   s([Tense,Mood,Pred,Num-Gen,Cat],verbo_cop,V,Conc,VIT,Conc2),
+   aa(Restr, Conc1, Adj, NOME2, SPL1).
+
+/*
+aa(Restr, Conc2, AdjArg, NOME2, SPL2)
+   -->
+    ({AdjArg=[]}
+     ;
+    {member([top,nil,Num,Head],AdjArg)},
+    {Restr=[_,_,_,_,R]},
+    {Conc1=[Gend,Num,Pers,Case,R], (Case=acc;Case=dat)},
+    s(top-nil,nome,Head,Conc1,[_,2],SPL2,NOME2, Catt),
+    {member(Catt, Conc2)}
+    ).
+*/
+
+aa(Restr, Conc2, [Arg|Adj], NOME2, [SPL2|ListaOut])
+   -->
+   {nonvar(Conc2), member(Catt, Conc2)},
+    ({Arg=[]}
+     ;
+    {Arg=[Def,Spec,Num1,Head]},
+    s(Def-Spec,nome,Head,Conc,[_,1],SPL2,NOME2, Catt),
+    {member(Num1,Conc)},
+     ({Adj=[], ListaOut=[]}
+      ;
+     s(Adj, ListaOut))
+    ).
+
+aa(Restr, Conc2, AdjArg, NOME2, SPL2)
+   -->
+    ({AdjArg=[]}
+     ;
+    {member([Def,Spec,Num1,Head],AdjArg)},
+    s(Def-Spec,nome,Head,Conc,[_,1],SPL2,NOME2, Catt),
+    {member(Num1,Conc), member(Catt, Conc2)}
+    ).
+
+
+aa(Restr, Conc, AdjArg, PRED, SPL)
+   -->
+    ({AdjArg=[]}
+     ;
+    {member([Role,Head],AdjArg),
+     Conc=[Gend,Num|_], Constr=[Gend,Num|_]},
+    s(pred,Head,Role,Constr,1,SPL,PRED)).
+
+/*  s2  */
+s([], ListaOut)
+  -->
+  {ListaOut=[]}.
+
+s([Adj | RestAdj], ListaOut)
+  -->
+  {Adj=[], ListaOut=[]}.
+
+
+s([Adj | RestAdj], [PL_RLZ | ListaOut])
+  -->
+    {Adj\=[], Adj=[Role, Testa],
+    (atomic(Testa),Test=Testa
+    ;
+    list(Testa),Testa=[Test|_])},
+    s(pl_relaz,Test,Role,1,SPL1,PL_RLZ),
+    s(RestAdj, ListaOut).
+
+
+/*  s3  */
+s(rel,Conc,rl(W))
+   -->
+   [W],
+   {diz(W,rel,Conc)}.
+
+s([], T, ListaOut)
+  -->
+  {ListaOut=[]}.
+
+s([Adj | RestAdj], Tense, [P_Adj | ListaOut])
+  -->
+    {Adj\=[], Adj=[Role, Testa],
+    (atomic(Testa),Test=Testa
+    ;
+    list(Testa),Testa=[Test|_])},
+    s(pre_adj,Test,Tense,1,SPL1,P_Adj),
+    s(RestAdj, T, ListaOut).
+
+
+/*  s7  */
+
+s(pred,Testa,prop,Conc,1,SPL,pred(EAGG))
+   -->
+   s(mod,agg,Testa,Conc,[0,1],SPL,ag(AGG),Cat),
+   {Conc=[Gen,Num,Typ,Cat], calld(Testa, EAGG)}.
+
+
+/*
+hanging topic: maria lei
+s(top,nome,Testa,[Gen,Num,Per,Case],[1,Ric_rel],SPL,pr(NPROPRIO),Cat)
+   -->
+   s(nome, Testa, [Gen,Num,Per,_,Cat], [0,_], _, _),
+   s(nome, Gen, [Gen,Num,Per,Case], [0,2], SPL, NPROPRIO).
+*/
+
+
+/*  s8  */
+s(top-nil,nome,pro,[Gen,Num,Per,Case],[1,Ric_rel],SPL,nom(NPROPRIO),Cat)
+   -->
+   s(nome, pro, [], [0,2], SPL, NPROPRIO).
+
+s(top-nil,nome,Testa,[Gen,Num,Per,Case,Cat],[1,Ric_rel],SPL,pr(NPROPRIO),Cat)
+   -->
+   {diz(Testa, nome, [Gen,Num,Per,_,C],_), (atomic(C),Cat=C; list(C),member(Cat,C))},
+   s(nome, Gen, [Gen,Num,Per,Case,Cat], [0,2], SPL, NPROPRIO).
+
+s(top-nil,nome,Testa,[Gen,Num,Per,Case],[1,Ric_rel],SPL,nom(NPROPRIO),Cat)
+   -->
+   s(nome, Testa, [Gen,Num,Per,Case,C], [0,2], SPL, NPROPRIO).
+
+s(rel-nil,nome,Testa,[Gen,Num,Per,Cat],[1,Ric_rel],SPL,nom(NPROPRIO),Cat)
+   -->
+   s(nome, Testa, [Gen,Num,Per,Cat], [0,2], SPL, NPROPRIO).
+
+s(prop-nil,nome,Testa,[Gen,Num,Per,prop,Cat],[1,Ric_rel],SPL,nom(NPROPRIO),Cat)
+   -->
+   s(proprio, Testa, [Gen,Num,Per,prop,Cat], [1,Ric_rel], SPL, NPROPRIO).
+
+s(gener-Spec,nome,Testa,[Gen,Num,Per,comn,Cat],[1,Ric_rel],SPL,nom(NPROPRIO),Cat)
+   -->
+   s(pl_quant_nome,Testa,[gener-Spec,Gen,Num,Per,comn,Cat],[1,Ric_rel],SPL,PL_ART_NOM).
+
+s(def-Spec,nome,Testa,[Gen,Num,Per,comn,Cat],[1,Ric_rel],SPL,nom(PL_ART_NOM),Cat)
+   -->
+   s(pl_art_nome,Testa,[def-Spec,Gen,Num,Per,comn,Cat],[1,Ric_rel],SPL,PL_ART_NOM).
+
+s(ndef-Spec,nome,Testa,[Gen,Num,Per,comn,Cat],[1,Ric_rel],SPL,nom(PL_ART_NOM),Cat)
+   -->
+   s(pl_nart_nome,Testa,[ndef-Spec,Gen,Num,Per,comn,Cat],[1,Ric_rel],SPL,PL_ART_NOM).
+
+s(part-Spec,nome,Testa,[Gen,Num,Per,comn,Cat],[1,Ric_rel],SPL,nom(PL_ART_NOM),Cat)
+   -->
+   s(pl_quant_nome,Testa,[part-Spec,Gen,Num,Per,comn,Cat],[1,Ric_rel],SPL,PL_ART_NOM).
+
+s(mod,nome,Testa,Conc,[0,1],SP,nom(PL_POST),Cat)
+   -->
+   s(pl_post,Testa,Conc,[0,1],SP,PL_POST),
+   {Conc=[Gen,Num,Per,Typ,Cat]}.
+
+s(mod,agg,Testa,Conc,[0,1],SP,ag(PL_POST),Cat)
+   -->
+   s(agg,Testa,Conc,SP,PL_POST),
+   {Conc=[Gen,Num,Typ,Cat]}.
+
+/* s 6 */
+s(adv,W,Conc,[1,0],#,av(EW))
+   -->
+   [W],
+   {diz(W,avv,Conc), calld(W, EW)}.
+
+s(nome,Gen,Conc,[0,2],#,pr(EW))
+   -->
+   [W],
+   {Conc=[G,N,P,C,R],
+    Conc1=[G,N,P,C,R1], 
+     diz(W,clit,Conc1), 
+     member(Gen, Conc), 
+     check_sem_cat(R, R1), 
+     calldf(W, Conc, EW)}.
+
+s(nome,Gen,Conc,[0,2],#,pr(EW))
+   -->
+   [W],
+   {Conc=[G,N,P,C,R],
+    Conc1=[G,N,P,C,R1], 
+     diz(W,pron,Conc1), 
+     member(Gen, Conc), 
+     check_sem_cat(R, R1), 
+     calldf(W, Conc, EW)}.
+
+s(nome,pro,Conc,[0,2],#,pr([]))
+   -->
+   [].
+
+s(nome,Pred,[Gen,Num,Per,Cat],[0,2],#,pr([]))
+   -->
+   [],
+   {diz(Pred,nome,[Gen,Num,Per,_,Cat],W)}.
+
+
+s(nome,[Pred,Restr],Conc,[0,_Ric_rel],#,nom(Rest,W))
+   -->
+   s(pl_rel, Restr, Conc, 1, Rels, pl_rel(Rest)),
+   [W],
+   {diz(Pred,nome,Conc,W)}.
+
+s(nome,[Pred,Restr],Conc,[1,_Ric_rel],#,nom(Rest,W))
+   -->
+   s(pl_rel, Restr, Conc, 1, Rels, pl_rel(Rest)),
+   [W],
+   {diz(Pred,nome,Conc,W)}.
+
+s(nome,Pred,Conc,[0,_Ric_rel],#,nom(EW))
+   -->
+   [W],
+   {diz(Pred,nome,Conc,W), calld(Pred, EW)}.
+
+
+s(nome,Pred,Conc,[1,0],#,nom(EW))
+   -->
+   [W],
+   {diz(Pred,nome,Conc,W), calld(Pred, EW)}.
+
+s(nome,[Pred,Restr],Conc,[1,0],#,nom(Rest,W))
+   -->
+   s(pl_rel, Restr, Conc, 1, Rels, pl_rel(Rest)),
+   [W],
+   {diz(Pred,nome,Conc,W)}.
+
+s(proprio,[Pred,Restr],Conc,[1,_Ric_rel],#,nom(W,Rest))
+   -->
+   [W],
+   {diz(Pred,nome,Conc,W)},
+   s(pl_rel, Restr, Conc, 1, Rels, pl_rel(Rest)).
+
+s(proprio,Pred,Conc,[1,_Ric_rel],#,nom(EW))
+   -->
+   [W],
+   {W=Pred, EW=Pred, Conc=[Gen,sing,3,_,umano]}.
+
+s(pl_art_nome, Arg,
+   [def-nil,Gen,Num,Per,comn,Cat],
+   [1,Ric_rel],
+   [Pred,Arg,SPL],
+   pl_art_nom(DT,NOM))
+   -->
+      s(det,Pred,[Gen,Num],DT, Typ),
+      s(nome, Arg, [Gen,Num,Per,comn,Cat], [0,Ric_rel], SPL, NOM),
+           {morfo(inizio, Arg, Typ)}.
+
+s(pl_nart_nome, Arg,
+   [ndef-nil,Gen,Num,Per,comn,Cat],
+   [1,Ric_rel],
+   [Pred,Arg,SPL],
+   pl_art_nom(DT,NOM))
+   -->
+      s(ndet,Pred,[Gen,Num],DT, Typ),
+      s(nome, Arg, [Gen,Num,Per,comn,Cat], [0,Ric_rel], SPL, NOM),
+           {morfo(inizio, Arg, Typ)}.
+
+s(pl_art_nome, Arg,
+   [Class-Spec,Gen,Num,Per,comn,Cat],
+   [1,Ric_rel],
+   [Pred,Spec,Arg,SPL],
+   pl_art_nom(DT,Q,NOM))
+   -->
+      s(det,Pred,[Gen,Num],DT, Typ),
+      {nonvar(Spec)},
+      s(quant,Spec,QClass,[Gen,Num],Q, _),
+      {QClass\=gener, QClass\=coll},      
+      s(nome, Arg, [Gen,Num,Per,comn,Cat], [0,Ric_rel], SPL, NOM).
+
+s(pl_quant_nome, Arg,
+   [Class-Pred,Gen,Num,Per,comn,Cat],
+   [1,Ric_rel],
+   [Pred,Arg,SPL],
+   pl_art_nom(DT,NOM))
+   -->
+      s(quant,Pred,Class,[Gen,Num],DT, Typ),
+      s(nome, Arg, [Gen,Num,Per,comn,Cat], [0,Ric_rel], SPL, NOM),
+           {morfo(inizio, Arg, Typ)}.
+
+s(det,W,Conc,dt(EW),Type)
+   -->
+   [W],
+   {diz(W, det,Conc,SP,Type), calld(W, EW) }.
+
+s(ndet,W,Conc,dt(W),Type)
+   -->
+   [W],
+   {diz(W, ndet,Conc,SP,Type) }.
+
+s(quant,Pred,Cat,Conc,dt(W),Type)
+   -->
+   [W],
+   {diz(W, Pred, quant, Cat, Conc, Type)}.
+
+check_sem_cat(R, Cats):-
+     atomic(R),
+     atomic(Cats), R=Cats, 
+     !.
+check_sem_cat(R, Cats):-
+     atomic(R),
+     member(R,Cats), 
+     !.
+check_sem_cat(Cat, Cats):-
+     list(Cat),
+     member(R,Cat), 
+     member(R,Cats), 
+     !.
+
+check_feats([], Restrs, Os):-!.
+check_feats(SelRestr, Restrs, Os):-
+  assembl_rs(Restrs, Ss, Os),
+  member(Sels, Ss),
+  member(SelRestr, Sels).
+
+assembl_rs([], [], []):-!.
+
+assembl_rs([R|Rs], [S1|Ss], [O1|Os]):-
+  R=[S1, O1],
+  assembl_rs(Rs, Ss, Os).
+
+assembl_rs([R|Rs], [S1|Ss], [O1|Os]):-
+  R=[S1|R1],
+  Rs=[[O1|Rr]],
+  append(R1, Rr, Rrrs),
+  assembl_rs(Rrrs, Ss, Os).
+
+assembl_rs([R|Rs], [R|Ss], []):-
+  assembl_rs(Rs, Ss, Os).
+
+s(pass,[Tense,Mood,Pred,Num-Gen,Cat],verbo_trans,W,[Mood,Num,Pers,Tense],vt([Aux,been,EW]),Paziente)
+   -->
+   [W],[Y], [Z],
+   {diz(Pred, verbo_trans, pass, [Mood,Num,Gen,Pers,Tense], [Agente,Paziente], [W,Y,Z]),
+     calldv(Pred,part,Num,Pers,Tense, EW),
+     (Tense=perf, Aux=has; Tense=pluperf, Aux=had; Tense=past, Aux=has),
+     member(Cat,Agente) 
+   }.
+
+s(Voice, [Tense,Mood,Pred,Num-Gen,Cat],verbo_trans,W,[Mood,Num,Pers,Tense],vt([W,Y]),Paziente)
+   -->
+   [W],[Y],
+   {notvsempl(Tense),
+    diz(Pred, verbo_trans, Voice, [Mood,Num,Gen,Pers,Tense], [Agente,Paziente], [W,Y]),
+     member(Cat,Agente) 
+   }.
+
+s([Tense,Mood,Pred,Num-Gen,Cat],verbo_intr,W,[Mood,Num,Pers,Tense],vit([W,Y]),Obliquo)
+   -->[W], [Y],
+   {notvsempl(Tense),
+    diz(Pred, verbo_intr, [Mood,Num,Gen,Pers,Tense], Agente, W),
+    check_feats(Cat, Agente, Obliquo)
+   }.
+
+s([Tense,Mood,Pred,Num-Gen,Cat],verbo_cop,W,[Mood,Num,Pers,Tense],vc([W,Y]),Agente)
+   -->[W], [Y],
+   {notvsempl(Tense),
+    diz(Pred, verbo_cop, [Mood,Num,Gen,Pers,Tense], Agente, [W, Y]),
+     member(Cat,Agente)
+   }.
+
+s(Voice,[Tense,Mood,Pred,Num-Gen,Cat],verbo_trans,W,[Mood,Num,Pers,Tense],vt(EW),Paziente)
+   -->
+   [W],
+   {vsempl(Tense),
+    diz(Pred, verbo_trans, Voice,[Mood,Num,Pers,Tense], [Agente,Paziente], W), calldv(Pred,Mood,Num,Pers,Tense, EW),
+     member(Cat,Agente) 
+   }.
+
+s(Voice,[Tense,Mood,Pred,Num-Gen,Cat],verbo_intr,W,[Mood,Num,Pers,Tense],vit(EW),Obliquo)
+   -->[W],
+   {vsempl(Tense),
+    diz(Pred, verbo_intr, [Mood,Num,Pers,Tense], Agente, W), calldv(Pred,Mood,Num,Pers,Tense, EW),
+    check_feats(Cat, Agente, Obliquo)
+   }.
+
+s(Voice,[Tense,Mood,Pred,Num-Gen,Cat],verbo_cop,W,[Mood,Num,Pers,Tense],vc(EW),
+   [Gen,Num,Cat])
+   -->[W],
+   {vsempl(Tense),
+    diz(Pred, verbo_cop, [Mood,Num,Pers,Tense], Agente, W), calldv(Pred,Mood,Num,Pers,Tense, EW) 
+   }.
+
+s(Voice,[Tense,Mood,Pred,Num-Gen,Cat],Type,W,[Mood,Num,Pers,Tense],aux(EW),
+   [Gen,Num,Cat])
+   -->[W],
+   {vsempl(Tense),
+    diz(Pred, aux, [Mood,Num,Pers,Tense], Agente, W), calldv(Pred,Mood,Num,Pers,Tense, EW) 
+   }.
+
+s([Tense,Mood,Pred,Num-Gen,Cat],verbo_intr,W,[Mood,Num,Pers,Tense],vit(W),Obliquo)
+   -->[W],
+   {vsempl(Tense),
+    diz(Pred, verbo_intr, [Mood,Num,Pers,Tense], Agente, W),
+    check_feats(Cat, Agente, Obliquo)
+   }.
+
+s([Tense,Mood,Pred,Num-Gen,Cat],verbo_cop,W,[Mood,Num,Pers,Tense],vc(W),Agente)
+   -->[W],
+   {vsempl(Tense),
+    diz(Pred, verbo_cop, [Mood,Num,Pers,Tense], Agente, W),
+     member(Cat,Agente)
+   }.
+
+s([Tense,Mood,Pred,Num-Gen,Cat],Type,W,[Mood,Num,Pers,Tense],aux(W),Agente)
+   -->[W],
+   {vsempl(Tense),
+    diz(Pred, aux, [Mood,Num,Pers,Tense], Agente, W),
+     member(Cat,Agente)
+   }.
+
+vsempl(past).
+vsempl(pres).
+vsempl(fut).
+vsempl(imperf).
+
+notvsempl(T):-
+   findall(T, vsempl(T), Ts),
+   Ts=[].
+
+s(pl_post,Testa,[Gen,Num,Per,comn,Cat],[0,1],SPL,pl_pst(DT,NOM,PL_RLZ))
+   -->
+   s(det,Pred,[Gen,Num],DT, Typ),
+   s(nome,Testa,[Gen,Num,Per,comn,Cat],[0,0],_SP,NOM),
+   {morfo(inizio, Testa, Typ)},
+   s(pl_relaz,Testa,Cat,1,SPL,PL_RLZ).
+
+s(pl_post,Testa,Conc,[0,1],SPL,pl_pst(NOM,PL_RL))
+   -->
+   s(nome,Testa,Conc,[0,0],_SP,NOM),
+   s(pl_rel,Testa,Conc,1,SPL,PL_RL).
+
+s(pl_relaz, Arg, Cat,1,[Cat1,Pred,Arg,#,SPL_arg],pl_rlz(SPC)) 
+  -->
+     {nonvar(Cat)},
+     s(spec,Pred,PrepTyp,SPC1,[Gen,Num],Cat),
+     compat_pns(SPC1, nom(Arg), SPC),
+     s(nome, Arg, [Gen,Num,Per,Typ,Cat1], [1,0], SPL_arg, NOM),
+     {
+       compatible(Cat, Cat1),
+       (compatprep(PrepTyp,Typ)
+        ;
+        compatprep(PrepTyp,Arg2)) }.
+
+s(pl_rel, Restr, [G,N,P,T,C], 1, [Pred,Agente,Paziente,#,SPL2], pl_rel([RL|Sent]))
+  -->
+  {Restr=[Voice, Tense, Mood, Pred, Args], member([rel,R,Num,Head], Args)}, 
+  s(rel,[G,N,P,C],RL),
+  {Type=main;Type=cp},
+  s(Restr,Type,prin,Sent).
+
+s(pl_rel, Restr, [G,N,P,T,C], 1, [Pred,#,SPL2], pl_rel(RL))
+  -->
+  {Restr=[Type, Pred]}, 
+  s(agg,Pred,Conc,ag(W),Type),
+   {member(C,Conc); 
+    Conc=[G,N,Type,Cats],
+    member(CC, C), 
+    member(CC,Cats)}.
+
+s(pl_rel, Restr, [G,N,P,T,C], 1, [Pred,#,SPL], pl_rel(PL_RLZ))
+  -->
+  {Restr=[Type, Pred]}, 
+   s(pl_relaz,Pred,Type,1,SPL,PL_RLZ).
+
+s(pl_rel, Restr, [G,N,P,T,C], 1, [Pred,#,SPL_arg], pl_rel(NOM))
+  -->
+  {Restr=[Type, Pred]},
+  s(nome, Pred, [Gen,Num,Per,Typ,Cat1], [1,0], SPL_arg, NOM).
+
+/*  
+s(verbo_trans,Pred,Conc1,VT),
+s(nome,Paziente,Conc2,[1,0],SPL2,NOM).
+*/
+
+s(pre_adj, Arg, Tense, 1, [Typs,#,SPL],adv(NOM)) 
+  -->
+     s(adv, Arg, [Typ,Cat], [1,0], SPL, NOM),
+     {compat_tense(Cat, Tense), Typs=..[Typ,Arg]}.
+
+s(spec,Prep, spec, spc(Prep),Conc,Cat)
+   -->
+   [Prep],
+   {diz(Prep, spec,Cat,Spto,Sptore)}.
+
+s(spec,PrepAr, prepart, spc(PrepAr),Conc,Cat)
+   -->
+  [PrepAr],
+  {diz(Prep,spec,SP,Spto,Sptore),
+   diz(Ar,det,Conc,_,_),
+   diz(PrepAr,prepart,Conc,C),
+   compa(C, Cat)}.
+
+compatprep(spec,casa).
+compatprep(spec,prop).
+compatprep(prepart,comn).
+
+compat_pns(spc(P), N, [P, W, N])
+  -->
+  [W],
+  { diz(W, det, B, _, D),
+     compat_pn(spc(P), N, SPC), 
+    (N=home; N\=home, N=nom(Nom), on(Nom, SPC))}.
+  
+compat_pn(spc(at), nom(home), home).
+compat_pn(spc(at), nom(N), [at, the, N]).
+compat_pn(spc(from), nom(N), [from, the, N]).
+compat_pn(spc(P), N, [P, N]).
+
+
+compatible(meta, luogo).
+compatible(meta, umano).
+compatible(meta, B):-
+   member(luogo, B),!.
+compatible(locativo, luogo).
+compatible(luogo, luogo).
+compatible(comit, umano).
+compatible(agente, umano).
+compatible(agent, umano).
+compatible(poss, umano).
+compatible(locat, plant_life).
+compatible(locat, B):-
+   member(luogo, B),!.
+compatible(locat, B):-
+   member(plant, B),!.
+compatible(locat, B):-
+   member(informa, B),!.
+compatible(locat, B):-
+   member(astratto, B),!.
+compatible(A, B):-
+   member(A, B),!.
+
+compat_tense(conf(td<tr), past).
+compat_tense(conf(td<tr), imperf).
+compat_tense(conf(td=tr), pres).
+compat_tense(conf(tr<td), fut).
+
+compa(com, umano).
+compa(meta, luogo).
+compa(meta, umano).
+compa(spec, oggetto).
+compa(poss, readable).
+compa(loc, luogo).
+compa(loc, readable).
+compa(spec, oggetto).
+
+testagg(X,a(Agg,Gen,Num),Gen,Num,agg) :- 
+     agg(X,Agg,Gen,Num).
+
+
+testag(X,n(Nome,Gen,Num),Gen,Num,3,C,nome) :- 
+   nome(X,Nome,Gen,Num), nonvar(Nome).
+
+testag(X,n(Nome,Gen,Num),Gen,Num,3,C,nome) :- 
+   spy_lower(X, LowL, 1),
+   nome(LowL,Nome,Gen,Num), nonvar(Nome).
+
+testag(X,npro(Nopro,Gen,Num),Gen,Num,3,C,nopro) :-
+   nopro(X,Nopro,Gen,Num), nonvar(Nopro).
+
+testag(X,npro(Nopro,Gen,Num),Gen,Num,3,C,nopro) :-
+   spy_lower(X, LowL, 1),
+   nopro(LowL,Nopro,Gen,Num), nonvar(Nopro).
+
+testag(X,n(Nome,Gen,Num),Gen,Num,3,C,nome) :- 
+     recover_descriptions(X,Ws), Ws\=[X],
+     on(LowL,Ws),
+     nome(LowL,Nome,Gen,Num), nonvar(Nome).
+
+testag(X,npro(Nome,Gen,Num),Gen,Num,3,C,npro) :- 
+     recover_descriptions(X,Ws), Ws\=[X],
+     on(LowL,Ws),
+     nome(LowL,Nome,Gen,Num), nonvar(Nome).
+
+testag(X,n(Nome,Gen,Num),Gen,Num,3,C,No) :- 
+     recover_descriptions(X,Ws), Ws\=[X],
+     n_prnouns(Pol, Ws, Nome),
+     genera_tratti(Feats, Nome, Tratti, Nopro, Cat),
+     Tratti=[Pers,Gen,Num].
+
+testag(X,npro(Nome,Gen,Num),Gen,Num,3,C,No) :- 
+     recover_descriptions(X,Ws), Ws\=[X],
+     n_prnouns(Pol, Ws, Nome),
+     genera_tratti(Feats, Nome, Tratti, Nopro, Cat),
+     Tratti=[Pers,Gen,Num].
+
+
+passive_rule([Def,Spec,Num,Head1], [AdjArgs]):- 
+      (Def=top, Head1=pro, AdjArgs=[];
+       Head1\=pro, (Role=agent;Role=agente),AdjArgs=[Role,Head1]),!.
+
+passive_rule([[Def,Spec,Num,Head1]|Arg1], [AdjArgs]):- 
+      Arg1=[],
+      (Def=top, AdjArgs=[];
+       Def\=top, (Role=agent;Role=agente),AdjArgs=[Role,Head1]),!.
+
+passive_rule([[Def,Spec,Num,Head1]|Arg1], [AdjArgs]):- 
+      Arg1\=[],
+      (Def=top, AdjArgs=Arg1;
+       Def\=top, (Role=agent;Role=agente),Arg=[Role,Head1],
+       append(Arg, Arg1, AdjArgs)).
+
+
+checksubj(rel,pro,[Gen,Num,Per,nom],Num-Gen):-!.
+checksubj(rel,H,[Gen,Num,Per,Cat],Num-Gen):-!.
+checksubj(top,pro,[Gen,Num,Per,nom],Num-Gen):-!.
+checksubj(top,pro,[Gen,Num,Per,nom,R],Num-Gen):-!.
+checksubj(top,_,[Gen,Num,Per,nom],Num-Gen):-!.
+checksubj(Def,Head,[Gen,Num,Per,nom,Cat],Num-Gen):-!.
+checksubj(Def,Head,[Gen,Num,Per,Ty,Cat],Num-Gen):-Def\=top,!.
+
+most_important_sent(Frs):-
+   sort(Frs,K,[],1),
+   count_sort(K, Fr),
+   sort(Fr, [_-NoFr|_], [],1),
+   sent_banner,
+   get_sent(NoFr,Sent),
+   writeseqnl(user,Sent),
+   !.
+
+get_sent(N,Sent):-
+   pname(N,N1),
+   fp(NoFr,Sent),
+   stringof(NoFrs,NoFr),
+   reverse(NoFrs, [N1|_]),!.
+get_sent(N,Sent):-
+   pname(N,N1),
+   fp(NoFr,Sent),
+   !.
+   
+char_banner:-
+%   wfront('Display'),
+   nl,nl,
+   write('############'),
+   write('   MOST IMPORTANT CHARACTERS   '),
+   writenl('############'),
+   !.
+sent_banner:-
+%   wfront('Display'),
+   nl,nl,
+   write('############'),
+   write('   MOST IMPORTANT SENTENCE   '),
+   writenl('############'),
+   !.
+removepPro(Pss,Psss):-
+   remove(pPro, Pss, New),
+   removepPro(New,Psss),
+   !.
+removepPro(Pss,Psss):-
+   remove(st, Pss, New),
+   removepPro(New,Psss),
+   !.
+removepPro(Pss,Psss):-
+   remove(ev, Pss, New),
+   removepPro(New,Psss),
+   !.
+removepPro(Pss,Psss):-
+   remove(pr, Pss, New),
+   removepPro(New,Psss),
+   !.
+removepPro(Pss,Psss):-
+   remove(P, Pss, New),
+   fct(P),
+   removepPro(New,Psss),
+   !.
+removepPro(Pss,Pss).
+
+writeseq_gen_nums(Gen, Num, [],[]):-!.
+writeseq_gen_nums(Gen, Num, [Ps|Pss], Pss1):-
+    writeseq_gen_num_nom(Num, Gen, Ps),
+    (Pss\=[],
+     write(',  ')
+     ;
+     Pss=[]),
+    writeseq_gen_nums(Gen, Num, Pss,Pss1),
+    !.
+writeseq_gen_nums(Gen, Num, Pss,Psss):-
+    !.
+writeprops_low([],[]):-!.
+writeprops_low([[]|Pss],Ws):-
+    writeprops_low(Pss,Ws),
+    !.
+writeprops_low([Nome|Pss],Ws):-
+    atomic(Nome),
+    tolower(Nome, W),
+    on(W,Pss),
+    writeprops_low(Pss,Ws),
+    !.
+writeprops_low([Nome|Pss],[Nome|Ws]):-
+    writeprops_low(Pss,Ws),
+    !.
+
+writeprops(Pss,Card,sing):-
+    writeprops_low(Pss,Ws),
+    on(Nome,Ws),
+    (n(Nome, _, Gen),
+      write('The  ')
+      ;
+      npro(Nome,_, Gen)
+      ;
+      new_form(Nome,n),
+      spy_lower(Nome, LowAtom, Pol),
+      (Pol=1
+         ;
+        Pol=0, 
+      write('The  '))
+      ),
+    writeseq_gen_nums(Gen, sing, Pss,Rest),
+    (Rest\=[],
+     write(',  '),
+     writeseq_gen_nums1(Gen, sing, Rest)
+      ;
+      Rest=[]),
+    !.
+
+writeprops(Pss,Card,plur):-
+    writeprops_low(Pss,Ws),
+    on(Nome,Ws),
+    (n(_,Nome, Gen),
+      write('The  ')
+      ;
+      npro(_,Nome,Gen)
+      ;
+      new_form(Nome,n),
+      spy_lower(Nome, LowAtom, Pol),
+      (Pol=1
+         ;
+        Pol=0, 
+      write('The  '))
+      ),
+    write_cardin(Card),
+    writeseq_gen_nums(Gen, plur, Pss,Rest),
+    (Rest\=[],
+     write(',  '),
+     writeseq_gen_nums1(Gen, plur, Rest)
+      ;
+      Rest=[]),
+    !.
+
+writeprops(Pss,Card,Gend):-
+    writeprops_low(Pss,Ws),
+    on(Nome,Ws),
+    (n(Nome,_, Gen),
+      write('The  ')
+      ;
+      npro(Nome,_,Gen)
+      ;
+      new_form(Nome,n),
+      spy_lower(Nome, LowAtom, Pol),
+      (Pol=1
+         ;
+        Pol=0, 
+      write('The  '))
+      ),
+    write_cardin(Card),
+    writeseq_gen_nums(Gen, Gend, Pss,Rest),
+    (Rest\=[],
+     write(',  '),
+     writeseq_gen_nums1(Gen, Gend, Rest)
+      ;
+      Rest=[]),
+    !.
+
+writeprops(Pss,Card,Gend):-
+    writeprops_low(Pss,Ws),
+    on(Nome,Ws),
+    spy_lower(Nome, LowAtom, Pol),
+      (Pol=1
+         ;
+        Pol=0, 
+      write('The  ')
+      ),
+    write_cardin(Card),
+    writeseq_gen_nums(Gen, Gend, Pss,Rest),
+    (Rest\=[],
+     write(',  '),
+     writeseq_gen_nums1(Gen, Gend, Rest)
+      ;
+      Rest=[]),
+    !.
+
+calld(EW, W):-!.
+
+calld(EW, W):-
+    ied(W, Cat, w(EW)),!.
+
+calld(EW, W):-
+    ied(W, Cat, EWW),
+    EWW=..[Primo|Resto],
+    Primo=w,
+    on(EW, Resto),
+    nonvar(EW),!.
+
+calld(EW, W):-
+    ied(W, Cat, EWW),
+    EWW=..[Primo|Resto],
+    Primo=ws,
+    on(Sem, Resto),
+    (
+     on(w(CW), Sem),
+     nonvar(CW)
+     ;
+     on(CW, Sem),
+     CW=..[w,Head|Rws]
+    ),
+    pname(Ca, Head),
+    (atomic(Ca), EW=Ca;
+     Ca=E-A, EW=[E,A]),
+    !.
+
+calld(EW, W):-
+    dd(W, EWW),
+    EWW=..[Primo|Resto],
+    Primo=cs,
+    Resto=[Semm|Sems],
+    Semm=[Cat,Sema],
+    Sema=..[ws|Rest],
+    on(Sem, Rest),
+    (
+     on(w(CW), Sem),
+     nonvar(CW)
+     ;
+     on(CW, Sem),
+     CW=..[w,Head|Rws]
+    ),
+    pname(Ca, Head),
+    (atomic(Ca), EW=Ca;
+     Ca=E-A, EW=[E,A]),
+    !.
+
+calldf(W, Feats, EW):-!.
+
+calldf(W, Feats, EW):-
+    ied(W, Cat, EWW),
+    pname(Ca, Cat),
+    Ca=(Cc:Feat),
+    Feats=[G, N, P, C, R],
+    checf(G,N,P, Feat),
+    listw(EWW, C, R, EW),
+    !.
+
+listw(ws(EWW), C, R, EW):-
+    checsem(0, EWW, C, R, EW),
+    !.
+
+checsem(S, [], C, R, EW):-!.
+checsem(S, [Sem|Sems], C, R, EW):-
+    S1 is S + 1,
+    concat(sem, S1, Ss),
+    on(Ss=Case, Sem),
+    ((atomic(Case),
+      Case=C
+       ;
+       list(Case),
+      on(C, Case), on(R,Case)), on(w(EW), Sem)
+     ;
+     checsem(S1, Sems, C, R, EW)),!.
+
+checf(mas,sing,3, 'sing3_m_').
+checf(fem,sing,3, 'sing3_f_').
+
+calldv(Pred,Mood,Num,Pers,Tense, EB):-!.
+
+calldv(Pred,Mood,Num,Pers,Tense, EB):-
+   calld(Pred, Head),
+   (atomic(Head), EH=Head;
+    list(Head), Head=[EH|Rest]),
+   findall(EW-Mood-T-P-N, v(EW, EH, Mood, T, P, N), Vs),
+   select_best_unif(Tense, Pers, Num, Vs, EBs),
+   sort(EBs, [N-EBb|_]),
+   (var(Rest), EB=EBb;
+    nonvar(Rest), append([EBb], Rest, EB)
+   ),!.
+
+select_best_unif(T, P, N, [], []):-!.
+
+select_best_unif(T, P, N, [EW-Mood-Tense-Pers-Num|Vs], EB):-
+   nonvar(Num), nonvar(Pers), nonvar(Tense),
+   (match(T, P, N, Tense-Pers-Num), EB=[1-EW],!
+    ;
+     select_best_unif(T, P, N, Vs, EB)),
+   !.
+
+select_best_unif(T, P, N, [EW-Mood-Tense-Pers-Num|Vs], EB):-
+   nonvar(Num), nonvar(Tense),
+   (match(T, P, N, Tense-Pers-Num),EB=[2-EW],!
+    ;
+     select_best_unif(T, P, N, Vs, EB)),
+   !.
+
+select_best_unif(T, P, N, [EW-Mood-Tense-Pers-Num|Vs], [EB|EBs]):-
+   nonvar(Tense),
+   (T=Tense; 
+    Tense=pass, T=past; 
+    Tense=pass, T=imperf; 
+    Tense=pass, T=perf),
+   EB=3-EW,
+   select_best_unif(T, P, N, Vs, EBs),
+   !.
+
+select_best_unif(T, P, N, [EW-Mood-Tense-Pers-Num|Vs], EB):-
+   select_best_unif(T, P, N, Vs, EB),!.
+
+match(T, P, N, T-P-N).
+
+match(pass, P, N, past-P-N).
+match(imperf, P, N, past-P-N).
+match(imperf, P, N, pass-P-N).
+match(past, P, N, pass-P-N).
+
+selectone([EW|Resto], EW):-!.
+
+selectone([EW|Resto], EWW):-
+    selectone(Resto, EWW),!.
+
+dd(cercare,	cs([v_tr_,	ws([sem1=nil, w('look-for', 'search-for', seek)],	[sem2=richiedere,	w('ask-for', want)],	[sem3=consultando,	w('look-up')])],	[v_intr_,	w(try)])).
+
+ied(bambino,	s_m_,	w(child, baby, little_boy, kid)).
+ied(essere,	v_intr_, 	w(be)).
+ied(morto,	agg_,	w(dead)).
+ied(malato,	agg_,	w(ill)).
+ied(il,	art_determ_m_sing_,	w(the)).
+ied(maria,	s_f_,	w(maria)).
+ied(giovanni,	s_m_,	w(john)).
+ied(mario,	s_m_,	w(mario)).
+ied(casa,	s_f_,	w(home)).
+ied(ristorante,	s_f_,	w(restaurant)).
+ied(ieri,	avv_s_m_,	w(yesterday)).
+ied(aspettare,	v_tr_,	ws([sem1=nil, w('wait-for', await, expect, 'be-looking-forward')],	[sem2=prevedere,	w(expect, pr_=a_, 'un-bambino',	w('expect-a-baby'))])).
+ied(correre,	v_intr_,	w(run)).
+ied(andare,	v_intr_,	w(go)).
+ied(insultare,	v_tr_,	w(insult, abuse)).
+ied(lui,	'pron_pers:sing3_m_',	ws([[sem1=[acc,dat],	w(him)],	[sem2=nom,	w(he)],	[sem3=pred_,	w(he, him)]])).
+ied(lei,	'pron_pers:sing3_f_',	ws([[sem1=acc,	w(her)],	[sem2=nom,	w(she)],	[sem3=forma_di_cortesia,	w(you)]])).
+ied(la,	'pron_pers_:sing3_f_',	ws([[sem1=[oggetto,acc],	w(it)],	[sem2=[umano,acc],	w(her)], [sem3=neut,	w(it)],	[sem4=forma_di_cortesia,	w(you)]])).
+ied(lo,	'pron_pers_:sing3_m_',	ws([[sem1=[oggetto,acc],	w(it)],	[sem2=[umano,acc],	w(him)], [sem3=neut,	w(it)],	[sem4=forma_di_cortesia,	w(you)]])).
+
+
+plan_adjs_restr(_, _, []-[]) :-
+   add_adjs(off).
+
+
+/* Aggiunto locativo */
+plan_adjs_restr(Arg, _, RepAdj-[]) :-
+   add_adjs(on),
+   fact(_, locativo, [_:Arg, _:Loc], 1, _, _),
+   fact(_, Rel, [_:Loc, _:Loc1], 1, _, _),
+   plan_arg(nil:Loc1, [], nil:Location),
+   RepAdj=
+      [[rel:Rel,
+      args:
+         [arg1:Arg, 
+         arg2:Location]-[]]].
+
+/* Aggettivo */
+plan_adjs_restr(Arg, Class, RepAdj) :-
+   add_adjs(on),
+   \+ unique_for_user(Arg, Class),
+   fact(Inf, Rel, [tema_bound:Arg], 1, _, _),
+   know(Inf),
+   RepAdj=
+      [[rel:Rel, arg1:Arg]]-[].
+
+/*
+plan_adjs_restr(Arg, _, []-[]) :-
+   add_adjs(on).
+*/
+
+
+plan_fact_restrs(Infon, AdjsSem-[]) :-
+   findall(
+      Adj, 
+      plan_fact_restr(Infon, Adj),
+      AdjsSem).
+plan_fact_restrs(Infon, []-[]) .
+
+plan_fact_restr(Infon, AdjsSem) :-
+   fact(_, locativo, [_:Infon, _:Loc], 1, _, _),
+   fact(_, Rel, [_:Loc, _:Loc1], 1, _, _),
+   plan_arg(nil:Loc1, [], nil:Location),
+   AdjsSem=
+      (adj_sem:
+         [rel:Rel,
+         args:
+            [arg2:Location]-[]]).
+
+plan_fact_restr(Infon, AdjsSem) :-
+   fact(_, measure, [_:Infon, _:Infon1], 1, _, _),
+   fact(Infon1, Rel, [_:Infon], 1, _, _),
+   AdjsSem=
+      (adj_sem:[rel:Rel]).
+
+plan_fact_restr(Infon, AdjsSem) :-
+   fact(_, Rel, [arg:Infon, modale:Mode], 1),
+   plan_arg(nil:Mode, [], nil:Modal),
+   AdjsSem=
+      (adj_sem:
+         [rel:Rel,
+         args:
+            [arg2:Modal]-[]]).
+
+unique_for_user(Ind, Class) :-
+   fact(Inf1, isa, [_:Ind, _:Class], 1, _, _),  
+   know(Inf1), 
+   \+
+      (fact(Inf2, isa, [_:Ind1, _:Class], 1, _, _),
+      Ind1 \= Ind,
+      know(Inf2)). 
+
+plan_loc(Inf, TLoc, SLoc, RepLoc) :-
+   fact(_, time, [_:Inf, _:TInd], 1, TLoc,SLoc),
+   fact(_, Time, [arg:TInd], 1, TLoc, SLoc),
+   RepLoc=[ind:TInd, conds: in(TInd, Time)].
+
+
+most_specific_class(Arg, Class) :-
+   findall(
+      Class, 
+      fact(_, isa, [_:Arg, _:Class], 1, _, _), 
+      Classes),
+   select_most_spec_class(Classes, Class).
+   
+select_most_spec_class([Class | Classes], Class) :-
+   forall(
+      on(OtherClass, Classes),
+      \+ is_aa(OtherClass, Class)),
+   !.
+   
+select_most_spec_class([_ | Classes], Class) :-
+   select_most_spec_class(Classes, Class).
+
+add_adjs(on).
+
+
+set_main_fstr(Sem, [prop:main | Fstr]) :-
+   set_fstr(Sem, [], Fstr).
+   
+set_fstr(Sem, PrecInd, [funcs:Funcs]) :-
+   remove(args:Args, Sem, _),
+   !,
+   set_args_to_name(Args, PrecInd, Funcs).
+set_fstr(_, _, _) .
+
+set_args_to_name([], _, _) .
+set_args_to_name([prop:Arg | Args], PrecInds, [Fun | Funcs]) :-
+   !,
+   Fun = (_:[role:prop | Fstr]),
+   set_fstr(Arg, PrecInds, Fstr),
+   NewPrecInds=PrecInds,
+   set_args_to_name(Args, NewPrecInds, Funcs).
+
+set_args_to_name([Role:Arg | Args], PrecInds, [Fun | Funcs]) :-
+   get_ind(Arg, Ind),
+   (
+   pro_arg(Ind, Arg, PrecInds, Fstr)
+   ->
+   Fun = (_:[role:Role | Fstr]),
+   NewPrecInds=PrecInds
+   ;
+   Fun = (_:[role:Role, tab_ref: n]),
+   NewPrecInds=[Ind | PrecInds]   
+   ),
+   set_args_to_name(Args, NewPrecInds, Funcs).
+
+get_ind(indef_arg(Ind, _), Ind).
+get_ind(Arg, Ind) :-
+   on(ind:Ind, Arg).
+pro_arg(Ind, _, PrecInds, []) :-
+   on(Ind, PrecInds),
+   !.
+pro_arg( _, indef_arg(_, _), _, [tab_ref: pr_quantif]) :-
+   !.
+
+
+/*************
+rhetoric_planning
+NId-Time-Relt-Role-DiscRel-SimpMRel
+if DiscRel not foreground,
+  do if sametopic
+  && if containeddiscstruct
+  && if sameargs
+  create relative/conjoined
+**************/
+rhetoric_planning(N, [], []):-!.
+
+rhetoric_planning(N, [First|TopicSegs], [First]):-
+    TopicSegs=[],!.
+
+rhetoric_planning(N, [First|TopicSeg], [coord-[First,L]]):-
+    TopicSeg=[L|_],
+    (First=[NId-Tes-Rel-Role-DiscRel-SimpMRel-N1],
+     L=[_-_-_-_-DiscRel-_-_]),
+   check_restr_discs(First, L),!.
+
+/*
+rhetoric_planning(N, [First|TopicSeg], [First,L]):-
+    TopicSeg=[L],!.
+*/
+
+rhetoric_planning(1, [First|TopicSegs], [First|RhetSegs]):-
+%   find_background(TopicSegs, Pair, NTopicSegs),
+%   build_rhetoric_seg(Pair, RhetSeg),
+%   append(First, RhetSeg, Rseg),
+   rhetoric_planning(2, TopicSegs, RhetSegs).
+
+rhetoric_planning(N, TopicSegs, [RhetSeg|RhetSegs]):-
+   find_background(TopicSegs, Pair, NTopicSegs),
+   build_rhetoric_seg(Pair, RhetSeg),
+   N1 is N + 1,
+   rhetoric_planning(N1, NTopicSegs, RhetSegs).
+
+build_rhetoric_seg([Pair], Pair):-!.
+
+build_rhetoric_seg(BuiltSeg, [Rel-[Seg1, Seg2]]):-
+   Segs=[Seg1, Seg2],
+   BuiltSeg=..[Rel,Segs],
+   !.
+
+find_background([First|TopicSegs], [First], []):-
+    TopicSegs=[],!.
+
+find_background([First|TopicSegs], TDiscRels, Rest):-
+   on(_-_-_-_-FDiscRel-_-_, First),
+   discrelfor(FDiscRel),
+   TopicSegs\=[],
+   TopicSegs=[Second|Rest],
+   on(_-_-_-_-TDiscRel-_-_, Second),
+   discrels(Discrelsfore),
+   \+ nogen_member(TDiscRel, Discrelsfore),
+   check_restr_discs(First, Second),
+   TDRels=[First, Second],
+   TDiscRels=..[TDiscRel,TDRels],
+   !.
+ 
+find_background([First|TopicSegs], FDiscRels, Rest):-
+   on(_-_-_-_-FDiscRel-_-_, First),
+   discrels(Discrelsfore),
+   \+ nogen_member(FDiscRel, Discrelsfore),
+   TopicSegs\=[],
+   TopicSegs=[Second|Rest],
+   on(_-_-_-_-TDiscRel-_-_, Second),
+   discrelfor(TDiscRel),
+   check_restr_discs(First, Second),
+   FDRels=[First, Second],
+   FDiscRels=..[FDiscRel,FDRels],
+   !.
+
+find_background([First|TopicSegs], coord([First, Second]), Rest):-
+   on(_-_-_-_-FDiscRel-_-_, First),
+   TopicSegs\=[],
+   TopicSegs=[Second|Rest],
+   on(_-_-_-_-FDiscRel-_-_, Second),
+   check_restr_discs(First, Second),!.
+
+find_background([First|TopicSegs], [First], TopicSegs):-!.
+ 
+check_restr_discs([_-_-_-_-_-_-NoCl1], 
+                     [_-_-_-_-_-_-NoCl2]):-
+    discourse_structures(Dss),
+    on(
+    ds(At1, _-NoCl1, Tops1, _, _, SRel1, N1-Strc1),
+       Dss),
+    on(
+    ds(At2, _-NoCl2, Tops2, _, _, SRel2, N2-Strc2),
+       Dss),
+    compare_rhetor([At1,At2],[Tops1,Tops2],[SRel1,SRel2],[N1-Strc1, N2-Strc2]).
+
+compare_rhetor([At1,At2],[Tops1,Tops2],[SRel1,SRel2],[N1-Strc1, N2-Strc2]):-
+    (on(N1, Strc2)
+    ;
+     on(N2,Strc1)
+     ),
+    compare_rhet([At1,At2],[Tops1,Tops2]).
+
+compare_rhet([At1,At2],[Tops1,Tops2]):-
+    on(_:Id:Head, Tops1),
+    on(_:Id:Head, Tops2).
+
+/*********
+• semantic_planning(-orderedFacts).
+• •
+?? summarize
+**********/
+
+semantic_planning(Ind, Facts, Segs) :-
+   prph(on),
+   discourse_structures(Dss),
+  sequenced_segments(Dss, Ind, 1, Facts, Segs). 
+
+semantic_planning(Ind, EFacts, Segs) :-
+   prph(off),
+  select_root_facts(Ind, EFacts, Facts, Rel-Ind),
+  temporal_segments(Ind, EFacts, Facts, TempSegs),
+  append([Facts], TempSegs, NewSegs),
+  togli_doppi(NewSegs, Segs). 
+
+sequenced_segments([], Ind, N, F, []) :-
+   !.
+
+sequenced_segments(Dss, Ind, N, SFacts, [[Segment-N] | Segs]) :-
+   remove(ds(At, NoFr-N, Topics, SimpMainRel, TempRel, DiscRel, No-Strc), Dss, Ds),
+   sequenced_segs(Ind, SFacts, SimpMainRel, TempRel, DiscRel, Segment),
+   N1 is N + 1,
+   sequenced_segments(Ds, Ind, N1, SFacts, Segs),!.
+
+sequenced_segs(Ind, SFacts, SimpMainRel, TempRel, DiscRel, Segment):-
+   match_tes(TempRel, T, Relt),
+   SimpMainRel=..[Rel,Args, Pol, Loc],
+   SimpMRel=..[Rel,Args],
+   SFacts\=[],
+   on(
+   fact(NId, Rel, FArgs, Pol, Time, Loc),
+     SFacts),
+   on(Role:Ind, FArgs),
+   Segment=NId-Time-Relt-Role-DiscRel-SimpMRel.
+
+sequenced_segs(Ind, SFacts, SimpMainRel, TempRel, DiscRel, Segment):-
+   match_tes(TempRel, T, Relt),
+   SimpMainRel=..[Rel,Args, Pol, Loc],
+   SimpMRel=..[Rel,Args],
+   on(Id:Pro, Args),Id\=Ind,
+   entities_of_the_world(Ents),
+   on(entity(Type,Id,Score,facts(EFacts)), Ents),
+    on(   
+       fact(NId, Rel, FArgs, Pol, Time, Loc),
+        EFacts),
+   on(Role:Id, FArgs),
+   Segment=NId-Time-Relt-Role-DiscRel-SimpMRel.
+
+/*************
+• select_root_facts. ••
+ds(At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, Strc)
+ds(new(1-1), 1-1, [expected:id3:mario], correre([id3:mario, id2:casa], 1, id2), overlap(tes(f4_ta), td(f4_ta)), narration, 1-[1])]).
+**************/
+select_root_facts(Id, EFacts, Inf, SimpMRel-Id) :-
+   root_fact(Id, EFacts, Inf, SimpMRel-Id).
+
+root_fact(Id, SFacts, [NId-Tes-start-Role-DiscRel-SimpMRel-1], SimpMRel-Id) :-
+    discourse_structures(Dss),
+    on(
+    ds(At, 1-1, [expected:Id:Head|_], SimpMainRel, TempRel, DiscRel, Strc),
+	      Dss),
+    SimpMainRel=..[Rel,Args, Pol, Loc],
+    SimpMRel=..[Rel,Args],
+    on(Id:Head, Args), 
+   SFacts\=[],
+   on(
+   fact(NId, Rel, FArgs, Pol, Time, Loc),
+     SFacts),
+    on(Role:Ind, FArgs),
+   recover_tes(Time, Tes),
+   !.
+
+root_fact(Id, SFacts, [NId-Tes-start-Role-DiscRel-SimpMRel-Cl], SimpMRel-Id) :-
+    discourse_structures(Dss),
+    on(
+    ds(At, Fr-Cl, [main:Id:Head|_], SimpMainRel, TempRel, DiscRel, Strc),
+       Dss),
+    SimpMainRel=..[Rel,Args, Pol, Loc],
+    SimpMRel=..[Rel,Args],
+    on(Id:Head, Args), 
+   SFacts\=[],
+   on(
+   fact(NId, Rel, FArgs, Pol, Time, Loc),
+     SFacts),
+    on(Role:Ind, FArgs),
+   recover_tes(Time, Tes),
+   !.
+
+/*
+recover_tes(tes(T), tes(T)):-!.
+
+recover_tes(Time, Tes):-
+    entities_of_the_world(Ents),
+    on(entity(Type,Time,Score,facts(EFacts)), Ents),
+    on(   fact(NId, main_tloc, FArgs, Pol, Tes, Loc),
+        EFacts),
+    !.
+*/
+/*************
+• temporal_segments(+facts, -segments). ••
+**************/
+temporal_segments(Ind, SFacts, Facts, Segs) :-
+   discourse_structures(Dss),
+   temporal_segments(Dss, Ind, SFacts, 1, Facts, [], Segs).
+
+temporal_segments(Dss, Ind, SFacts, N, [], _, []) :-
+   !.   
+
+temporal_segments(Dss, Ind, SFacts, N, Facts, PrecSeg, [Segment | Segs]) :-
+   subsequent_temporal_segment(Dss, Ind, SFacts, N, PrecSeg, Facts, Segment, FactsOut),
+   N1 is N + 1,
+   temporal_segments(Dss, Ind, SFacts, N1, FactsOut, Segment, Segs).
+
+subsequent_temporal_segment(Dss, Ind, SFacts, N, 
+                   PrecSegment, FactsIn, Segment, FactsOut) :-
+   findall(Included, before_fact(Dss, Ind, SFacts, PrecSegment, FactsIn, Included), Seg),
+   Seg \= [],
+   sort(Seg, Segment),
+   !,
+   remove_all(Segment, FactsIn, FactsOut).
+
+subsequent_temporal_segment(Dss, Ind, SFacts, N, 
+                   PrecSegment, FactsIn, Segment, FactsOut) :-
+   1 =< N,
+   findall(Included, after_fact(Dss, Ind, SFacts, PrecSegment, FactsIn, Included), Seg),
+   Seg \= [],
+   sort(Seg, Segment),
+   !,
+   (Segment=PrecSegment, FactsOut=[];
+   remove_all(Segment, FactsIn, FactsOut)).
+
+subsequent_temporal_segment(Dss, Ind, SFacts, N, 
+                   PrecSegment, FactsIn, Segment, FactsOut) :-
+   findall(Included, included_fact(Dss, Ind, SFacts, PrecSegment, FactsIn, Included), Seg),
+   Seg \= [],
+   sort(Seg, Segment),
+   !,
+  (
+     Segment=PrecSegment,
+     FactsOut=[];
+   remove_all(Segment, FactsIn, FactsOut)).
+   
+match_tes(TempRel, T1, Relt):-
+   TempRel=..[Relt,T1, T2],!.
+
+match_tes(TempRel, T2, Relt):-
+   TempRel=..[Relt,T1, T2],!.
+
+before_fact(Dss, Ind, SFacts, [], Facts, NId-Time-Relt-Role-DiscRel-SimpMRel-NoCl) :-
+    on(
+      ds(At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, N-Strc),
+       Dss),
+   1 =< NoCl,
+   on(Id-T-_-_-_-_-_, Facts),
+   match_tes(TempRel, T, Relt),
+   beforrel(Relt),
+   SimpMainRel=..[Rel,Args, Pol, Loc],
+   SimpMRel=..[Rel,Args],
+   SFacts\=[],
+   on(
+   fact(NId, Rel, FArgs, Pol, Time, Loc),
+     SFacts),
+   on(Role:Ind, FArgs).
+
+included_fact(Dss, Ind, SFacts, PrecSegment, Facts, NId-Time-Relt-Role-DiscRel-SimpMRel-NoCl) :-
+    (PrecSegment=[], Pseg=Facts;
+     Pseg=PrecSegment),
+    on(
+      ds(At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, N-Strc),
+       Dss),
+   discrelfore(DiscRel),
+   1 =< NoCl,
+   on(Id-T-_-_-_-_-_, Pseg),
+   match_tes(TempRel, T, Relt),
+   includerel(Relt),
+   SimpMainRel=..[Rel,Args, Pol, Loc],
+   SimpMRel=..[Rel,Args],
+   SFacts\=[],
+   on(
+   fact(NId, Rel, FArgs, Pol, Time, Loc),
+     SFacts),
+   on(Role:Ind, FArgs).
+
+after_fact(Dss, Ind, SFacts, PrecSegment, Facts, NId-Time-Relt-Role-DiscRel-SimpMRel-NoCl) :-
+    on(
+      ds(At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, N-Strc),
+       Dss),
+   discrelfore(DiscRel),
+   1 < NoCl,
+   ( on(Id-T-_-_-_-_-_, PrecSegment);
+   on(Id-T-_-_-_-_-_, Facts)),
+   match_tes(TempRel, T, Relt),
+   afterrel(Relt),
+   SimpMainRel=..[Rel,Args, Pol, Loc],
+   SimpMRel=..[Rel,Args],
+   SFacts\=[],
+   on(
+   fact(NId, Rel, FArgs, Pol, Time, Loc),
+     SFacts),
+   on(Role:Ind, FArgs).
+
+discrelfore(Rel):-
+   prph(off),
+   discrelfor(Rel),!.
+
+discrelfore(Rel):-
+   prph(on),!.
+
+discrels([setting, narration, obligation, inception, result, egression, prohibition, cause, adverse]).
+
+discrelfor(setting).
+discrelfor(narration).
+discrelfor(obligation).
+discrelfor(inception).
+discrelfor(result).
+discrelfor(egression).
+discrelfor(explanation).
+discrelfor(evidence).
+discrelfor(prohibition).
+discrelfor(cause).
+discrelfor(adverse).
+
+/*
+evidence
+motivation
+definition
+elaboration
+parallel
+contrast
+evaluation
+description
+permission
+hypothesis
+condition
+purpose
+circumstance
+*/
+
+includerel(contains).
+includerel(during).
+includerel(finished_by).
+
+afterrel(after).
+beforrel(before).
+beforrel(started_by).
+
+
+/*********
+• topic_segments(+temporalSegment, -topicSegments). ••
+*********/
+partition_temporal_segments(EFacts, [], []) .
+partition_temporal_segments(EFacts, 
+   [Seg | Segs], [PartSeg | PartSegs])
+   :-
+   topic_segments(EFacts, Seg, PartSeg),
+   partition_temporal_segments(EFacts, Segs, PartSegs).
+
+topic_segments(EFacts, Segment, OrdTopicSegs) :-
+%   segment_relevance_scores(EFacts, Segment, SortScores),
+   sort_segment_by_topic(Segment, SortScores, TopicSegs),
+   adjust_adjacent_segs(TopicSegs, AdjTopicSegs),
+   order_topic_segments(AdjTopicSegs, OrdTopicSegs).
+
+sort_segment_by_topic([], _, []) :-
+   !.
+/*
+sort_segment_by_topic(_, [], []) :-
+   !.
+*/
+sort_segment_by_topic(
+   TempSegm, [_-_-Ind| Scores], [Ind-TopicSeg | TopicSegs])
+   :-
+   topic_facts(TempSegm, Ind, TopicSeg, TempSegmOut),
+   sort_segment_by_topic(TempSegmOut, Scores, TopicSegs).
+
+segment_relevance_scores(EFacts, Segment, SortScores) :-
+   segment_relevance_sco(EFacts, Segment, [], Scores),
+   sort(Scores, InvSortScores),
+   reverse(InvSortScores, SortScores).
+
+% segment_relevance_sco(EFacts, [], Score, Score):- !.
+segment_relevance_sco(EFacts, [Inf-_], ScoreIn, ScoreOut):-
+   !,
+   on(fact(Inf, _, Args,_,_,_), EFacts),
+   fact_relev_scores(Args, ScoreIn, ScoreOut).
+
+fact_relev_scores([], Scores, Scores).
+fact_relev_scores(
+   [Role:Ind | Args], ScoreIn, ScoreOut) 
+   :-
+   remove(OldScore-OldCounter-Ind, ScoreIn, ScoreMid),
+   !,
+   relev_score(Role, Score),
+   NewScore is OldScore+Score,
+   NewCounter is OldCounter+1,
+   fact_relev_scores(
+      Args, [NewScore-NewCounter-Ind | ScoreMid], ScoreOut).
+   
+fact_relev_scores(
+   [Role:Ind | Args], ScoreIn, ScoreOut)
+   :-
+   relev_score(Role, Score),
+   fact_relev_scores(
+      Args, [Score-1-Ind | ScoreIn], ScoreOut).
+
+
+relev_score(actor, 2) :- !.
+relev_score(agente, 3):- !.
+relev_score(esperiente, 2) :- !.
+relev_score(agent, 3):- !.
+relev_score(experiencer, 2) :- !.
+relev_score(_, 1) .
+
+
+order_topic_segments([], []) :-
+   !.
+order_topic_segments([Ind-TSeg | TSegs], [Ind-OrdSeg | OrdSegs]) :-
+   order_topic_seg(TSeg, OrdSeg),
+   order_topic_segments(TSegs,  OrdSegs).
+
+
+order_topic_seg(TSeg,  OrdSeg) :-
+   partition_by_arg_number(TSeg, OneArgument, Other),
+   order_by_verb_class(OneArgument, OrdOneArgument),
+   order_by_verb_class(Other, OrdOther),
+   append(OrdOneArgument, OrdOther, OrdSeg).
+
+partition_by_arg_number(Facts, OneArgFacts, OtherFacts) :-
+   findall(Inf, one_arg_fact(Facts, Inf), OneArgFacts),
+   remove_all(OneArgFacts, Facts, OtherFacts). 
+   
+
+   
+order_by_verb_class(Facts, OrdFacts) :-
+   findall(Inf, general_fact(Facts, Inf), GenFacts),
+   remove_all(GenFacts, Facts, OtherFacts),
+   append(GenFacts, OtherFacts, OrdFacts). 
+
+
+one_arg_fact(Facts, Inf) :-
+   on(Inf, Facts),
+   fact(Inf, _, [_], _).
+
+general_fact(Facts, Inf) :-
+   on(Inf, Facts),
+   fact(Inf, Rel, _, _),
+   general_sem_cat(Cat),
+   pred_v(Rel, _,Cat, _, _).
+
+
+general_sem_cat(esistenza).
+
+parseq(Frase,Symb):-
+  kill(termin),
+  kill(stackxp),
+  assert(look(head)),
+  asserta(stackxp(0-0-0-0)),
+  cond_set_win('Moves-Trace',Symb),
+  Cont = 0,
+  check_lexs(Cont,Frase,NFrase),
+  gen_sym(f,0),
+  gen_sym(sn,0),
+  gen_sym(finf,0),              
+  cond_set_win('C-Structure',Symb),
+  dt(utterance(Cstr, NFrase,H)),
+  elaborate_output(Cstr, Frase, Symb),
+  !.
+
+reply_happen(Rete, NoFr, [True,Form]) :-
+     q_fact(K,perf,[arg:_, Perform:Id],1,A,B),
+     q_fact(Id,Pred,Args,1,T,S),
+     Pred=happen,
+     get_focus_arg_accadere(what, happen, Ind, D1, NewP),
+     !.
+
+get_focus_arg_accadere(what, happen, Ind, D1, NewP):-
+     q_getevents(A,happen),
+     q_fact(X,happen,Args,1,_,L),
+     get_property_accadere(X,Propp,Type),
+     get_all_properties_mods(Type,NType,Propp,Id),
+     pwrite_riass_foc('Feedback',NType,[Id], Sents),
+     !.
+
+get_all_properties_mods(Type,Type,Propp,Idx):-
+     length(Propp,L),
+     1=<L,
+     getallproperties_mods(Type,Propp,Idx),
+     !.
+
+get_all_properties_mods(Type,Type1,Propp,Idx):-
+     length(Propp,L),
+     1=<L,
+     getallproperties_mods(Type1,Propp,Idx),
+     !.
+
+/*
+get_all_properties_mods(Propp,Idx):-
+     findall(Id-Propp, getallproperties_mods(Propp,Id), Ids),
+     length(Ids,L),
+     ascertain_specificity(Ids,L,Idx),
+     !.
+*/
+
+ascertain_specificity(Ids,1,Id):-
+     on(Id,Ids),
+     !.
+
+ascertain_specificity(Ids,L,Id):-
+     1<L,
+     extract_most_specific(Ids,Id),
+     !.
+
+q_type(Ind,Type):-
+    q_inds(Ind,Type),
+     !.
+
+q_inds(Ind,Type):-
+   q_ind(_,Ind), 
+   Type=ind-1
+   ;
+   q_class(_,Ind), 
+   Type=ind-1
+   ;
+   q_set(_,Ind), 
+   q_card(_,Ind,Card), 
+   Type=set-Card,
+   !.
+
+
+q_recursive_properties(Id,Propp):-
+     q_proprieta_sempl(Id,Propp)
+     ;
+     q_prop_heredit(Id,Propp),
+   !.
+
+q_proprieta(Id,Propp) :-
+    (nonvar(Id);nonvar(Propp)),
+    (
+     q_proprieta_compl(Id,Propp)
+     ;
+     q_proprieta_sempl(Id,Propp)
+     ;
+     q_prop_heredit(Id,Propp)
+     ).
+
+q_proprieta_sempl(Id,Propp) :-
+  (
+    (q_fact(_,Propp,[nil:Id],1,_,_);
+     q_fact(_,Propp,[ind:Id],1,_,_);
+     q_fact(_,Id,[arg:_, arg:Propp],_,_,_))
+    ;
+    (q_sit(_,Propp,[nil:Id],1,_,_);
+     q_sit(_,Propp,[ind:Id],1,_,_);
+     q_sit(_,Id,[arg:_, arg:Propp],_,_,_))
+     ;
+    (
+     q_fact(_,isa,[_:Id, class:Propp],1,_,_)
+     ;
+     q_sit(_,isa,[_:Id, class:Propp],1,_,_))
+     ;
+     q_fact(_,isa,[_:Id, arg:Propp],1,_,_)
+     ;
+     q_sit(_,isa,[_:Id, arg:Propp],1,_,_)
+    ).  
+
+q_prop_heredit(Id,Props):-
+  var(Props),
+  !,
+  q_proprieta_sempl(Id,Propp),
+  q_in(_,Id,Ind),
+  q_proprieta(Ind,Props).
+
+q_prop_heredit(Id,Props):-
+  var(Id),
+  !,
+  q_proprieta_sempl(Id,Props),
+  q_in(_,Ind,Id),
+  q_proprieta(Ind,Props).
+
+q_prop_heredit(Id,Props):-
+  nonvar(Id),
+  nonvar(Props),
+  !,
+  q_in(_,Ind,Id),
+  q_proprieta(Ind,Props).
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,name,[Propp,Id],1,_,_).  
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,name,[Prop,Id],1,_,_),
+  q_in(_,Id,Idx),
+  (q_fact(_,Propp,[ind:Idx],1,_,_);
+   q_fact(_,Propp,[arg:Idx],1,_,_)).
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,name,[Prop,Id],1,_,_),
+  q_fact(_,surname,[Propp:Id],1,_,_).
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,cause,[Propp:Idx,arg:Id],1,_,_),  
+  q_fact(_,isa,[_:Id, class:Propp],1,_,_).  
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,relat,[Propp,Id,Idx],1,_,_),  
+  q_fact(_,Propp,[nil:Id],1,_,_).  
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,role,[Propp,Id,Idx],1,_,_),  
+  q_fact(_,isa,[_:Id, class:Propp],1,_,_).  
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,relat,[Propp,Id,Idx],1,_,_),  
+  q_fact(_,isa,[_:Id, class:Propp],1,_,_).  
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,relat,[Propp,Id,Idx],1,_,_).  
+
+q_proprieta_compl(Id,Propp) :-
+  q_fact(_,role,[Propp,Id,Idx],1,_,_).  
+
+q_proprieta_compl(Idy,Prop) :-
+  q_fact(_, isa, [_:Idy, _:Propp], 1, _, _),
+  (P=of;P=for;P=with;P=in;P=has),
+  q_fact(_, P, [_:Idy, Role:Id], 1, _, _),
+  q_recursive_properties(Id,Prop),
+  !.
+
+q_proprieta_compl(Id,Propp) :-
+  nonvar(Id),
+  q_proprieta_sempl(Id,_),
+  q_in(_, Id, Idx),
+  q_proprieta_sempl(Idx,Propp).
+
+q_proprieta_compl(Id,Propp) :-
+  nonvar(Id),
+  q_proprieta_sempl(Id,_),
+  q_fact(_, P, [_:_, _:Id, prop:Infon], 1, _, _),
+  q_fact(Infon, Props, [arg:Idx], 1, _, _),
+  (list(Props), on(Propp, Props); Propp=Props).
+
+q_proprieta_compl(Idy,Propp) :-
+  nonvar(Propp),
+  q_fact(_, P, [_:_, _:Id, prop:Infon], 1, _, _),
+  q_fact(Infon, Props, [arg:Idx], 1, _, _),
+  (list(Props), on(Propp, Props); Propp=Props),
+  q_fact(_, isa, [_:Idy, class:Propp], 1, _, _).
+
+
+allsit(isa,[_:Id, class:Propp],Facts):-
+   on(sit(_,isa,[_:Id, class:Propp],1,_,_),Facts),
+   !.
+
+allfact(Propp,[Arg:Id],Facts):-
+   nonvar(Arg),
+   on(fact(_,Propp,[Arg:Id],1,_,_),Facts),
+   !.
+
+allfact(Arg,[Prop:Id],Facts):-
+   nonvar(Arg),
+   on(fact(_,Arg,[Prop:Id],1,_,_),Facts),
+   !.
+
+allfact(Id,[arg:_, arg:Propp],Facts):-
+   on(fact(_,Id,[arg:_, arg:Propp],_,_,_),Facts),
+   !.
+   
+allfact(isa,[_:Id, class:Propp],Facts):-
+   on(fact(_,isa,[_:Id, class:Propp],1,_,_),Facts),
+   !.
+
+allfact(cause,[Propp:Idx,arg:Id],Facts):-
+   on(fact(_,cause,[Propp:Idx,arg:Id],1,_,_),Facts),
+   !.
+
+allfact(relat,[Propp,Id,Idx],Facts):-
+   on(fact(_,relat,[Propp,Id,Idx],1,_,_),Facts),  
+   !.
+
+allfact(role,[Propp,Id,Idx],Facts):-
+   on(fact(_,role,[Propp,Id,Idx],1,_,_),Facts),  
+   !.
+
+allfact(P, [arg:Id, Role:Idy], Facts):-
+   on(fact(_, P, [arg:Id, Role:Idy], 1, _, _),Facts),
+   !.
+
+allfact(P, [arg:_, nil:Id, prop:Infon],Facts):-
+    on(fact(_, P, [arg:_, nil:Id, prop:Infon], 1, _, _),Facts),
+    !.
+
+allfact(P, [arg:Id, nil:_, Role:Idx],Facts):-
+    on(fact(_, P, [arg:Id, nil:_, Role:Idx], 1, _, _),Facts),
+    Role\=prop,
+    !.
+
+allfact4(Infon, Props, [arg:Idx],Facts):-
+    on(fact(Infon, Props, [arg:Idx], 1, _, _),Facts),
+    !.
+
+allin(Id,Ind,Facts):-
+   on(in(_,Id,Ind),Facts),
+   !.
+
+allproprieta(Id,Propp,Facts) :-
+    (nonvar(Id);nonvar(Propp)),
+    (
+     allproprieta_compl(Id,Propp,Facts)
+     ;
+     allproprieta_sempl(Id,Propp,Facts)
+     ;
+     allprop_heredit(Id,Propp,Facts)
+     ).
+allproprieta(Id,Propp,Facts) :-
+     !.
+allproprieta_sempl(Id,Propp,Facts) :-
+  (
+    (allfact(Propp,[nil:Id],Facts);
+     allfact(Propp,[ind:Id],Facts);
+     allfact(Id,[arg:_, arg:Propp],Facts))
+    ;
+    (allfact(Propp,[nil:Id],Facts);
+     allfact(Propp,[ind:Id],Facts);
+     allfact(Id,[arg:_, arg:Propp],Facts))
+     ;
+    (
+     allfact(isa,[_:Id, class:Propp],Facts)
+     ;
+     allsit(isa,[_:Id, class:Propp],Facts))
+    ).  
+
+allprop_heredit(Id,Props,Facts):-
+  var(Props),
+  !,
+  allproprieta_sempl(Id,Propp,Facts),
+  allin(Id,Ind,Facts),
+  allproprieta(Ind,Props,Facts).
+
+allprop_heredit(Id,Props,Facts):-
+  var(Id),
+  !,
+  allproprieta_sempl(Id,Props,Facts),
+  allin(Ind,Id,Facts),
+  allproprieta(Ind,Props,Facts).
+
+allprop_heredit(Id,Props,Facts):-
+  nonvar(Id),
+  nonvar(Props),
+  !,
+  allin(Id,Idx,Facts),
+  recursive_properties(Idx,Propp),
+  !.
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(name,[Propp,Id],Facts).  
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(name,[Prop,Id],Facts),
+  allin(Id,Idx,Facts),
+  (allfact(Propp,[ind:Idx],Facts);
+   allfact(Propp,[arg:Idx],Facts)).
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(name,[Prop,Id],Facts),
+  allfact(surname,[Propp:Id],Facts).
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(cause,[Propp:Idx,arg:Id],Facts),  
+  allfact(isa,[_:Id, class:Propp],Facts).  
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(relat,[Propp,Id,Idx],Facts),  
+  allfact(Propp,[nil:Id],Facts).  
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(role,[Propp,Id,Idx],Facts),  
+  allfact(isa,[_:Id, class:Propp],Facts).  
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(relat,[Propp,Id,Idx],Facts),  
+  allfact(isa,[_:Id, class:Propp],Facts).  
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(relat,[Propp,Id,Idx],Facts).  
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(role,[Propp,Id,Idx],Facts).  
+
+allproprieta_compl(Id,Propp,Facts) :-
+  allfact(isa, [_:Idy, _:Propp],Facts),
+  (P=a;P=di;P=per;P=con;P=in;P=has),
+  allfact(P, [_:Id, Role:Idy],Facts).
+
+allproprieta_compl(Id,Propp,Facts) :-
+  nonvar(Id),
+  allproprieta_sempl(Id,_,Facts),
+  allin(Id, Idx,Facts),
+  allproprieta_sempl(Idx,Propp,Facts).
+
+allproprieta_compl(Id,Propp,Facts) :-
+  nonvar(Id),
+  allproprieta_sempl(Id,_,Facts),
+  allfact(P, [_:_, _:Id, prop:Infon],Facts),
+  allfact4(Infon, Props, [arg:Idx],Facts),
+  (list(Props), on(Propp, Props); Propp=Props).
+
+allproprieta_compl(Id,Propp,Facts) :-
+  nonvar(Id),
+  allfact(P, [_:_, _:Id, Role:Idx],Facts),
+  Role\=prop,
+  recursive_properties(Idx,Propp),
+  !.
+
+recursive_properties(Idx,Propp):-
+     entity(Type, Idx, Score, facts(Facts)),
+  (allfact4(Infon, Props, [arg:Idx],Facts)
+   ;
+   allfact(isa, [_:Idx, class:Propp],Facts)).
+
+extract_most_specific(Ids,Id):-
+     extract_most_specifics(Ids,IdProps),
+     compare_properties_modss(IdProps,Id),
+     !.
+
+compare_properties_modss(IdProps,Id):-
+     compare_properties_mods(IdProps,Rest),
+     compare_rest(Rest,Id),
+     !.
+compare_properties_modss(IdProps,Id):-
+   on([Id1, Props],IdProps),
+   !.
+
+compare_rest([[Id1, Props],[Id, Props]],Id1):-!.
+compare_rest([[Id2, Props],[Id1, Props],[Id, Props]],Id2):-!.
+compare_rest([[Id1, Props1],[Id, Props]],Idx):-
+    length(Props1,L1),
+    length(Props,L),
+    (L<L1, Idx=Id1
+      ;
+      L1<L, Idx=Id
+      ;
+      L=L1, Idx=Id1),
+    !.
+
+compare_rest([[Id2, Props],[Id1, Props],[Id, Props]],Id2):-
+    length(Props2,L2),
+    length(Props1,L1),
+    length(Props,L),
+    (L1<L2, Idx=Id2
+      ;
+      L2<L1, Idx=Id1
+      ;
+      L<L2, Idx=Id2
+      ;
+      L2<L, Idx=Id
+      ;
+      L<L1, Idx=Id1
+      ;
+      L1<L, Idx=Id
+      ;
+      L2=L1, Idx=Id2
+      ;
+      L=L1, Idx=Id1),
+    !.
+
+
+compare_properties_mods([],[]):-!.
+compare_properties_mods([Id-Props|IdProps],[[Id, Props]|Rest]):-
+     compare_properties_mods(IdProps,Rest),
+     !.
+
+extract_most_specifics([],[]):-!.
+extract_most_specifics([Id-Prop|Ids],[Id-AllProps|IdProps]):-
+     entity(Type, Id, Score, facts(Facts)),
+     findall(Props, allproprieta(Id,Props,Facts), AllProp),
+     sort(AllProp,AllProps),
+     extract_most_specifics(Ids,IdProps),
+     !.
+
+getallproperties_mods(Type-Card,Propp,Id-Prop):-
+     on(Prop,Propp),
+     entity(Type, Id, Score, facts(Facts)),
+     q_extract_properties(Type,Id, Facts, Def1, Num, Prop, Cat),
+     remove(Prop,Propp,Pros),
+     on(Pro,Pros),
+     allproprieta(Id,Pro,Facts).
+
+getallproperties_mods(Type-Card,Propp,Id-Prop):-
+     on(Prop,Propp),
+     toupper(Prop,UpProp),
+     entity(Type, Id, Score, facts(Facts)),
+     q_extract_properties(Type,Id, Facts, Def1, Num, UpProp, Cat),
+     remove(Prop,Propp,Pros),
+     on(Pro,Pros),
+     toupper(Pro,UpPro),
+     allproprieta(Id,UpPro,Facts).
+
+get_property_accadere(X,Propp,Type):-
+     q_fatto(Y,X,Z),
+     q_ruolo_fatto2(X,Role),
+     q_get_specific_ind_des(Z,Prop,Ty),
+     q_proprieta(Z,Pro),
+     (atomic(Pro),
+     append([Pro],[Prop],Propp)
+      ;
+      list(Pro),
+      append(Pro,[Prop],Propp)
+     ),
+     q_type(Z,Type),
+     !.  
+
+pwrite_riass_foc(W,ind-_,SortedEnts, Ents):-
+   on(Ent-_,SortedEnts),
+   write_all_short_rels(W,Ent),
+   find_all_topsents(SortedEnts, 0, Ents),
+   dangling_sentences(Ents, Entss),
+   nl,nl,
+   write('############'),
+   write('   FOCALIZED SUMMARY   '),
+   writenl(W, '############'),
+   append([1],Entss,NEnts),
+   sort(NEnts,Nents),
+   writeriass(W,Nents,1).
+
+pwrite_riass_foc(W,set-_,SortedEnts, Ents):-
+   on(Ent-_,SortedEnts),
+   find_included(Ent,Incls),
+   write_all_short_rels_set(W,Incls,NSortedEnts),
+   find_all_topsents(NSortedEnts, 0, Ents),
+   dangling_sentences(Ents, Entss),
+   nl,nl,
+   write('############'),
+   write('   FOCALIZED SUMMARY   '),
+   writenl(W, '############'),
+   append([1],Entss,NEnts),
+   sort(NEnts,Nents),
+   writeriass(W,Nents,1).
+
+/*
+write_all_short_rels(W,Ent).
+write_all_short_rels(W,Ent):-
+   find_all_short_rels(Ent,Rels),
+   entity(Type, Ent, Score, facts(Facts)),
+   associate_sem_roles(Facts,Rels,NRels),
+   writerels(W,NRels),
+   !.
+*/
+write_all_short_rels(W,Ent):-
+   find_descr([Ent],[Pred]),   
+   find_all_subj_rels(Pred,Rels),
+   nl,
+   write('    This is what  '),
+   write(Pred),
+   write(' actually thought  '),nl,nl,
+   writerels(W,Rels),
+   find_all_short_rels(Ent,Rels1),
+   nl,
+   write('    This is what concerns '),
+   write(Pred),
+   write(' in the real world  '),nl,nl,
+   writerels(W,Rels1),
+   !.
+
+find_all_subj_rels(Id,RevSrels):-
+   discourse_structures(Sd),
+   findall(SimpMainRel, (
+                          DS=..[ds,At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, Point],
+                          on(DS,Sd), 
+                          SimpMainRel=..[Rel,Args,Pol,Loc], 
+                          Point=Id), 
+                      Srelss),
+                     Srelss\=[],
+   togli_doppi(Srelss,Srels),
+   reverse(Srels,RevSrels).
+find_all_subj_rels(Id,RevSrels):-!.
+find_all_short_rels(Id,RevSrels):-
+   discourse_structures(Sd),
+   findall(SimpMainRel, (
+                          DS=..[ds,At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, Point],
+                          on(DS,Sd), 
+                          SimpMainRel=..[Rel,Args,Pol,Loc], 
+                          on(Id:_,Args)), 
+                      Srelss),
+                     Srelss\=[],
+   togli_doppi(Srelss,Srels),
+   reverse(Srels,RevSrels).
+find_all_short_rels(Id,RevSrels):-!.
+
+/*
+find_all_short_rels(Id,RevSrels):-
+   discourse_structures(Sd),
+   findall(SimpMainRel, (
+                          DS=..[ds,At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, Strc],
+                          on(DS,Sd), 
+                          SimpMainRel=..[Rel,Args,Pol,Loc], on(Id:_,Args)), 
+                      Srels),
+                     Srels\=[],
+   reverse(Srels,RevSrels).
+*/
+
+associate_sem_roles(Id,[],[]):-!.
+associate_sem_roles(Facts,[Rel|Rels],[NRel|NRels]):-
+   Rel=..[R,Args,Pol,Loc],
+   on(Fact,Facts),
+   Fact=fact(Id, R, FArgs, P, Time, Place),
+   build_new_args(Args,FArgs,NArgs),
+   NRel=..[R,NArgs,Pol,Loc],
+   associate_sem_roles(Facts,Rels,NRels),
+   !.   
+associate_sem_roles(Facts,[Rel|Rels],[NRel|NRels]):-
+   Rel=..[R,Args,Pol,Loc],
+   on(Fact,Facts),
+   Fact=fact(Id, R1, FArgs, P, Time, Place),
+   name(R1,Re),
+   name(R,Ree),
+   compare_rels(Re,Ree),  
+   bytes_to_chars( Re, ListOfChars ),
+   on('_',ListOfChars),
+   build_new_args(Args,FArgs,NArgs),
+   NRel=..[R1,NArgs,Pol,Loc],
+   associate_sem_roles(Facts,Rels,NRels),
+   !.   
+associate_sem_roles(Facts,[Rel|Rels],NRels):-
+   associate_sem_roles(Facts,Rels,NRels),
+   !.   
+
+compare_rels(Re,Ree):-
+   length(Re,L),
+   length(Ree,L1),
+   L1 < L,
+   Re=[A,B,C,D|_],
+   Ree=[A,B,C,D|_],
+   !.
+
+build_new_args([],[],[]):-!.
+build_new_args([Id:Ent|Args],[R:Id|FArgs],[R:Ent|Ents]):-
+   build_new_args(Args,FArgs,Ents),
+   !.
+build_new_args([Id:Ent|Args],[],[prop:Ent|Ents]):-
+   extractproprieta_sempl(Id,Ent),
+   build_new_args(Args,FArgs,Ents),
+   !.
+build_new_args(Args,[R:Ind|FArgs],[R:Ent|Ents]):-
+   extractproprieta_sempl(Ind,Ent),
+   nonvar(R),
+   build_new_args(Args,FArgs,Ents),
+   !.
+
+extractproprieta_sempl(Ind,Propx):-
+   entity(Type, Ind, Score, facts(Fa)),
+   (on(fact(_,name,[Prop, Ind],Pol,_,_),Fa), 
+    on(fact(_,inst_of,[ind:Ind, class:Gend],Pol,_,_),Fa)
+    ;
+    on(fact(_,isa,[_:Ind, _:Prop],Pol,_,_),Fa),
+    (on(in(_,Ind,Idx),Fa),
+     extractproprieta_sempl(Idx,Propx)
+     ;
+     Propx=Prop)
+     ), 
+    !.
+
+extractproprieta_sempl(Ind,R):-
+   entity(Type, Id, Score, facts(Fa)),
+   Fact=fact(Ind, R, FArgs, P, Time, Place),
+   !.
+
+writerels(W,[]):-!.
+writerels(W,[Rel|Rels]):-
+   Rel=..[R,Args,Pol,Loc],
+   Pol=1,
+   writeseqnl(W, [R,Args]),
+   writerels(W,Rels),
+   !.
+
+writerels(W,[Rel|Rels]):-
+   Rel=..[R,Args,Pol,Loc],
+   Pol=0,
+   write(W,'not  '),
+   writeseqnl(W, [R,Args]),
+   writerels(W,Rels),
+   !.
+writerels(W,[Rel|Rels]):-
+   Rel=..[R,Args,Pol,Loc],
+   writeseqnl(W, [R,Args]),
+   writerels(W,Rels),
+   !.
+
+'QUERIES '('Focalized Question-Answering') :-
+   netta_fin('Feedback'),
+   ask(['Enter a wh- question to parse'], Phrase),
+   parseq(Phrase,Code),
+   retractall(current_num(_,_)),
+   qstart,
+   nstart,
+   start,
+%   read_model,
+   in_question(Code, 1, 1, NewNoCl),
+   wfront('Feedback'),
+   tell('Feedback'),
+   nl,nl,
+   write('###############################################################'),
+   nl,writeseq('Feedback',Phrase),nl,
+   !,
+   reply_happen(Rete, NoFr, [True,Form]),
+   !.
+     
+qinfo_evaluation(NoFr) :-
+   prop_roots(Nodes),
+   nl,
+   qprops_info_eval(Nodes, NoFr, _) .
+
+qinfo_evaluation(NoFr) :-!.
+
+qprops_info_eval([], _, _) :-
+   !.
+qprops_info_eval([Node-FunRole | Nodes], NoFr, OldClause) :-
+   qinfo_eval(infon(OldClause, NewClause),
+      NoFr, Node, FunRole, 
+      View, Intens, Change, Rel, 
+      VerbCat, Verb, 
+       TempRel, DiscRel, DiscDom, SubjConsc),
+   asserta(
+      qinfo(
+         NoFr, Node, FunRole, 
+         View, Intens, Change, Rel, 
+         VerbCat, Verb,
+         TempRel, DiscRel, DiscDom, SubjConsc)),
+   write_info_eval(NoFr, Node),
+   nl,
+   nl,
+   qprops_info_eval(Nodes, NoFr, OldClause).
+
+qprops_info_eval([Node-ip_ell/prop], NoFr, OldClause) :-
+   PrecNoFr is NoFr - 1,
+   qinfo(PrecNoFr, N, FunRole, View, Intens,
+     Change, Rel, _, _, TempRel, DiscRel, DiscDom, SC),
+   asserta(
+      qinfo(
+         NoFr, Node, FunRole, 
+         View, Intens, Change, Rel, 
+         VerbCat, Verb,
+         TempRel, DiscRel, DiscDom, SubjConsc)),
+   write_info_eval(NoFr, Node),
+   !.
+
+qprops_info_eval([Nodo-Fun/prop | Nodes], NoFr, OldClause) :-
+   nodo(Nodo)::_::nodo(N1),
+   qprops_info_eval([N1-Fun/prop | Nodes], NoFr, OldClause).
+
+qprops_info_eval([Node-FunRole | Nodes], NoFr, OldClause) :-
+   qprops_info_eval(Nodes, NoFr, OldClause).
+
+qinfo_eval(OtherClause,
+   NoFr, Root, FunRole, 
+   View, Intens, Change, Relev,
+   SemCat, Verb,
+   TempRel, DiscRel, DiscDom, SubjConsc)
+   :-
+
+   sem_cat(Root, SemCat),
+   tense(Root, FunRole, Tense),
+   aspect(Root, Aspect),
+   voice(Root, Voice),
+   speech_type(Root, Speech),
+   polarity(Root, Pol),
+   mood(Root, Mood),
+   semantic_verbal_pred(Root, Verb),
+   stato(NoFr, State),
+   support(Root, Support),
+   perform(Root, Support, Perform),
+   focalizers(Root, Focs),
+   event_index(Root, TesIndex),
+   view(NoFr,FunRole,Speech,SemCat,Voice,Verb,Support,View),
+   factivity(Verb, Tense, Mood, FunRole, Support, Intens),
+   change(Speech,Pol,Support,View,Mood,Tense,Aspect,Change),
+   relevance(Change, Relev),
+
+   prec_sentence_info(
+      NoFr, PrecChange, PrecState, PrecSemCat,
+      PrecTesIndex, PrecDiscRel, PrecDiscDom, OtherClause),
+
+   temp_relation(OtherClause,Tense,
+      NoFr, Root, TesIndex, PrecTesIndex, PrecDiscRel, Change,
+      Intens,TempRel),
+   disc_relation(
+      NoFr, View, FunRole, 
+      Relev, Intens, Aspect,
+      [PrecChange, Change], [PrecState, State],
+      Verb, Support, [PrecSemCat, SemCat],
+      Focs,
+      PrecDiscRel,
+      DiscRel),
+   disc_domain(Intens,
+      NoFr, Root, FunRole, SemCat, Mood, Perform, PrecDiscDom,
+      DiscDom, SubjConsc).
+
+find_included(Ent,[Ent,Ind]):-
+     entity(Type, Ind, Score, facts(Facts)),
+     on(in(_,Ind,Ent),Facts),
+     !.
+find_included(Ent,[Ent]).
+
+count_sort([], []):-!.
+
+count_sort(Frasi, [C-N|Frasi2]):-
+    Frasi=[N|Fra],
+    count_sort1(1, N, Fra, Frasi1, C),
+    count_sort(Frasi1, Frasi2),
+    !.
+
+count_sort1(C, N, [N|Frasi], Frasi2, C2):-
+    C1 is C + 1,
+    count_sort1(C1, N, Frasi, Frasi2, C2),!.
+
+count_sort1(C, N, Frasi, Frasi, C):-!.

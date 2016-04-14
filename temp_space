@@ -1,0 +1,1839 @@
+﻿:- style_check(-singleton).
+
+
+allen :-
+   rete(Rete),
+   bagof(
+      N / RefInt, 
+      NN ^ 
+         (
+         arco(N, NN, ref_int, Rete),
+         foglia(NN, [RefInt], Rete),
+         is_principale(N, Rete)
+         ), 
+      ListaPrincipali),
+   attacca_relative(ListaPrincipali, ListaPrincRel, Rete),
+   sort(ListaPrincRel,Lists),
+   (Lists=[A], List=Lists; Lists\=[A], Lists=[A|_], List=[A]),
+   apply(allen0, List).
+
+ 
+attacca_relative(L,L,_).
+
+attacca_relative_x([],_,[]).
+attacca_relative_x([NPrinc/RefIntPrinc|AltrePrinc],ListaRel,PrincRel) :-
+  bagof(N/RefInt,member(N/RefInt/NPrinc,ListaRel),Rel),
+  attacca_relative_x(AltrePrinc,ListaRel,AltrePrincRel),
+  append(Rel,[NPrinc/RefIntPrinc|AltrePrincRel],PrincRel), !.
+attacca_relative_x([Princ|AltrePrinc],ListaRel,[Princ|AltrePrincRel]) :-
+  attacca_relative_x(AltrePrinc,ListaRel,AltrePrincRel).
+allen0(N/RefInt) :-
+  assert(current_prop_node(N)), 
+         nodo(N)::rel1::[Rel1],
+         nodo(N)::rel2::[Rel2],
+         nodo(N)::aspetto::Asp,
+         RefInt = tr(F_id), 
+  assert(aspetto_frase(F_id,Asp)), 
+  frase_corrente(NoFr, _),                  
+  anafora_temp(NoFr, Asp, F_id,Rel1,Rel2),
+  abolish(current_prop_node/1),!.  
+
+
+controllo_semantico(F_id,Asp/Pred/Args) :- 
+   fact(_,isa,[arg:Id, _:ev],_,tes(F_id),_),
+   fact(Id,Pred,Args,_,_,_),
+   aspetto_frase(F_id, Asp),!.
+controllo_semantico(F_id,attivita/Pred/Args) :- 
+   fact(Id,Pred,Args,_,_,_),
+   aspetto_frase(F_id,Asp),!.
+
+
+controllo_semantico(F_id,Asp/Pred/Args) :- 
+  frase_corrente(NoFr,_),
+  1<NoFr,
+  risolto(NoFr,SnX,Anaf,Pred), 
+  (fact(_,inst_of,[ind:Id,class:C],_,_,_),
+  fact(_,name,[Pred,Id],_,_,_);
+   fact(_,isa,[ind:Id,class:Pred],_,_,_)),
+  nodo(_)::F/R::pred::Pred1,
+  Pred1\=Pred,
+  nodo(_)::F1/R1::pred::Anaf,
+  Args=[R:_,R1:Id],
+  aspetto_frase(F_id,Asp),!.
+
+
+anafora_temp(1, _, F_id,_,_) :-
+  time_focus(_, Focus),
+  !,
+  allen_1(F_id,tr(F_id)), 
+  asserta(time_focus(NoFr, tes(F_id))), 
+  !.
+
+anafora_temp(NoFr, stato, F_id,tr(F_id)<td(F_id),tr(F_id)=tes(F_id)) :-
+  time_focus(_, tes(TF_id)),
+  !,
+  allen_1(F_id,tr(F_id)),
+  relazione(tr(TF_id),tes(TF_id),R1),
+  constraints([af,dr,eq],R1,R),
+  crea_intervallo(tr(TF_id),tr(F_id)),
+  add_rel(tr(TF_id),tr(F_id),R),
+  !.
+
+anafora_temp(NoFr, Asp, F_id,tr(F_id)>>td(F_id),tr(F_id)=tes(F_id)) :-
+  time_focus(_, tes(TF_id)),
+  !,
+  allen_1(F_id,tr(F_id)),
+  relazione(tr(TF_id),tes(TF_id),R1),
+  constraints([af,dr,eq],R1,R),
+  crea_intervallo(tr(TF_id),tr(F_id)),
+  add_rel(tr(TF_id),tr(F_id),R),
+  !.
+
+anafora_temp(NoFr, attivita, F_id,tr(F_id)<td(F_id),tr(F_id)=tes(F_id)) :-
+  time_focus(_, tes(TF_id)),
+  !,
+  allen_1(F_id,tr(F_id)),
+  relazione(tr(TF_id),tes(TF_id),R1),
+  constraints([af,ov],R1,R),
+  crea_intervallo(tr(TF_id),tr(F_id)),
+  add_rel(tr(TF_id),tr(F_id),R),
+  asserta(time_focus(NoFr, tes(F_id))), 
+  !.
+
+anafora_temp(NoFr, Asp, F_id,tr(F_id)<td(F_id),tr(F_id)=tes(F_id)) :-
+  time_focus(_, tes(TF_id)),
+  !,
+    Asp\=attivita,
+  allen_1(F_id,tr(F_id)),
+  relazione(tr(TF_id),tes(TF_id),R1),
+  constraints([af,me],R1,R),
+  crea_intervallo(tr(TF_id),tr(F_id)),
+  add_rel(tr(TF_id),tr(F_id),R),
+  asserta(time_focus(NoFr, tes(F_id))), 
+  !.
+
+/* imperfetto caso particolare */
+anafora_temp(NoFr,_, F_id,tr(F_id)<td(F_id),incluso(tr(F_id),tes(F_id))) :-
+  time_focus(_, tes(TF_id)),
+  controllo_semantico(TF_id,accomp/Pred1/Arg1),
+  controllo_semantico(F_id,attivita/Pred2/Arg2),
+  (nogen_member(tema_aff:Id1,Arg1),
+  nogen_member(tema_nonaff:Id1,Arg2)
+  ; 
+  nogen_member(agente:Id1,Arg1),
+  nogen_member(tema_nonaff:Id1,Arg2)), 
+  !,
+  allen_1(F_id,tr(TF_id)),
+  relazione(tr(TF_id),tes(TF_id),R1),
+  constraints([eq],R1,R),            
+  crea_intervallo(tr(TF_id),tr(F_id)),
+  add_rel(tr(TF_id),tr(F_id),R),        
+  add_rel(tes(TF_id),tes(F_id),[fb]),
+  !.
+
+anafora_temp(NoFr,_, F_id,tr(F_id)<td(F_id),Rel2) :-
+  (Rel2 = incluso(tr(F_id),tes(F_id)) 
+   ;
+   Rel2 = (tes(F_id) < tr(F_id))),
+  time_focus(_, tes(TF_id)),
+  !,
+  allen_1(F_id,tr(TF_id)),
+  relazione(tr(TF_id),tes(TF_id),R1),
+  constraints([eq,dr],R1,R),
+  crea_intervallo(tr(TF_id),tr(F_id)),
+  add_rel(tr(TF_id),tr(F_id),R), 
+  !.
+  
+allen_1(F_id,Ref_int) :-
+  allen_1_x(F_id,Ref_int),!.
+
+allen_1_x(F_id, RefInt) :-      
+    una_rel(F_id,T),        
+    allen_2(T, RefInt),   
+    fail.
+allen_1_x(_,_) :- !.          
+
+
+allen_2(I1=I2,RefInt) :- 
+                         crea_intervallo(I1,RefInt),
+                         crea_intervallo(I2,RefInt),
+                         add_rel(I1,I2,[eq]).
+allen_2(I1<I2,RefInt) :- 
+                         crea_intervallo(I1,RefInt),
+                         crea_intervallo(I2,RefInt),
+                         add_rel(I1,I2,[bf]).
+allen_2(prec_imm(I1,I2),RefInt) :- 
+                         crea_intervallo(I1,RefInt),
+                         crea_intervallo(I2,RefInt),
+                         add_rel(I1,I2,[me]).
+allen_2(diverso(I1,I2),RefInt) :- 
+                         crea_intervallo(I1,RefInt),
+                         crea_intervallo(I2,RefInt),
+                         add_rel(I1,I2,[eq]).
+allen_2(contemporaneo(I1,I2),RefInt) :- 
+                         crea_intervallo(I1,RefInt),
+                         crea_intervallo(I2,RefInt),
+                         add_rel(I1,I2,[eq]).
+allen_2(incluso(I1,I2),RefInt) :- 
+                         crea_intervallo(I1,RefInt),
+                         crea_intervallo(I2,RefInt),
+                         add_rel(I1,I2,[dr,st,fn]).
+allen_2(_,_).
+
+
+/* trova una relazione nel grafo 
+   cerca le relazioni di frasi legate alla principale F_id */
+una_rel(F_id,Rel1):- 
+                      arco(N1,NN,ref_int,Rete),
+                      foglia(NN,[tr(F_id)],Rete),
+                      (arco(N1,N2,rel1,Rete);
+                       arco(N1,N2,rel2,Rete);
+                       arco(N1,N2,relavv,Rete);
+                       arco(N1,N2,reltr,Rete);
+                       arco(N1,N2,reltes,Rete)),
+                       foglia(N2,[Rel],Rete),
+                       una_rel_x(Rel,Rel1),!.  
+
+
+una_rel_x(Rel,Rel1) :-
+   Rel =.. [F,X,Y],
+   (X=td(_) -> Op1 = td; Op1 = X),
+   (Y=td(_) -> Op2 = td; Op2 = Y),
+   Rel1 =.. [F,Op1,Op2].
+
+
+scrivi_time_focus(TF) :-
+  nl,write('NUOVO TIME FOCUS : '),
+  write(TF), nl.
+
+
+/*  ALGORITMO DI ALLEN  */
+
+/* lista tutte le relazioni temporali presenti in memoria */
+relazioni_temporali :- 
+  listing(int_temp),
+  listing(is_ref_int),
+  listing(has_ref_int),  
+  listing(rel_temp).
+
+
+crea_intervallo(td, _) :-
+   (
+   int_temp(td),
+   !
+   ;
+   assert(int_temp(td)),
+   assert(is_ref_int(td))
+   ),
+   !.
+
+/* avverbi deittici - IERI */
+crea_intervallo(ieri, tr(F)) :-
+   (
+   int_temp(ieri),
+   !
+   ;
+   crea_intervallo(td, _),
+   assert(int_temp(ieri)),
+   assert(
+      has_ref_int(ieri, td)),
+   add_rel(ieri, td, [bf])
+   ),
+   assert(
+      has_ref_int(tr(F), ieri)),
+   !.
+
+crea_intervallo(giovedi, tr(F)) :-
+   relazione(tr(F), td, [REL1]),
+   (
+   int_temp(giovedi),
+   !
+   ;
+   crea_intervallo(td, _),
+   assert(int_temp(giovedi)),
+   assert(
+      has_ref_int(giovedi, td)),
+   add_rel(giovedi, td, [REL1])
+   ),
+   assert(
+      has_ref_int(tr(F), giovedi)),
+   !.
+
+crea_intervallo(tr(F), tr(F)) :-
+   crea_intervallo(tr(F), td),
+   !.
+
+/* Int non ha un reference interval */
+crea_intervallo(Int, nil) :-
+   assert_if_needed(int_temp(Int)),
+   !.
+
+/* Int non puo' avere come reference interval se' stesso */
+crea_intervallo(Int, Int) :-
+   assert_if_needed(int_temp(Int)),
+   !.
+
+
+/* Int ha come reference int. Ref_int */
+crea_intervallo(Int, Ref_int) :-
+   assert_if_needed(int_temp(Int)),
+   assert_if_needed(int_temp(Ref_int)),
+   assert_if_needed(is_ref_int(Ref_int)),
+   assert_if_needed(has_ref_int(Int, Ref_int)),
+   !.
+
+
+relazione_diretta(I,J,R):-
+  int_temp(I),
+  int_temp(J),
+  I @< J,
+  rel_temp(_, I,J,R),
+  ! ;
+  int_temp(I),
+  int_temp(J),
+  I @> J,
+  rel_temp(_, J,I,R1),
+  inverti(R1,R),
+  ! .
+
+
+add_rel(I,J,R) :-
+ subset(R,[bf,af,dr,cn,ov,ob,me,mb,st,sb,fn,fb,eq]),
+ !,
+  (relazione_diretta(I,J,N),
+  !,
+  intersezione(R,N,X),
+   (subset(X,N),
+    !,
+    scrivi_rel(I,J,X),
+    assertz(todo(I,J)),
+    aggiorna 
+    ;
+    true)
+  ;
+  scrivi_rel(I,J,R),
+  assertz(todo(I,J)),
+  aggiorna).
+add_rel(_,_,_).
+
+scrivi_rel(I, J, Rel) :-
+  I @< J,
+  retract_if_possible(rel_temp(_, I,J,_)),
+  assert_rel_temp(I,J,Rel).
+
+scrivi_rel(I, J, Rel) :-
+  I @> J,
+  inverti(Rel, InvRel),
+  retract_if_possible(rel_temp(_, J,I,_)),
+  assert_rel_temp(J, I, InvRel).
+
+
+assert_rel_temp(I, J, Rel) :-
+   gen_sym(infon, Inf),
+   assert(rel_temp(Inf, I, J, Rel)),
+   frase_corrente(NoFr, _),
+   current_prop_node(Node),
+   assert(confer_rel_temp(NoFr, Node, Inf)).
+
+retract_if_possible(Clause) :-
+   retract(Clause),
+   !.
+retract_if_possible(_).
+
+assert_if_needed(Clause) :-
+   call(Clause),
+   !.
+assert_if_needed(Clause) :-
+   assert(Clause).
+
+aggiorna :-
+  retract(todo(I,J)),
+  relazione_diretta(I,J,Nij),
+  (bagof(K/Nki,(comparable(J,K),relazione_diretta(K,I,Nki)),L1),
+   !;
+   true), 
+  (bagof(K/Njk,(comparable(I,K),relazione_diretta(J,K,Njk)),L2),
+   aggiorna_y(I,J,Nij,L2),
+   !;
+   true),
+  !,
+  aggiorna.
+aggiorna :- !.
+
+
+aggiorna_x(_,_,_,[]) .
+aggiorna_x(I,J,Nij,[K/Nki|AltriK]) :-
+  constraints(Nki,Nij,Rkj),
+  add_rel(K,J,Rkj), 
+  aggiorna_x(I,J,Nij,AltriK),!.
+
+
+aggiorna_y(_,_,_,[]).
+aggiorna_y(I,J,Nij,[K/Njk|AltriK]) :-
+  constraints(Nij,Njk,Rik),
+  add_rel(I,K,Rik),
+  aggiorna_y(I,J,Nij,AltriK),!.
+
+comparable(I,K) :-
+   has_ref_int(I,K).
+comparable(I,K) :-
+   has_ref_int(K,I).
+comparable(I,K) :-
+   has_ref_int(I,R),
+   has_ref_int(K,R),
+   K \= I.   
+
+constraints(R1,R2,R3) :-
+  constraints1(R1,R2,[],R3),!.
+
+constraints1([],_,R3,R3).
+constraints1([X1|C1],R2,R3in,R3out) :-
+  constraints2(X1,R2,R3in,Rx),
+  constraints1(C1,R2,Rx,R3out),!.
+
+constraints2(_,[],R3,R3).
+constraints2(X1,[X2|C2],R3in,R3out) :-
+  con(X1,X2,R),
+  unione(R,R3in,Rx),
+  constraints2(X1,C2,Rx,R3out),!.
+
+
+inv(bf,af).
+inv(af,bf). 
+inv(dr,cn).
+inv(cn,dr).
+inv(ov,ob).
+inv(ob,ov).
+inv(me,mb).
+inv(mb,me).
+inv(st,sb).
+inv(sb,st).
+inv(fn,fb).
+inv(fb,fn).
+inv(eq,eq).
+
+
+ 
+inverti([],[]).
+inverti([X|L],[Y|L1]) :- inverti(L,L1),
+                         inv(X,Y),!.
+ 
+unione([],X,X).
+unione([X|R],Y,Z) :- nogen_member(X,Y),
+                    !,
+                    unione(R,Y,Z).
+unione([X|R],Y,[X|Z]) :- unione(R,Y,Z),!.
+ 
+
+
+vai_da(Inizio,Destinazione,Percorso) :-
+      vai_da1([[Inizio]],Destinazione,Percorso).
+
+vai_da1([Primo|_Resto],Destinazione,Primo) :-
+      Primo = [Destinazione|_],!.
+vai_da1([[Ultimo|Traccia] | Altri], Destinazione, Percorso) :-
+      bagof([Z,Ultimo|Traccia],
+             nodo_permesso(Ultimo,Traccia,Destinazione,Z), Lista),
+      append(Lista,Altri,Nuove_Strade),
+      vai_da1(Nuove_Strade,Destinazione,Percorso)
+      ;
+      vai_da1(Altri,Destinazione,Percorso),!.        
+
+
+nodo_permesso(X,Traccia,Destinazione,Y) :-
+      (has_ref_int(X,Y);  
+       has_ref_int(Y,X),is_ref_int(Y);
+       Y=Destinazione,\+ is_ref_int(Y),has_ref_int(Y,X)),
+      \+ nogen_member(Y,Traccia),!.
+
+constraint_along_path([X,Y|Altri],Constr) :-
+      relazione_diretta(X,Y,Rel),
+      constraint_along_path_1([Y|Altri],Rel,Constr), !.
+ 
+constraint_along_path_1([_],C,C) :- !.
+constraint_along_path_1([X,Y|Altri],Cin,Cout) :-
+      relazione_diretta(X,Y,Rel),
+      constraints(Cin,Rel,C),!,
+      constraint_along_path_1([Y|Altri],C,Cout).   
+
+path_rel(I,J,R) :- vai_da(J,I,Path),
+                   constraint_along_path(Path,R),!.  
+
+relazione_indiretta(I,J,R) :-
+      bagof(Rel,path_rel(I,J,Rel),ListaRel),
+      rix(ListaRel,R).
+
+rix([R],R).
+rix([Rel|AltreRel],NewRel) :-
+    rix(AltreRel,Rx),
+    intersezione(Rel,Rx,NewRel),!.
+
+relazione(I,J,R) :-
+    comparable(I,J),
+    relazione_diretta(I,J,R),
+    !.
+
+relazione(I, J, R) :-
+   (
+   relazione_diretta(I, J, R1),
+   !
+   ;
+   R1 = [bf, af, dr, cn, ov, ob, me, mb, st, sb, fn, fb, eq]
+   ),
+   (
+   relazione_indiretta(I, J, R2),
+   !
+   ;
+   R2 = [bf, af, dr, cn, ov, ob, me, mb, st, sb, fn, fb, eq]
+   ),
+   intersezione(R1, R2, R).
+
+ /* relazioni tra gli intervalli,no info=no con,cio relazione impossibile*/
+ /*con(r1,r2,[r]) := A r1 B, B r2 C, A [ri] C */
+ 
+con(bf,bf,[bf]).
+con(bf,dr,[bf,ov,me,dr,st]).
+con(bf,cn,[bf]).
+con(bf,ov,[bf]).
+con(bf,ob,[bf,ov,me,dr,st]).
+con(bf,me,[bf]).
+con(bf,mb,[bf,ov,me,dr,st]).
+con(bf,st,[bf]).
+con(bf,sb,[bf]).
+con(bf,fn,[bf,ov,me,dr,st]).
+con(bf,fb,[bf]).
+con(bf,eq,[bf]).
+ 
+con(af,af,[af]).
+con(af,dr,[af,ob,mb,dr,fn]).
+con(af,cn,[af]).
+con(af,ov,[af,ob,mb,dr,fn]).
+con(af,ob,[af]).
+con(af,me,[af,ob,mb,dr,fn]).
+con(af,mb,[af]).
+con(af,st,[af,ob,mb,dr,fn]).
+con(af,sb,[af]).
+con(af,fn,[af]).
+con(af,fb,[af]).
+con(af,eq,[af]).
+ 
+ 
+con(dr,bf,[bf]).
+con(dr,af,[af]).
+con(dr,dr,[dr]).
+con(dr,ov,[bf,ov,me,dr,st]).
+con(dr,ob,[af,ob,mb,dr,fn]).
+con(dr,me,[bf]).
+con(dr,mb,[af]).
+con(dr,st,[dr]).
+con(dr,sb,[af,ob,mb,dr,fn]).
+con(dr,fn,[dr]).
+con(dr,fb,[bf,ov,me,dr,st]).
+con(dr,eq,[dr]).
+ 
+con(cn,bf,[bf,ov,me,cn,fb]).
+con(cn,af,[af,ob,cn,mb,sb]).
+con(cn,dr,[ov,ob,dr,cn,eq]).
+con(cn,cn,[cn]).
+con(cn,ov,[ov,cn,fb]).
+con(cn,ob,[ob,cn,sb]).
+con(cn,me,[ov,cn,fb]).
+con(cn,mb,[ob,cn,sb]).
+con(cn,st,[cn,fb,ov]).
+con(cn,sb,[cn]).
+con(cn,fn,[cn,sb,ob]).
+con(cn,fb,[cn]).
+con(cn,eq,[cn]).
+ 
+con(ov,bf,[bf]).
+con(ov,af,[af,ob,cn,mb,sb]).
+con(ov,dr,[ov,dr,st]).
+con(ov,cn,[bf,ov,me,cn,fb]).
+con(ov,ov,[bf,ov,me]).
+con(ov,ob,[ov,ob,dr,cn,eq]).
+con(ov,me,[bf]).
+con(ov,mb,[ob,cn,sb]).
+con(ov,st,[ov]).
+con(ov,sb,[cn,fb,ov]).
+con(ov,fn,[dr,st,ov]).
+con(ov,fb,[bf,ov,me]).
+con(ov,eq,[ov]).
+ 
+con(ob,bf,[bf,ov,me,cn,fb]).
+con(ob,af,[af]).
+con(ob,dr,[ob,dr,fn]).
+con(ob,cn,[af,ob,mb,cn,sb]).
+con(ob,ov,[ov,ob,dr,cn,eq]).
+con(ob,ob,[af,ob,mb]).
+con(ob,me,[ov,cn,fb]).
+con(ob,mb,[af]).
+con(ob,st,[ob,dr,fn]).
+con(ob,sb,[ob,af,mb]).
+con(ob,fn,[ob]).
+con(ob,fb,[ob,cn,sb]).
+con(ob,eq,[ob]).
+ 
+con(me,bf,[bf]).
+con(me,af,[af,ob,mb,cn,sb]).
+con(me,dr,[ov,dr,st]).
+con(me,cn,[bf]).
+con(me,ov,[bf]).
+con(me,ob,[ov,dr,st]).
+con(me,me,[bf]).
+con(me,mb,[fn,fb,eq]).
+con(me,st,[me]).
+con(me,sb,[me]).
+con(me,fn,[dr,st,ov]).
+con(me,fb,[bf]).
+con(me,eq,[me]).
+ 
+con(mb,bf,[ov,bf,me,cn,fb]).
+con(mb,af,[af]).
+con(mb,dr,[ob,dr,fn]).
+con(mb,cn,[af]).
+con(mb,ov,[ob,dr,fn]).
+con(mb,ob,[af]).
+con(mb,me,[st,sb,eq]).
+con(mb,mb,[af]).
+con(mb,st,[dr,fn,ob]).
+con(mb,sb,[af]).
+con(mb,fn,[mb]).
+con(mb,fb,[mb]).
+con(mb,eq,[mb]).
+ 
+con(st,bf,[bf]).
+con(st,af,[af]).
+con(st,dr,[dr]).
+con(st,cn,[bf,ov,me,cn,fb]).
+con(st,ov,[bf,ov,me]).
+con(st,ob,[ob,dr,fn]).
+con(st,me,[bf]).
+con(st,mb,[mb]).
+con(st,st,[st]).
+con(st,sb,[st,sb,eq]).
+con(st,fn,[dr]).
+con(st,fb,[bf,me,ov]).
+con(st,eq,[st]).
+ 
+con(sb,bf,[bf,ov,me,cn,fb]).
+con(sb,af,[af]).
+con(sb,dr,[ob,dr,fn]).
+con(sb,cn,[cn]).
+con(sb,ov,[ov,cn,fb]).
+con(sb,ob,[ob]).
+con(sb,me,[ov,cn,fb]).
+con(sb,mb,[mb]).
+con(sb,st,[st,sb,eq]).
+con(sb,sb,[sb]).
+con(sb,fn,[ob]).
+con(sb,fb,[cn]).
+con(sb,eq,[sb]).
+ 
+con(fn,bf,[bf]).
+con(fn,af,[af]).
+con(fn,dr,[dr]).
+con(fn,cn,[af,ob,mb,cn,sb]).
+con(fn,ov,[ov,dr,st]).
+con(fn,ob,[af,ob,mb]).
+con(fn,me,[me]).
+con(fn,mb,[af]).
+con(fn,st,[dr]).
+con(fn,sb,[af,ob,mb]).
+con(fn,fn,[fn]).
+con(fn,fb,[fn,fb,eq]).
+con(fn,eq,[eq]).
+ 
+con(fb,bf,[bf]).
+con(fb,af,[af,ob,mb,cn,sb]).
+con(fb,dr,[ov,dr,st]).
+con(fb,cn,[cn]).
+con(fb,ov,[ov]).
+con(fb,ob,[ob,cn,sb]).
+con(fb,me,[me]).
+con(fb,mb,[sb,ob,cn]).
+con(fb,st,[ov]).
+con(fb,sb,[cn]).
+con(fb,fn,[fn,fb,eq]).
+con(fb,fb,[fb]).
+con(fb,eq,[fb]).
+ 
+con(eq,bf,[bf]).
+con(eq,af,[af]).
+con(eq,dr,[dr]).
+con(eq,cn,[cn]).
+con(eq,ov,[ov]).
+con(eq,ob,[ob]).
+con(eq,me,[me]).
+con(eq,mb,[mb]).
+con(eq,st,[st]).
+con(eq,sb,[sb]).
+con(eq,fn,[fn]).
+con(eq,fb,[fb]).
+con(eq,eq,[eq]).
+
+con(bf,af,[bf,af,dr,cn,ov,ob,me,mb,st,sb,fn,fb,eq]).
+con(af,bf,[bf,af,dr,cn,ov,ob,me,mb,st,sb,fn,fb,eq]).
+con(dr,cn,[bf,af,dr,cn,ov,ob,me,mb,st,sb,fn,fb,eq]).
+
+
+
+in_frase(Rete, NoFr, NoCl, Ln) :-
+   abolish(frase_corrente/2),
+   asserta(frase_corrente(NoFr, File)),
+   estrai_argomenti(Rete, RefList),
+   RefList\=[],
+   write_argomenti('Topics & States', Rete, RefList),
+   !,
+   risolvi_esterni(NoFr, RefList, Args),
+   discorso(NoFr, Args),
+   stampa_stato('Topics & States', NoFr),
+   !,
+   (allen ; true),
+   write_temporal_relations('Temporal Relations'),
+   !,
+   nl, 
+   main_location(NoFr, tempo, temporale, RefList, Temp),
+   main_location(NoFr, luogo, locativo, RefList, Loc),
+   !,
+   info_evaluation(NoFr),
+	  !,
+   memorizza(NoFr, Loc, Temp, Args),
+   write_rhet_structure('Info Evaluation', NoFr),
+   !,
+   memorizza_rels(NoFr,Lfs,Rels),
+   write_ls_structure('L-Structure', Lfs, Rels),
+   !,
+   nl,
+   write_sentence_infons(user, NoFr),
+   connect_main_temp_loc(NoFr, Temp),  
+   !,
+   discourse_structure(NoFr, Node, NoCl, Ln, NoClOut, At),
+   write_disc_structure(user, NoFr, Node, NoClOut, Ln, At).
+
+write_temporal_relations(Win) :-
+   active_output_win(Win),
+   frase_corrente(NoFr, _),
+   nl,
+   confer_rel_temp(NoFr, Nodo, Inf), 
+   rel_temp(Inf, I, J, Rel),
+   writenl(rel_temp(Inf, I, J, Rel)),
+   fail. 
+write_temporal_relations(_).   
+
+write_main_locations(Win, NoFr) :-
+   active_output_win(Win),
+   nl, write_main_loc(NoFr),
+   nl, write_main_temp(NoFr), nl, nl,
+   !.
+
+write_main_locations(_, _).
+
+write_argomenti(Win, Rete, RefList) :-
+   active_output_win(Win),
+   estrai_argomenti(Rete, RefList),
+   writenl('WEIGHTED LIST OF TOPICS : '),
+   ppa(RefList, 0), nl,
+   !.
+write_argomenti(_, _, _).
+
+corefer(NoFr, RefList, L) :-
+   risolvi_esterni(NoFr, RefList, L),
+   discorso(NoFr, L).
+
+/******************
+== Estrae da ogni frase la lista degli argomenti che potrebbero essere ripresi nella frase successiva. La lista e' composta di sintagmi nominali ordinati secondo il peso assegnato loro dalla regola pesa_lista.
+La lista viene asserita nel database insieme all'indice di frase relativo. 
+******************/
+check_lista_refs(List,NList,RList):-
+   length(List,L1),
+   length(NList,L2),
+   elimina_pPros(L1,L2,NList,List,RList),
+   !.
+  
+
+elimina_pPros(L1,L2,List,NList,RList):-
+%   L1\=L2,
+   estrai_indici_refs(NList,RList),
+   length(RList,L3),
+   L3=L1,!.
+      
+elimina_pPros(L,L,NList,List,List):-!.
+
+estrai_indici_refs([],[]):-!.
+estrai_indici_refs([Ref|List],[Nodo|RList]):-
+      (Ref=ref_ex(Nodo,Testa,Tab,Pers,Gen,Num,Cat,Funzione/Ruolo)
+      ;
+      Ref=ref_ex(Nodo,Testa,Contr,Tab,Pers,Gen,Num,Cat,Funzione/Ruolo)),
+     estrai_indici_refs(List,RList),
+     !.
+
+estrai_argomenti(Rete,RefList) :-
+   findall(Ind,
+         (
+         arco(N1,N2,tab_ref,Rete),
+         arco(N1,N3,indice,Rete),
+         foglia(N3,Ind,Rete)
+         ),
+         List),
+
+   maplist(trova_pred,List,NList),
+   retractall(ref_ex(_,_,_,_,_,_,_,_)),
+   modifica_testa(NList,ListaArgs),
+   checklist(assertz,ListaArgs),
+   check_lista_refs(ListaArgs,NList,RList),
+   maplist(trova_path_1,RList,PList),
+   pesa_lista(PList,LisPes),
+   crea_lista(LisPes,RefList),
+   !.
+
+trova_path_1(Ind,Ind/Path_length) :-
+     foglia(N1,Ind,_),
+     arco(N,N1,indice,_),
+     trova_path_1_aux(n1,N,0,Path_length).
+
+trova_path_1_aux(N1,N1,PL,PL).
+trova_path_1_aux(N1,N2,PL1,PL2) :-
+   arco(NX,N2,_,_),
+   PLX is PL1 + 1,
+   trova_path_1_aux(N1,NX,PLX,PL2).
+
+search_sc(N, TestaX, Testa2, Pred, FX) :-
+      1<N,
+      NoFr is N - 1,
+      TestaX\=Testa2,   
+      info(NoFr, Node, FunRole, 
+         View, Intens, Change, Rel, 
+         VerbCat, Verb, TempRel, DiscRel, DiscDom, SubjConsc),
+      find_subject(DiscDom, NoFr, Subject, Pred),
+        Pred\=narrator,
+         TestaX\=Pred.
+
+search_sc(N, TestaX, Testa2, Pred, FX) :-
+      1<N,
+      NoFr is N - 1,
+      info(NoFr, Node, FunRole, 
+         View, Intens, Change, Rel, 
+         VerbCat, Verb, TempRel, DiscRel, DiscDom, SubjConsc),
+      find_subject(DiscDom, NoFr, Subject, Pred),
+        Pred\=narrator,
+         TestaX\=Pred.
+
+infer_antecedent(NumFrase, SnX, ListaArgs, ref_ex(SnX,T,Ta,P,G,Num,C,F/R), Types, L4) :-
+       infer_agreement(NumFrase, ref_ex(SnX,T,Ta,P,G,Num,C,F/R), Types, Testa1), 
+       append([est(SnX,Testa1)],ListaArgs,L3),
+       modifica_testa1(L3,L4).
+
+
+infer_agreement(NumFrase,  Ref1, [],  Testa1):- Testa1\=[],!.
+
+infer_agreement(NumFrase,  Ref1, [Type | OtherType],  Testa1) :- 
+       (infer_agree(NumFrase, Ref1, Type, Testa1)
+        ;
+        infer_agreement(NumFrase, Ref1, OtherType, Testa1)
+       ).
+
+
+infer_agree(NumFrase, Ref1, prop, Testa1) :-
+       proposto(X), X\=nil,
+       proposto(ref_ex(_,Test,_,P,G,Nu,C,F1/R1)),
+        search_dmod(Test,Id),
+       (ent(_,Id)
+        ;
+        Nu=sing,
+        ind(_,Id)),
+       matcha(NumFrase, Ref1, proposto, Testa1),
+        Testa1\=indefinite.
+
+infer_agree(NumFrase, Ref1, altri, Testa1) :-
+       FrasePrec is NumFrase - 1,
+       altri(X, FrasePrec), X\=nil,
+       altri(ref_ex(_,Test,_,P,G,Nu,C,F1/R1),FrasePrec),
+        search_dmod(Test,Id),
+       (ent(_,Id)
+        ;
+        Nu=sing,
+        ind(_,Id)),
+       matcha(NumFrase, Ref1, altri, FrasePrec, Testa1),
+        Testa1\=indefinite.
+
+infer_agree(NumFrase, Ref1, Type, Testa1) :-
+       (Type=sec, Funct=secondario
+        ;
+        Type=prin, Funct=principale
+        ),
+       Funct=..[F,X], X\=nil,
+       matcha(NumFrase, Ref1, Funct, Testa1),
+       Testa1\=indefinite.
+    
+
+infer_match_global(prop-altri, Pred, Ref1, N, N1, Testa1Y, Testa1) :-
+       (proposto(ref_ex(_,Testa1Y,_,_,_,_,_,_)),
+       is_a(Testa1Y,Pred),       
+       matcha(N,Ref1,altri,N1,Testa1),
+          Testa1 \= Testa1Y;
+       altri(ref_ex(_,Testa1Y,_,_,_,_,_,_),N1),
+       is_a(Testa1Y,Pred),
+       matcha(N,Ref1,proposto,Testa1),
+       Testa1 \= Testa1Y).
+
+infer_match_global(prin-sec, Testa, RY, Ref1, N, N1, Testa1Y, Testa1) :-
+       (
+       RY = tema_bound,
+       principale(ref_ex(_,Testa1,_,_,_,_,_,_)),
+       is_a(Testa1,Testa), 
+       matcha(N,Ref1,secondario,Testa1Y),
+       Testa1 \= Testa1Y
+       ;
+       secondario(ref_ex(_,Testa1,_,_,_,_,_,_)),
+       is_a(Testa1,Testa),
+       matcha(N,Ref1,principale,Testa1Y),
+        Testa1 \= Testa1Y
+       ).
+
+check_disjoint(N, Testa, Gen, [prop-sec], Tes, T):- 
+      1<N,
+      (proposto(Prop), Prop\=nil,
+       proposto(ref_ex(_,Testa,_,_,_,_,_,_)),
+       proprieta_compl(Id,Testa), T=Testa
+       ;
+       secondario(Pro), Pro\=nil,
+       secondario(ref_ex(_,Test,_,_,_,_,_,_)),
+       proprieta_compl(Id,Test), T=Test
+       ),
+       proprieta_sempl(Id,Tes),
+       !.
+
+check_disjoint(N, suocero, Gen, [main-sec, sec-main], Head1, Head2):- 
+       1<N,
+       fact(_,relat,[figlia,Id,Id1],1,Temp1,Loc1),
+       (fact(_,name,[Head1, Id1], 1, _ ,_)
+        ;
+        fact(_,isa, [ind:Id1, class:Head1], 1, Temp, Loc)),
+       fact(_, sposare, [Agen:Id2, Tema:Id],1,_,Loc1),
+       (fact(_,name,[Head2, Id2], 1, _ ,_)
+        ;
+        fact(_,isa, [ind:Id2, class:Head2], 1, Temp2, Loc2)),
+       (
+       principale(ref_ex(_,Head1,_,_,_,_,_,_)),
+%       topic(N,secondary,Id2),
+       secondario(ref_ex(_,Head2,_,_,Gen,_,_,_))
+         ;
+       secondario(ref_ex(_,Head1,_,_,_,_,_,_)),
+%       topic(N,main,Id2),
+       principale(ref_ex(_,Head2,_,_,Gen,_,_,_))
+         ;
+       secondario(ref_ex(_,suocero,_,_,_,_,_,_)),
+%       topic(N,main,Id2),
+       principale(ref_ex(_,Head2,_,_,Gen,_,_,_))
+       ),
+       check_gender(Gen, Id2),
+        Head2 \= Head1, !.
+
+/* infers a set property from its split name single properties */
+infer_split_ante(Testa1, [Id, Id1]):-
+        proprieta_rec(Ids,Propp),
+        set(_,Ids),
+       principale(ref_ex(_,Test,_,P,G,Nu,C,F1/R1)),
+        (fact(_,name, [Test, Id], 1, Temp, Loc);
+        fact(_, isa, [arg:Id, arg:Test], 1, Temp1,Loc1)),
+        proprieta_rec(Id1,Prop),
+        ind(_,Id1),       
+       inclus_in(Id1, Ids),
+        (fact(_,name, [Test1, Id1], 1, Temp, Loc);
+        fact(_, isa, [arg:Id1, arg:Test1], 1, Temp1,Loc1)),
+          Test\=Test1,
+       inclus_in(Id, Ids),
+          Nu=sing, ind(_,Id),
+        (Testa1= [Test,Test1]),
+       !.
+
+infer_split_ante(Testa1, [Id, Id1]):-
+       (principale(ref_ex(_,Test,_,P,G,Nu,C,F1/R1))
+        ;
+        altri(ref_ex(_,Test,_,_,G,Nu,C,_/_), N1)),
+        (fact(_,name, [Test, Id], 1, Temp, Loc);
+        fact(_, isa, [arg:Id, arg:Test], 1, Temp1,Loc1)),
+        proprieta_rec(Id1,Prop),
+        ind(_,Id1),       
+        (fact(_,name, [Test1, Id1], 1, Tem, Lo);
+        fact(_, isa, [arg:Id1, arg:Test1], 1, Temp2,Loc2)),
+       (principale(ref_ex(_,Test1,_,P,Ge,Nu,C,F1/R1))
+        ;
+        altri(ref_ex(_,Test1,_,_,Ge,Num,Ca,_/_), N1)
+         ;
+         search_actors(Test1)),
+          Test\=Test1,
+          Nu=sing, ind(_,Id),
+        (Testa1= [Test,Test1]),
+       !.
+
+search_actors(Testa):-
+disc_struc(At, NoFr-NoCl, Topics, SimpMainRel, Tint, TempRel,  DiscRel, Strc, SimplDiscDom, Point),
+  on(Type:Id:Testa, Topics),!.
+
+in_context(Rete, NoFr, NoCl, Ln, Loc, Temp, At) :-
+   abolish(frase_corrente/2),
+   asserta(frase_corrente(NoFr, File)),
+   estrai_argomenti(Rete, RefList),
+   write_argomenti('Topics & States', Rete, RefList),
+   !,
+   risolvi_esterni(NoFr, RefList, Args),
+   discorso(NoFr, Args),
+   stampa_stato('Topics & States', NoFr),
+   !,
+   (allen ; true),
+   write_temporal_relations('Temporal Relations'),
+   !,
+   nl, 
+   main_location(NoFr, tempo, temporale, RefList, Temp),
+   main_location(NoFr, luogo, locativo, RefList, Loc),
+   !,
+   info_evaluation(NoFr),
+	  !,
+   memorizza(NoFr, Loc, Temp, Args),
+   write_rhet_structure('Info Evaluation', NoFr),
+   !,
+   write_sentence_infons('Model', NoFr),
+   connect_main_temp_loc(NoFr, Temp),
+   !,
+   discourse_structure(NoFr, Node, NoCl, Ln, NoCls, At),
+   write_disc_structure('Discourse Structure', NoFr, Node, NoCl, Ln, At).
+
+/*
+d_structure(
+   NoFr, Node, NoCl, 
+   Topics, DiscRel, TempRel,
+   fact(InfonId, Rel, Args, Pol, Temp, Loc),
+   State, DiscMove, DiscLev, Attach_Cl)
+*/
+
+build_facts(NoFr, Node, Rel, Args, Pol, Temp, Loc):-
+     vpred_smap(Node, rel:Rel, Rel),
+     funcs_smap(funcs, NoFr, Node, Locs, inds(In, _), _, _),
+     pol_smap(Node, Pol),
+     current_main_loc(PrecNoFr, tempo, Tempr),
+     current_main_loc(PrecNoFr, luogo, Locr),
+     (Tempr=ref_ex(univ), Temp=univ;
+     Tempr=ref_ex(Temp, _)),
+     (Locr=ref_ex(univ), Loc=univ;
+     Locr=ref_ex(Loc, _, _, _, _, _, _, _)),
+     assign_index(NoFr, Loc, Temp, In, Args).
+
+build_facts(NoFr, Node, Rel, Args, Pol, Temp, Loc):-
+     nodo(N)::ip_ell/prop::nodo(N2),
+     nodo(N1)::adjs::adj/Role::sem_mark::Rel,
+     adjs_smap(funcs, NoFr, N, Locs, inds(In, _), _, _),
+     pol_smap(N, Pol),
+     current_main_loc(PrecNoFr, tempo, Tempr),
+     current_main_loc(PrecNoFr, luogo, Locr),
+     (Tempr=ref_ex(univ), Temp=univ;
+     Tempr=ref_ex(Temp, _)),
+     (Locr=ref_ex(univ), Loc=univ;
+     Locr=ref_ex(Loc, _, _, _, _, _, _, _)),
+     assign_index(NoFr, Loc, Temp, In, Args).
+
+not_antecedente(Ant,Ind):-
+   findall(Ant, antecedente(_,Ant,Ind,_), Ants),
+   Ants=[],!.
+
+discourse_structure(NoFr, NNode, NoCl, Ln, Ncs, At) :-
+   prop_roots(Nodes),
+   nl,
+   clauses_d_structure(Nodes, NNode, NoFr, NoCl, NCl, Lin, At),
+   (NCl=[NoCl], Lin=NoCl,
+    Ln is NoCl + 1, Ncs = NCl
+    ; 
+   append([NoCl], NCl, Ncc),
+   sort(Ncc, Ncs), Ln=Lin).
+
+/*
+clauses_d_structure([], [], _, NoCl, [], NnoCl, []):-
+   var(NoCl).
+
+clauses_d_structure([], [], _, NoCl, [], NoCl, []):-!.
+
+*/
+
+clauses_d_structure([], [], _, NoCl, [], NoCl, []):-!.
+
+clauses_d_structure([Nod-Fun/Role|Nodes], [Nod|Node], NoFr, NoCl, [NewNoCl|NoCls], Ln, [Nat|At]) :-
+   clause_d_structure(
+      NoFr, Nod, NoCl, 
+      Topics, DiscRel, TempRel, MainRel, Stato, DiscMove, DiscLev, Nat),
+   asserta(
+      d_structure(
+         NoFr, Nod, NoCl, Topics, DiscRel, 
+         TempRel, MainRel, Stato, DiscMove, DiscLev)),
+%   write_discourse_structure('Discourse Structure', NoFr, Node, NoCl, At),
+  (Nodes\=[], NewNoCl is NoCl + 1
+   ;
+   Nodes=[], NewNoCl=NoCl),
+  clauses_d_structure(Nodes, Node, NoFr, NewNoCl, NoCls, Ln, At).
+
+clauses_d_structure([Nod-Fun/Role|Nodes], [Nod|Node], NoFr, NoCl, NoCls, Ln, At) :-
+  clauses_d_structure(Nodes, Node, NoFr, NewNoCl, NoCls, Ln, At).
+
+
+recover_preceding_d_structure(NoCl,PrecDiscRel,PrecState, PrecDiscMove, PrecDiscLev):-
+   nonvar(NoCl), 
+   PrecNoCl is NoCl - 1,
+   d_structure(_, _, PrecNoCl, _, PrecDiscRel, _, _, PrecState, PrecDiscMove, PrecDiscLev),
+   !.
+recover_preceding_d_structure(1,[],[], [], []):-
+   !.
+recover_preceding_d_structure(0,[],[], [], []):-
+   !.
+
+
+getstate(NoFr, State):-
+   stato(NoFr, State),
+   !.
+getstate(NoFr, retaining):-!.
+
+clause_d_structure(
+   NoFr, Node, NoCl, 
+   FTopics, DiscRel, TempRel,
+   fact(InfonId, Rel, Args, Pol, Temp, Loc),
+   State, DiscMove, DiscLev, Attach_Cl)
+   :-
+   findall(
+      Type:Ind:Pred,
+      ( 
+      trova_topics(NoFr, Type, Pred, Ind)
+      ),
+      Topics),
+   filter_topics(Topics, FTopics),
+   info(
+      NoFr, Node, Prop, _, _,_, _,
+      _, Rel, TempRel, DiscRel, _, _),
+   (
+     confer_infon(InfonId, NoFr, _, _, main),
+    (
+     fact(InfonId, Rel, Args, Pol, Temp, Loc)
+     ;
+     sit(InfonId, Rel, Args, Pol, Temp, Loc)
+     )
+    ;
+    Prop=main/_,
+    (
+     fact(InfonId, Rel, Args, Pol, Temp, Loc)
+     ;
+     sit(InfonId, Rel, Args, Pol, Temp, Loc)
+     ;
+     build_facts(NoFr, Node, Rel, Args, Pol, Temp, Loc)
+     )),
+   getstate(NoFr, State),
+   recover_preceding_d_structure(NoCl,PrecDiscRel,PrecState, PrecDiscMove, PrecDiscLev),
+   !,   
+   disc_move(NoCl, FTopics, TempRel, PrecDiscMove,
+      DiscRel, PrecDiscRel, PrecState, State,  PrecDiscLev,
+      DiscLev, DiscMove, Attach_Cl).
+
+clause_d_structure(
+   NoFr, Node, NoCl, 
+   FTopics, DiscRel, TempRel,
+   fact(InfonId, Rel, Args, Pol, Temp, Loc),
+   State, DiscMove, DiscLev, Attach_Cl)
+   :-
+   findall(
+      Type:Ind:Pred,
+      ( 
+      trova_topics(NoFr, Type, Pred, Ind), nonvar(Ind)
+      ),
+      Topics),
+   filter_topics(Topics, FTopics),
+   info(
+      NoFr, Node, Prop, _, _,_, _,
+      _, Rel, TempRel, DiscRel, _, _),
+    (Prop=relp/prop,
+    nodo(N)::pred::Rel,
+    nodo(N)::F/R::indice::SnX,
+    confer_topic(NoFr, Type, Ind, SnX, _),
+    (
+     fact(_, isa, [ind:Ind, class:_],Pol, Temp, Loc)
+     ;
+     sit(_, isa, [ind:Ind, class:_],Pol, Temp, Loc)),
+    Args=[_:Ind],
+    Fact=fact(idx, Rel, Args, Pol, Temp, Loc)
+    ;
+    Prop=_/prop,
+    (confer_topic(NoFr, Type, Ind, SnX, _),
+    fact(_, isa, [ind:Ind, class:_],Pol, Temp, Loc),
+    Args=[_:Ind],
+    Fact=fact(idx, Rel, Args, Pol, Temp, Loc)
+         ;
+     build_facts(NoFr, Node, Rel, Args, Pol, Temp, Loc)
+     )
+    ;
+    Prop=adj/_,
+    (confer_topic(NoFr, Type, Ind, SnX, _),
+    fact(_, isa, [ind:Ind, class:_],Pol, Temp, Loc),
+    Args=[_:Ind],
+    Fact=fact(idx, Rel, Args, Pol, Temp, Loc)    
+         ;
+     build_facts(NoFr, Node, Rel, Args, Pol, Temp, Loc)
+     )
+    ),
+   getstate(NoFr, State),
+   recover_preceding_d_structure(NoCl,PrecDiscRel,PrecState, PrecDiscMove, PrecDiscLev),
+   !,   
+   disc_move(NoCl, FTopics, TempRel, PrecDiscMove,
+      DiscRel, PrecDiscRel, PrecState, State,  PrecDiscLev,
+      DiscLev, DiscMove, Attach_Cl).
+
+clause_d_structure(
+   NoFr, Node, NoCl, 
+   FTopics, DiscRel, TempRel,
+   fact(InfonId, Rel, Args, Pol, Temp, Loc),
+   State, DiscMove, DiscLev, Attach_Cl)
+   :-
+   findall(
+      Type:Ind:Pred,
+      ( 
+      trova_topics(NoFr, Type, Pred, Ind), nonvar(Ind)
+      ),
+      Topics),
+   filter_topics(Topics, FTopics),
+    (nodo(N)::pred::Rel,
+     nodo(N)::F/R::indice::SnX,
+     confer_topic(NoFr, Type, Ind, SnX, _),
+    (
+     fact(_, Re, [ind:Ind, class:_],Pol, Temp, Loc)
+     ;
+     sit(_, Re, [ind:Ind, class:_],Pol, Temp, Loc)),
+    Args=[_:Ind],
+    Fact=fact(idx, Re, Args, Pol, Temp, Loc)
+    ;
+    Prop=_/prop,
+    (confer_topic(NoFr, Type, Ind, SnX, _),
+    fact(_, Re, [ind:Ind, class:_],Pol, Temp, Loc),
+    Args=[_:Ind],
+    Fact=fact(idx, Re, Args, Pol, Temp, Loc)
+         ;
+     build_facts(NoFr, Node, Re, Args, Pol, Temp, Loc)
+     )
+    ;
+    Prop=adj/_,
+    (confer_topic(NoFr, Type, Ind, SnX, _),
+    fact(_, Re, [ind:Ind, class:_],Pol, Temp, Loc),
+    Args=[_:Ind],
+    Fact=fact(idx, Re, Args, Pol, Temp, Loc)    
+         ;
+     build_facts(NoFr, Node, Re, Args, Pol, Temp, Loc)
+     )
+    ),
+   getstate(NoFr, State),
+   recover_preceding_d_structure(NoCl,PrecDiscRel,PrecState, PrecDiscMove, PrecDiscLev),
+   !,   
+   disc_move(NoCl, FTopics, TempRel, PrecDiscMove,
+      DiscRel, PrecDiscRel, PrecState, State,  PrecDiscLev,
+      DiscLev, DiscMove, Attach_Cl).
+
+filter_topics(Topics, Tops):-
+    filtertopics(Topics, FTopics),
+    sort(FTopics, NTopics),
+    (remove(T:Id:Pred-sc, NTopics, Top),
+     remove(T:Id:Pred, Top, Tops)
+     ;
+     Tops=NTopics),
+    !.
+
+filtertopics([], []):-!.
+filtertopics([A, A|Topics], [A|FTopics]):-
+    filtertopics(Topics, FTopics),!.
+
+filtertopics([T:Id:Pred, T1:Id:Pred|Topics], [T:Id:Pred|FTopics]):-
+    filtertopics(Topics, FTopics),!.
+
+filtertopics([T:Id:Pred-sc, T1:Id:Pred|Topics], [T:Id:Pred|FTopics]):-
+    filtertopics(Topics, FTopics),!.
+
+filtertopics([T:Id:Pred, T1:Id:Pred-sc|Topics], [T:Id:Pred|FTopics]):-
+    filtertopics(Topics, FTopics),!.
+
+filtertopics([A|Topics], [A|FTopics]):-
+    filtertopics(Topics, FTopics),!.
+
+trova_topics(NoFr, Type, Pred, Ind) :-
+   extract_tpi(Type, Pred, SnX),
+   semantic_ind(NoFr, Type, Ind, SnX, Pred).
+
+semantic_ind(NoFr, Type, nil, SnX, indefinite-sc):-!.
+semantic_ind(NoFr, Type, nil, SnX, indefinite):-!.
+
+semantic_ind(NoFr, Type, Ind, SnX, Pred-sc):-
+   confer_topic(NoFr, Type, Ind, SnX, _),!.
+
+semantic_ind(NoFr, Type, Ind, SnX, Pred):-
+   confer_topic(NoFr, Type, Ind, SnX, _),!.
+
+semantic_ind(NoFr, Type, Ind, SnX, Pred-sc):-
+   (ind_description(Ind, Pred)
+     ;
+    nonvar(Pred)
+   ),!.
+
+semantic_ind(NoFr, Type, Ind, SnX, Pred):-
+   (ind_description(Ind, Pred)
+     ;
+    nonvar(Pred)
+   ),!.
+
+extract_tpi(main, Pred, SnX):-
+   principale(ref_ex(SnX,Pred-sc,_,_,_,_,_,_)).
+
+extract_tpi(secondary, Pred, SnX):-
+   secondario(ref_ex(SnX,Pred-sc,_,_,_,_,_,_)).
+
+extract_tpi(expected, Pred, SnX):-
+   proposto(ref_ex(SnX,Pred-sc,_,_,_,_,_,_)).
+
+extract_tpi(main, Pred, SnX):-
+   principale(ref_ex(SnX,Pred,_,_,_,_,_,_)).
+
+extract_tpi(secondary, Pred, SnX):-
+   secondario(ref_ex(SnX,Pred,_,_,_,_,_,_)).
+
+extract_tpi(expected, Pred, SnX):-
+   proposto(ref_ex(SnX,Pred,_,_,_,_,_,_)).
+
+
+disc_move(
+   NoCl, Topics, TempRel,PrDMove,
+   DRel,PDRel,PrecState, State,  PrecLev, 
+   Lev, Move, Attach_Cl)
+   :-
+   check_disc_rel(DRel, PDRel, TempRel, PrDMove,  Move),
+   disc_level(Move, PrDMove, PrecLev, Topics, NoCl, Lev, Attach_Cl).
+
+disc_move(
+   NoCl, Topics, _,PrecDisMove,_,_,PrecState, State, 
+   PrecLev, Lev, DiscMove, Attach_Cl)
+   :-
+   d_move(PrecStates, States, DiscMove),
+   on(PrecState, PrecStates),
+   on(State, States),
+   !,
+   disc_level(DiscMove, PrecDisMove, PrecLev, Topics, NoCl, Lev, Attach_Cl).
+
+check_disc_rel(DRel, DRel, TempRel, PrDMove,  level):-
+       on(DRel, [explanation, setting, description, evaluation, definition]).
+
+check_disc_rel(setting, _, TempRel, PrDMove,  up):-
+       PrDMove\=nil.
+
+check_disc_rel(result, hypothesis, TempRel, PrDMove,  down).
+
+
+check_disc_rel(DRel, PDRel, before(_,_), PrDMove,  bottom).
+
+
+check_disc_rel(purpose, PDRel, TempRel, PrDMove,  down).
+
+check_disc_rel(DRel, PDRel, overlap(_,_), PrDMove,  level):-
+       PrDMove\=nil.
+
+check_disc_rel(DRel, PDRel, finished_by(_,_), PrDMove,  bottom).
+
+check_disc_rel(DRel, PDRel, TempRel, PrDMove,  down):-
+     on(DRel, [evaluation, explanation, definition]).
+
+check_disc_rel(narration, inception, TempRel, PrDMove,  level).
+
+check_disc_rel(DRel, result, TempRel, PrDMove,  down).
+
+check_disc_rel(inception, PDRel, TempRel, PrDMove,  up).
+
+check_disc_rel(obligation, PDRel, TempRel, PrDMove,  up).
+
+check_disc_rel(hypothesis, PDRel, TempRel, PrDMove,  up).
+
+d_move([shifting], [shifting], up) .
+d_move([shifting], [retaining], down) .
+d_move([resume], [continua, continua_analyze], up) .
+d_move([retaining], [continua, continua_analyze], level) .
+d_move([retaining], [cambia], up) .
+d_move([continua], [continua], level) .
+d_move([continua_analyze], [continua_analyze], down) .
+d_move([continua], [retaining], level) .
+d_move([continua, retaining], [resume, retaining], up) .
+d_move([continua], [resume], up) .
+d_move([cambia], [resume], down) .
+d_move([nil], _, down) .
+d_move(_, _, level) .
+
+
+assign_level(1,[]):-!.
+assign_level(Lev,PrecLev):-
+   Lev is PrecLev + 1.
+
+
+/* bottom: ritorno nel passato - più che perfetto */
+
+disc_level(down, _, PrecLev, Topics, 1, 1, new(1-1)).
+
+disc_level(level, bottom, PrecLev, _, _, Lev, down(NoFr-PrecNoCl)) :-
+   d_structure(
+      NoFr, _, PrecNoCl, PrecTopics, _, _, _, _, _, _),
+   assign_level(Lev,PrecLev).
+
+disc_level(down, _, PrecLev, _, _, Lev, down(NoFr-PrecNoCl)) :-
+   info(
+      PrecNoFr, Node, _/temp_seq, _, _, _, _, _, _, _, _, _, _),
+   d_structure(
+      NoFr, _, PrecNoCl, PrecTopics, _, _, _, _, _, _),
+   assign_level(Lev,PrecLev).
+
+disc_level(level, _, PrecLev, Topics, NoCl, Lev, Attach_Cl) :-
+   move_to_topic(Topics, NoCl, PrecLev, Lev, Attach_Cl),!.
+
+disc_level(up, _, PrecLev, Topics, NoCl, Lev, Attach_Cl) :-
+   PrecNoCl is NoCl - 1,
+   (0<PrecNoCl,
+   move_to_latest_topic(Topics, PrecNoCl, PrecLev, Lev, Attach_Cl)
+    ;
+     infer_topics(PrecNoCl, Topics, Lev, Attach_Cl),!
+   ).
+
+disc_level(down, level, PrecLev, Topics, NoCl, Lev, Attach_Cl) :-
+   move_to_topic(Topics, NoCl, PrecLev, Lev, Attach_Cl),!.
+
+disc_level(up, _, PrecLev, Topics, NoCl, Lev, Attach_Cl) :-
+   PrecNoCl is NoCl - 1,
+   0<PrecNoCl,
+   Attach_Cl=to(1-1), Lev=1,
+   !.
+
+disc_level(_, _, PrecLev, _, _, Lev, down(NoFr-PrecNoCl)) :-
+   d_structure(
+      NoFr, _, PrecNoCl, PrecTopics, _, _, _, _, _, _),
+   assign_level(Lev,PrecLev).
+
+
+% move_to_latest_topic(_, 1, _, 1,to(1-1)).
+
+move_to_latest_topic(Topics, NoCl, _, NewLev, At) :-
+     (d_structure(
+      NoFr, _, NoCl, PrecTopics, _, _, _, _, _, Lev),
+      match_topics(Topics, PrecTopics, _, Func), 
+       (var(Func), At=from(NoFr-NoCl); nonvar(Func), At=to(NoFr-NoCl)),
+      NewLev=Lev
+     ;
+      move_up(Topics, NoCl, _, NewLev, At)
+     ),!.
+
+
+move_up(Topics, NoCl, _, Lev, At) :-
+   0<NoCl,
+   PrecNoCl is NoCl - 1,
+   At=to(A-B),
+   move_to_latest_topic(Topics, PrecNoCl, _, Lev, At).
+
+move_to_topic(Topics, NoCl, PrecLev, Lev, Struttura) :-
+   (PrecNoCl is NoCl - 1,
+    d_structure(
+      NoFr, _, PrecNoCl, PrecTopics, _, _, _, _, _, Lev),
+    match_main_topics(Topics, PrecTopics), 
+      Struttura = level(NoFr-PrecNoCl),!
+    ;
+   NewNoCl is NoCl - 1,
+   move_to_latest_topic(Topics, NewNoCl, PrecLev, Lev, Struttura),!
+    ;
+   PrecNoCl is NoCl - 1,
+    d_structure(
+      NoFr, _, PrecNoCl, PrecTopics, _, _, _, _, _, Lev),
+     match_secondary_topic(Topics, PrecTopics, NoFr),   
+     Struttura = level(NoFr-PrecNoCl),!
+   ).
+
+
+match_main_topics(Topics, PrecTopics):-
+   on(expected:Ind:Pred, Topics),
+   on(main:Ind:Pred, PrecTopics),!.
+
+match_main_topics(Topics, PrecTopics):-
+   on(main:Ind:Pred, Topics),
+   on(main:Ind:Pred, PrecTopics).
+
+match_main_topics(Topics, PrecTopics):-
+   on(main:Ind:Pred, Topics),
+   on(expected:Ind:Pred, PrecTopics),!.
+
+match_topics(Topics, PrecTopics, _, to) :-
+   on(expected:Ind:Pred, Topics),
+   on(main:Ind:Pred, PrecTopics),!.
+
+match_topics(Topics, PrecTopics, _, to) :-
+   on(expected:Ind:PredsList, Topics),
+   on(main:Ind:Pred, PrecTopics),
+   on(Pred, PredsList),!.
+
+match_topics(Topics, PrecTopics, _, to) :-
+   on(expected:Ind:PredsList, Topics),
+   on(secondary:Ind:Pred, PrecTopics),
+   on(Pred, PredsList),!.
+
+match_topics(Topics, PrecTopics, _, to):-
+   on(main:Ind:Pred, Topics),
+   on(expected:Ind:Pred, PrecTopics),!.
+
+match_topics(Topics, PrecTopics, _, to):-
+   on(expected:Ind:Pred, Topics),
+   on(expected:Ind:Pred, PrecTopics),!.
+
+infer_topics(NoCl, Topics, Lev, to(NoFr-PrecNoCl)):-
+     PrecNoCl is NoCl - 1,
+     d_structure(
+      NoFr, _, PrecNoCl, PrecTopics, _, _, _, _, _, Lev),      
+   (on(expected:Ind:Pred, Topics)
+    ;
+    on(main:Ind:Pred, Topics)),
+   confer_infon(InfonId, NoFr, _, _, main),
+   (fact(InfonId, Rel, Args, Pol, Temp, Loc)
+    ;
+    sit(InfonId, Rel, Args, Pol, Temp, Loc)),
+   on(_:Ind, Args).
+
+match_secondary_topic(Topics, PrecTopics, NoFr):-
+   on(secondary:Ind:Pred, Topics),
+   on(main:Ind:Pred, PrecTopics).
+
+write_disc_structure(Win, NoFr, [], [], NoC, []).
+
+write_disc_structure(Win, NoFr, Nodes, NoCls, NoC, Ats):-
+%   remove(NoC, NoCls, Ncls),
+   (is_list(NoCls), Ncls=NoCls, Nods=Nodes;
+    atomic(NoCls), Ncls=[NoCls], Nods=[Nodes]),
+   w_d_s(Win, NoFr, Nods, Ncls, NoC, Ats).
+
+write_disc_structure(_, _, _, _, _, _).
+
+w_d_s(Win, NoFr, [N|Nodes], [NC|NoCls], NoC, [At|Ats]):-
+   write_discourse_structure(Win, NoFr, N, NC, At),
+   w_d_s(Win, NoFr, Nodes, NoCls, Nn, Ats),!.
+
+w_d_s(_, _, _, _, _, _).
+
+write_discourse_structure(Win, NoFr, N, NoCl, At):-
+   d_structure(
+      NoFr, Node, NoCl, Topics, DiscRel, 
+      TempRel, MainRel, Stato, DiscMove, DiscLev),
+   info(
+      NoFr, Node, _, _, _,_, _,
+      _, _, _, _, DiscDom, Subject),
+   simplify_domain(MainRel,DiscDom, SimplDiscDom),
+   simplify_main_rel(MainRel, SimpMainRel),
+   functor(At, Attach, _),
+   (Attach=new;
+    Attach=to, Move=up;
+    Move=Attach
+    ), 
+   build_temp_int(Move, NoFr-NoCl, FrCl, TempRel, Tint, Strc),
+   find_subject(SimplDiscDom, NoFr, Subject, Point), 
+   asserta(
+      disc_struc(At,
+         NoFr-NoCl, Topics, SimpMainRel, Tint, TempRel, 
+         DiscRel, Strc, SimplDiscDom, Point)),
+   write_dis_struc(Win, NoFr, Node, NoCl, At, DiscLev, 
+        Topics, SimpMainRel, Attach, Move, Tint, TempRel, 
+        DiscRel, Strc, SimplDiscDom, Point).
+
+write_dis_struc(Win, NoFr, Node, NoCl, At, DiscLev, Topics, SimpMainRel,
+        Attach, Move, Tint, TempRel, DiscRel, Strc, SimplDiscDom, Point)
+   :-  
+    nl,
+   ( 
+    Attach=new,
+    Tab is DiscLev * 3,
+    tab(Tab), 
+    write('root:'), 
+    writenl(At)
+    ;
+    Attach=to,
+    Tab is DiscLev * 3,
+    tab(Tab), 
+    write('up:'), 
+    writenl(At)
+    ;
+    Attach=down,
+    Tab is DiscLev * 6,
+    tab(Tab), 
+    write('down:'), 
+    writenl(At)
+    ;
+   Tab is DiscLev * 6,
+   tab(Tab), 
+   write('same_level:'),  
+   writenl(At)
+   ),
+   tab(Tab), write('clause:'), writenl(NoFr-NoCl),
+   tab(Tab), write('topics:'), writenl(Topics),
+   tab(Tab), write('main_fact:'), writenl(SimpMainRel),
+   At=..[_,FrCl],
+   (
+   tab(Tab), write('ref_int:'), writenl(Tint),
+   tab(Tab), write('temp_rel:'), writenl(TempRel)
+    ;
+    genre(legal)),
+   tab(Tab), write('disc_rel:'), writenl(DiscRel),
+   tab(Tab), write('disc_seg:'), writenl(Strc),
+   tab(Tab), write('disc_dom:'), writenl(SimplDiscDom),
+   tab(Tab), write('p_o_view:'), writenl(Point),
+   !.
+
+write_dis_struc(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _).
+   
+build_temp_int(_, 1-1, _, TempRel, tint(T1, []), Strc):-
+   nonvar(TempRel),
+   arg(1,TempRel,T1),
+   arg(2,TempRel,T2),
+   Strc = 1-[1],
+   retractall(current_temp_int(_, _, _)),
+   assert(current_temp_int(1-1, tint(T1, []), Strc)).
+
+build_temp_int(Move, NoFr-NoCl, At, TempRel, Tint, CurrStr):-
+   time_focus(_, TF), TF=nil,
+   nonvar(TempRel),
+   TempRel =.. [TR, Tes1, Tes2],
+   (NoCl=1, PNoCl=1; 1 < NoCl, PNoCl is NoCl - 1),
+%   current_temp_int(_-PNoCl, tint(OldTF, OldInts), OldNoCl-Strc),
+   build_interval(NoCl, PNoCl, PNoCl, nil, TF, Move, Tes1,TR, OldInts, Strc, NewTF, NewInts, CurrStr),
+   Tint=tint(NewTF, NewInts),
+   assertz(current_temp_int(NoFr-NoCl, Tint, CurrStr)).
+
+build_temp_int(Move, NoFr-NoCl, At, TempRel, Tint, CurrStr):-
+   time_focus(_, TF),
+   nonvar(TempRel),
+   TempRel =.. [TR, Tes1, Tes2],
+   (NoCl=1, PNoCl=1; 1 < NoCl, PNoCl is NoCl - 1),
+   current_temp_int(_-PNoCl, tint(OldTF, OldInts), OldNoCl-Strc),
+   build_interval(NoCl, PNoCl, OldNoCl, OldTF, TF, Move, Tes1,TR, OldInts, Strc, NewTF, NewInts, CurrStr),
+   Tint=tint(NewTF, NewInts),
+   assertz(current_temp_int(NoFr-NoCl, Tint, CurrStr)).
+    
+
+
+build_interval(2, PrecNoCl, OldNoCl, TF, TF, Move, Tes1, TR, OldInts, Strc, TF, NewInts, CurrStr):-
+   NewInts=[Tes1],
+   append(Strc, [2], NewStr),
+   CurrStr = OldNoCl-NewStr.
+
+build_interval(NoCl, PrecNoCl, OldNoCl, TF, TF, down, Tes1, TR, OldInts, Strc, TF, NewInts, CurrStr):-
+   NewInts=[Tes1],
+   NewStr = [NoCl],
+   CurrStr = PrecNoCl-NewStr.
+
+build_interval(NoCl, PrecNoCl, OldNoCl, OldTF, TF, Move, Tes1, TR,OldInts, Strc, TF, [], CurrStr):-
+    OldTF\=TF,
+    NewStr = [NoCl],
+    CurrStr = PrecNoCl-NewStr.
+
+
+build_interval(NoCl, PrecNoCl, OldNoCl, TF, TF, Move, Tes1, before,OldInts, Strc, TF, NewInts, CurrStr):-
+   NewInts=[Tes1],
+   NewStr = [NoCl],
+   CurrStr = PrecNoCl-NewStr.
+
+build_interval(NoCl, PrecNoCl, OldNoCl, TF, TF, Move, Tes1, TR,OldInts, Strc, TF, NewInts, CurrStr):-
+   append(OldInts, [Tes1], NewInts),
+   append(Strc, [NoCl], NewStr),
+   CurrStr = OldNoCl-NewStr.
+
+build_interval(NoCl, PrecNoCl, OldNoCl, OldTF, TF, Move, Tes1, TR,OldInts, Strc, OldTF, NewInts, CurrStr):-
+   OldTF\=TF,
+   Move\=up,
+   append(OldInts, [Tes1], NewInts),
+   append(Strc, [NoCl], NewStr),
+   CurrStr = OldNoCl-NewStr.
+
+
+build_interval(NoCl, PrecNoCl, OldNoCl, OldTF, TF, up, Tes1, TR,OldInts, Strc, TF, NewInts, CurrStr):-
+   OldTF\=TF,
+   current_temp_int(At, tint(PrecTf, OldTints), PrecStr),
+   NewTF=TF,
+   NewInts=[PrecTf],
+   At = PrecFr-PrecCl,
+   NewStr = [NoCl],
+   CurrStr = PrecCl-NewStr.
+
+build_interval(NoCl, PrecNoCl, OldNoCl, TF, TF, same_level, Tes1, TR, OldInts, Strc, TF, NewInts, CurrStr):-
+   genre(legal),
+   append(OldInts, [Tes1], NewInts),
+   append(Strc, [NoCl], NewStr),
+   CurrStr = OldNoCl-NewStr.
+
+build_interval(NoCl, PrecNoCl, OldNoCl, OldTF, TF, Move, Tes1, TR, OldInts, Strc, TF, NewInts, CurrStr):-
+   genre(legal),
+   NewInts=[OldTF],
+   NewStr = [NoCl],
+   CurrStr = PrecNoCl-NewStr.
+
+
+find_subject(objective, NoFr, Subject, legislator):-
+   genre(legal). 
+
+find_subject(objective, NoFr, Subject, narrator). 
+
+find_subject(subjective, NoFr, Subject, Tes):- 
+     Subject=sc(_-Root, Index, Pred),
+     1<NoFr,risolto(_,SnY,Tes,Pred). 
+
+find_subject(subjective, NoFr, Subject, Pred):- 
+    Subject=sc(_-Root, Index, Pred). 
+
+find_subject(implicit_subjective, NoFr, Subject, Pred):- 
+    Subject=sc(_-Root, Index, Pred). 
+
+find_subject(explicit_subjective, NoFr, Subject, Pred):- 
+    Subject=sc(_-Root, Index, Pred). 
+
+find_subject(Subjective+P, NoFr, Subject, Pred):- 
+    Subjective=.. [pre_subjective, _-Root, Index, Pred],
+    Subject=sc(_-Root, Index, Pred). 
+
+% pre_subjective(2-n3, sn42, john)+explicit_subjective
+
+simplify_main_rel(MainRel, SimpMainRel) :-
+   MainRel=..[Fact, _, Rel, Args, Pol, _, Loc],
+   nonvar(Rel), atomic(Rel),
+   ((Rel=essere; Rel=be; Rel=have; Rel=avere),
+   simplify_args_pred(Args, Rel, NewRel, NewArgs)
+   ;
+   simplify_args(Args, NewArgs),
+   NewRel=Rel),
+   atomic(NewRel),
+   SimpMainRel=..[NewRel, NewArgs, Pol, Loc].
+
+simplify_args_pred([prop: Ind | Args], _, NewRel, [Id:Rel | NewArgs]) :-
+   (
+   fact(Ind, NewRel, [nil:Id], _, _, _),
+   fact(Inf, isa, [_:Id, _:Rel], _, _, _)
+   ;
+   fact(Ind, NewRel, [nil:Id], _, _, _),
+   fact(Inf, name, [Rel, Id], _, _, _)
+   ;
+   in(_, Id, Ind),
+   in(_, Id1, Ind), Id\=Id1,
+   fact(Inf, isa, [_:Id, _:NewRel], _, _, _)
+   ;
+   sit(Ind, NewRel, [nil:Id], _, _, _),
+   sit(Inf, isa, [_:Id, _:Rel], _, _, _)
+   ),
+   !,
+   simplify_args( Args, NewArgs).
+
+
+simplify_args_pred([Role1: Ind1, Role2 : Ind2], Rel, NewRel, [Ind1:Role1, Ind2:Role2]) :-
+    new_pred(Rel,NewRel),   !.
+
+
+simplify_args([prop: Ind | Args], [Id:Rel | NewArgs]) :-
+   (
+   fact(Ind, role, [Rel, _, Id], _, _, _)
+   ;
+   sit(Ind, role, [Rel, _, Id], _, _, _)
+   ),
+   simplify_args( Args, NewArgs).
+
+simplify_args([prop: Ind | Args], [Ind:Rel | NewArgs]) :-
+   (
+   fact(_, isa, [ind:Ind, class:Rel], _, _, _)
+   ;
+   sit(_, isa, [ind:Ind, class:Rel], _, _, _)
+   ;
+   fact(_, isa, [arg:Ind, arg:Rel], _, _, _)
+   ;
+   sit(_, isa, [arg:Ind, arg:Rel], _, _, _)
+   ), Rel\=ev, Rel\=st, Rel\=pr,
+   simplify_args( Args, NewArgs).
+
+simplify_args([prop: Ind | Args], [Ind:Rel | NewArgs]) :-
+   (
+   fact(Ind, Rel, _, _, _, _)
+   ;
+   sit(Ind, Rel, _, _, _, _)
+   ),
+   simplify_args( Args, NewArgs).
+
+simplify_args([propq: Ind | Args], [Ind:Rel | NewArgs]) :-
+   (
+   fact(Ind, Rel, _, _, _, _)
+   ;
+   sit(Ind, Rel, _, _, _, _)
+   ),
+   simplify_args( Args, NewArgs).
+
+simplify_args([propint: Ind | Args], [Ind:Rel | NewArgs]) :-
+   !,
+   (
+   fact(Ind, Rel, _, _, _, _)
+   ;
+   sit(Ind, Rel, _, _, _, _)
+   ),
+   simplify_args( Args, NewArgs).
+
+simplify_args([Role : Ind | Args], [Ind:Desc | NewArgs]) :-
+   !,
+   (ind_description(Ind, Desc)    ;
+    role_ind_description(Ind, Role, Desc)),
+   simplify_args( Args, NewArgs).
+
+simplify_args([Ind | Args], [Ind:Desc | NewArgs]) :-
+   atomic(Ind),
+   !,
+   ind_description(Ind, Desc),
+   simplify_args( Args, NewArgs).
+
+simplify_args([Ind | Args], [Id:Desc | NewArgs]) :-
+   !,
+   Ind=ind(Isy, Id, Desc),
+   (nonvar(Desc);
+    var(Desc),
+       (ind_description(Id, Desc)
+    ;
+    role_ind_description(Id, Role, Desc))
+    ),
+   simplify_args( Args, NewArgs).
+   
+simplify_args([], []) :-
+   !.
+
+ind_description(Ind, Name) :-
+   fact(_, name, [Name, Ind], 1, _, _),
+   !.
+
+ind_description(Ind, Class) :-
+    in(_,Ind,Id),
+     (fact(_, isa, [_:Id, _:Class], _, _, _);
+      sit(_,isa, [_:Id, _:Class], _, _, _)).
+
+ind_description(Ind, Class) :-
+     (fact(_, isa, [_:Ind, _:Class], _, _, _);
+      sit(_,isa, [_:Ind, _:Class], _, _, _);
+      fact(_, inst_of, [_:Ind, _:Class], _, _, _)), Class\=sloc, 
+     !.
+
+ind_description(Ind, Class) :-
+    class(_,Ind),
+    fact(_, Class, [Ind], _, _, _).
+
+ind_description(Ind, Class) :-
+    fact(_, Class, [arg:Ind], _, _, _).
+
+ind_description(Ind, disc_set:Set) :-
+    ent(_,Ind),
+    fact(_, prop, [arg:Ind, disc_set:Set], _, _, _).
+
+role_ind_description(Ind, Role, Class) :-
+    new_ind(Ind), 
+    nodo(N)::_/Role::pred::Class.
+
+role_ind_description(_, Role, Class) :-
+    nodo(N)::_/Role::pred::Class.
+
+simplify_domain(_,objective, objective) :-
+   !.
+simplify_domain(_,pre_subjective(_, _, _), objective) :-
+   !.
+simplify_domain(_,_, subjective) :-
+   !.

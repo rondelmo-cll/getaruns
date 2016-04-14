@@ -1,0 +1,1014 @@
+﻿:- style_check(-singleton).
+
+/* G R A M M A T I C A 20 - GRAMM19 27/2/89 
+grammatica con il SV di Pianta e Delmonte = marzo/aprile 1991
+grammatica con il CP di Delmonte = settembre 1992
+nuova grammatica con il pred chiamato dal verbo = dicembre 1992
+grammatica in regole semantiche - gennaio 1999
+ */
+
+/* ASSERZIONE */
+
+complex_assertion([],F,X,H) 
+   :- 
+  (F=[],X=[];F=[P|_], punct(P),X=[P]),!.
+
+complex_assertion(asserz_con_avv( indice(Simb),main(CP),Subord),
+   [Cong|F],F1,H)
+   :- 
+   adversative(Cong,Adv),
+   (F=[Punct|F1],
+    Punct=',',
+    retraction(punt,x),
+    subordinate(SubP,Subord,F1,S),!
+    ;
+   subordinate(SubP,Subord,F,S)),
+   S=[Punct1|S1],
+   Punct1=',',
+   retraction(punt,x),
+   complex_assertion(CP,S1,X,H),
+   gen_sym(f, Simb).
+
+complex_assertion(cp_comp(indice(Simb), main(Main),Subordin),
+   F,F1,H) 
+   :- 
+   subordinate(SubordCstr,Subord,F,M),
+   gen_sym(f,Simb),
+   (M=[Punct|S1],
+   Punct=',', retraction(punt,x),
+   ( 
+   complex_assertion(Main,S1,F1,H),
+   Subordin=Subord,
+   SubP=SubordCstr
+   ;
+   other_assert(Subord2Cstr,Subordin,S1,F1),
+   Subord=cp(sub(_), rel(subordinata), Main),
+   SubP=Subord2Cstr,
+   CP=SubordCstr
+   )
+   ;
+%   genre(legal),
+   other_assert(Subord2Cstr,Subordother,M,F1),
+   checksubordother(Subordother, Subord, Main, Subordin)
+   ;
+   simple_assert(Subord2Cstr,Subordother,M,F1,H),
+   (checksubordother(Subordother, Subord, Main, Subordin)
+     ;
+     Subordother=[], Subordin=Subord)
+   ;
+   evaluate_failure(F, F1),
+   Subordin=Subord
+   ).
+
+complex_assertion(X, F,F2,H) 
+  :-
+  simple_assert(CP,X1,F,F1,H),
+  continua_complex(X1,F1,F2,X,CPC),!.
+
+
+evaluate_failure(F, F1):-
+   F1\=[],
+   length(F,L),
+   length(F1,L1),
+   Prop is L1 / L * 100,
+   Prop < 10.
+
+% checksubordother([], Subord, [], Subord):- !.
+
+checksubordother(Subordother, Subord, Main, Subordother):-
+   Subordother\=[],
+   Subord=cp(sub(Sub), rel(subordinata), Main),
+   !.
+
+checksubordother(Subordother, Subord, Main, Subordother):-
+   Subordother\=[],
+   Subord=cp(sub(Sub), rel(comparativa), Main),
+   !.
+
+parent([],F,X):- 
+  (F=[],X=[];F=[P], punct(P),X=[P]),!.
+
+parent(Cp,F,X) 
+   :-
+    F=[Punct|F1],Punct=',',retraction(parent, x),
+   subord_impl(sub(Sub),Asserz,F1,F2),
+    (F2=[Punct|X],Punct=',',retraction(punt, x)
+          ;
+     X=F2),
+   Cp=..[subord_impl,sub(Sub), Asserz],!.
+
+ 
+parent(Asserz,F,X) 
+   :- 
+    F=[Punct|F1],Punct=',',retraction(parent, x),
+   \+ genre(legal),
+   assertion_intrans(Asserz, F1,F2),
+    F2=[Punct|X],Punct=',',retraction(punt, x).
+
+parent(cp(sub(Sub), rel(subordinata), Asserz),F,X) 
+   :- 
+    F=[Punct|F1],Punct=',',retraction(parent, x),
+   subordinate(Sub, Asserz,F1,F2),
+    F2=[Punct|X],Punct=',',retraction(punt, x).
+
+parent([],F,F):-!. 
+
+
+/* FRASE */
+utterance(AsAdv,Frase,X) :- assert_adv(AsAdv, Frase,X, nil).
+utterance(AsDir,Frase,X) :- assert_dir(AsDir, Frase,X, nil).
+utterance(CP2,Frase,X) :- standard_utterance(CP2, Frase,X,H).
+
+/* chiamata per ellittiche */
+utterance(X1, Frase, X) :- 
+              assert_ell(AsEll, Frase, X, nil), 
+              (X='.', X1=AsEll
+                ;
+				           X=!,
+              Ass=perf(exclamative),
+              AsEll=ip(Ind,Verbo,Supp,C,Args,Adjs),
+              X1=ip(Ass,Ind,Verbo,Supp,C,Args,Adjs)
+              ;
+              X1=AsEll
+              ).
+
+/* chiamata per frasi root, non ricorsive */
+standard_utterance(Cstr, Frase,X,nil) 
+   :-
+   reverse(Frase,[Pun|_]),Pun=['?'],
+   inter_dir(Cstr,Frase,X, Sc, nil, C),
+   X=['?'].
+
+standard_utterance(Cstr, Frase,X, nil) :- 
+   reverse(Frase,[Pun|_]),Pun=['?'],
+   yes_no_question(Cstr,Frase,X, nil),
+   X=['?'].
+
+standard_utterance(Cstr, Frase,X,H) :- 
+   complex_assertion(Cstr, Frase,X, H), 
+                  !.
+
+assert_dir(NewAsserz, Frase,H2,H) 
+      :- 
+       onelook(Frase, assert_dir, s, nil),
+       subordinate_dir(cp(sub(dir_speech), Rel, Sub),Frase,Frase1),
+       gen_sym(f,Simb),
+       Frase1=[Punct|S1],
+       (
+       (Punct='!', Ass1=perf(exclamative)
+                  ;
+       (Punct=e;Punct=and;Punct=und), 
+        Ass1=perf(dir_speech)),
+        Rel=..[rel,Re], Re\=imperat,
+       (complex_assertion(X,S1,Frase2,H),
+         X\=[], 
+        (Frase2=[Punc|H1], 
+          sub_w_dir(Punc),
+         X=ip(Ind,Verbo,Supp,C,Args,Adjs),
+            Ass=perf(dir_speech),
+         X1=ip(Ass,Ind,Verbo,Supp,C,Args,Adjs)
+        ;
+         Frase2=[Punc|H1], Punc='!', 
+         X=ip(Ind,Verbo,Supp,C,Args,Adjs),
+                    Ass=perf(exclamative),
+          X1=ip(Ass,Ind,Verbo,Supp,C,Args,Adjs)
+          ;
+          X=ip(Ind,Verbo,Supp,C,Args,Adjs),
+          X1=ip(Ind,Verbo,Supp,C,Args,Adjs)),
+/*          NewAsserz=cp_dir(indice(Simb),X1,
+                cp(sub(dir_speech), Ass1, Sub))
+*/       NewAsserz=cp_dir(indice(Simb),X1,
+               cp(sub(dir_speech), Ass1, Sub)
+                 )
+         ;
+         X=[],
+         NewAsserz=cp(sub(dir_speech), Ass1, Sub))
+         ;
+        Punct=',',
+        assertion_intrans(X1,S1,H2),
+        NewAsserz=cp_comp(indice(Simb), main(X1),
+                     cp(sub(dir_speech), Ass1, Sub))
+         ;
+        (Punct=[];punct(Punct);sub_w_dir(Punct)),
+        Sub\=[], S1=[],
+        Sub=ip(indice(Ind1),Verbo1,supporto(Supp),
+           cat(C),args(Args),adjs(Adjs)),
+         remove(ip(indice(Ind),VerboOut,Supporto,
+           cat(CatV),Args1,Adjs1), Adjs, NAdjs),
+         build_coordinate(Args, Args1),
+         X1 = ip(indice(Ind1),Verbo1,supporto(Supp),
+           cat(C),args(Args),adjs(NAdjs)),
+         X2 = ip(indice(Ind),VerboOut,Supporto,
+           cat(CatV),Args1,Adjs1),
+         NewAsserz = coord_ip(indice(Simb),coord(X1),coord(X2))
+         ;
+        Rel=..[rel,Re], Re=imperat,
+      conjunction(Punct,_), 
+      verbo1(S1,R1,PersSn,
+      v(Verbo1, imperat, Tempo, 2, Num, Gen), 
+      Pr1, Pr2, finito, CatGr1, Supporto1, 
+      CatV1, PredVs1, GenSn, NumSn, PersSn, Neg, Avv),
+      Verb1=v(Verbo1, imperat, Tempo, 2, Num, Gen),
+      SN = sn(indice(Indsn),cat(Cat),
+           pr(pro_picc,pro,_,2,Gen,Num,Ca),
+           spec(def('+')),controllore(SNC)),
+      gen_sym(sn,Indsn),
+      verbal_phrases([sn(SN, Gen, Num, 2),[],[],[],[],[],[],
+       [],parent([]),[]],[[],[]],Verb1,CatGr1,
+       PredVs1, SubCatOut1, Supporto1, cat(CatV1), Args1, Adjs1, R1,X,H), 
+      gen_sym(f,Simb1),
+      VerboOut1=  v(
+        Verbo1, SubCatOut1, imperat, Tempo, 2, 
+        Num, Gen), 
+       X2 = ip(indice(Simb1),VerboOut1,Supporto1,
+           cat(CatV1),Args1,Adjs1),
+       NewAsserz = coord_ip(indice(Simb1),coord(Sub),coord(X2))
+       ).
+
+assert_adv(assert_adv(CongAdv, Adv),[Cong|Frase], X, H)
+   :- 
+   adversative(Cong,CongAdv),
+    onelook(Frase,assert_adv, i,nil), 
+   attiva_intrans_avver(Adv, Frase, X, H).
+
+build_coordinate(Args, args(Args1)):-
+     Args=[arg(_, _, FirstArg) | RestArgs],
+     Args1=[arg(_, _, SN) | ReArgs],
+     trova_t_g_n(FirstArg,T, GenSn, NumSn),
+     estrai_st(indice,FirstArg,indice(SNContrx)),
+     SN=sn(indice(Indsn),cat(Cat),
+           pr(pro_picc,_,pro,PersSn,GenSn,NumSn,Ca),
+           spec(def('+')),controllore(SNContrx)),
+     !.
+
+get_index_coord(Args,SNContrx):-
+   Args=[arg(_, _, FirstArg) | RestArgs],
+   FirstArg=..[sn|_],
+   estrai_st(indice,FirstArg,indice(SNContrx)),
+   !.
+
+get_index_coord(Args,SNContrx):-
+   on(arg(_, _, FirstArg),Args),
+   FirstArg=..[sn|_],
+   estrai_st(indice,FirstArg,indice(SNContrx)),
+   !.
+continua_complex(CP,F,X,CP1, CPC):-
+  (F=[],X=[];F=[P|_], punct(P),X=[P]),
+  CP=ip(indice(Ind1),Verbo1,supporto(Supp),
+           cat(C),args(Args),adjs(Adjs)),
+  (remove(ip(indice(Ind),VerboOut,Supporto,
+           cat(CatV),Args1,Adjs1), Adjs, NAdjs),
+   build_coordinate(Args, Args1),
+   gen_sym(f,Simb),
+   X1 = ip(indice(Ind1),Verbo1,supporto(Supp),
+           cat(C),args(Args),adjs(NAdjs)),
+   X2 = ip(indice(Ind),VerboOut,Supporto,
+           cat(CatV),Args1,Adjs1),
+   CP1 = coord_ip(indice(Simb),coord(X1),coord(X2))
+   ;
+   true, 
+   (Args\=[],
+    CP1=CP
+     ;
+    CP1=[])
+   ),!.
+
+continua_complex(X1,F1,F3,X,CPStr):-
+   (doublelook(F1,complex_assertion, e, v, d),
+  F1=[Co|F2],
+   conjunction(Co,Conj),
+   verbo1(F2,R,PersSn,
+      Verbo, Pro1, Pro2, finito, CatGr, Supporto, 
+      CatV, PredVs, GenSn, NumSn, PersSn, Neg, Avv),
+   X1 = ip(indice(Ind1),Verbo1,supporto(Supp),
+           cat(C),args(Args),adjs(Adjs)),
+   Verbo=v(Verb, Modo, Tempo, Pers, Num, Gen),
+   Verbo1=v(_, _, _,Modo, Tempo, Pers, Num, Gen),
+   !,
+   get_index_coord(Args,SNContrx),
+   SN = sn(indice(Indsn),cat(Cat),
+           pr(pro_picc,pro,_,PersSn,GenSn,NumSn,Ca),
+           spec(def('+')),controllore(SNContrx)),
+   gen_sym(sn,Indsn),
+%   choose_predv(PredVs, PredV, CatGr1, CatV1),
+   verbal_phrases([sn(SN, Gen, Num, Pers),[],[],[],[],[],[],
+       [],parent([]),[]],[[],[]],Verbo,CatGr,
+       PredVs, SubCatOut, Supporto, cat(CatV), Args1, Adjs1, R,F3,H), 
+  gen_sym(f,Ind),
+   VerboOut=  v(
+        Verb, SubCatOut, Modo, Tempo, Pers, 
+        Num, Gen), 
+  X2 = ip(indice(Ind),VerboOut,Supporto,
+           cat(CatV),Args1,Adjs1),
+  CoordSub =coordina,
+  X = coord_ip(indice(Simb),coord(X1),coord(X2)),
+  gen_sym(f,Simb)
+   ;
+  other_assert(CoordSub,SubP,F1,F3),
+  (  
+  SubP=[], 
+  X = X1
+  ;  
+  CoordSub=coordina,
+  SubP = sub_coord(Cong,X2),
+  gen_sym(f,Simb),
+  X = coord_ip(indice(Simb),coord(X1),coord(X2))
+  ; 
+  CoordSub=subordina,
+  X1 = ip(indice(Ind),Verbo,supporto(Supp),
+         cat(C),args(Args),adjs(Adjs)),
+  append(Adjs, [SubP], NewAdjs),
+  X = ip(indice(Ind),Verbo,supporto(Supp),
+         cat(C),args(Args),adjs(NewAdjs))  
+  )
+  ).
+
+adversative(W,adv([W])) :-
+   gr(italiano),
+   (W=ma;W=però),
+   retraction(advers,_).
+
+adversative(W,adv([W])) :-
+   gr(english),
+   (W=but ; W=though),
+   retraction(advers,_).
+
+adversative(W,adv([W])) :-
+   gr(deutsch),
+   (W=aber ; W=sondern),
+   retraction(advers,_).
+
+other_assert(subordina,[],F,X):- 
+  (F=[],X=[];F=[P], punct(P),X=[P]),!.
+
+other_assert(subordina,Fra,F,X) 
+   :- 
+   onelook(F,other_assert,x,nil),
+   subordinate(CStr,Fra,F,X).
+
+other_assert(coordina,sub_coord(Conj, CP),[Co|F],X) :- 
+   conjunction(Co,Conj),
+   complex_assertion(CP, F,X, nil).
+
+other_assert(subordina,Fra,F1,X) :-
+   onelook(F1,subordinate,s,nil),
+   subordinate(SubP,Fra,F1,X).
+
+other_assert(subordina,Fra,F1,X) :-
+   onelook(F1,subordinate,v,nil),
+   subordinate(SubP,Fra,F1,X).
+
+other_assert([],[],F,F):-!.
+
+conjunction(X,conj([e]))
+   :-
+   gr(italiano),
+   (X=e ; X=ed),retraction(conj, e).
+
+conjunction(X,conj([and]))
+   :-
+   gr(english),
+   X=and,retraction(conj, e).
+
+conjunction(X,conj([und]))
+   :-
+   gr(deutsch),
+   X=und,retraction(conj, e).
+
+/*  FRASI SUBORDINATE O COORDINATE */
+
+/* SUBORDINATA */
+subordinate(CStr, gerundive(Asserz), F,X) :- 
+         (F=[Punct|F1],Punct=',',retraction(punt, x)
+          ;
+          F1=F),
+         multiplelook(F1,subordinate,[g,q,vc,v]),
+        gerundive(Asserz,F1,X),!.
+
+subordinate(CStr, Asserz,F,X) :- 
+        multiplelook(F,subordinate,[g,q,vc,v]),
+        participiale(F,_,_, Asserz,X),!.
+
+subordinate(CStr, cp(sub(Sub), rel(Rel), Asserz),F,X) 
+   :-
+   (F=[Punct|F1],Punct=',',retraction(punt, x)
+          ;
+      F1=F),
+     subordinatore(F1,Sub,F2),
+         (F2=[Punct|F3],Punct=',',retraction(punt, x)
+          ;
+          F3=F2),
+    (doublelook(F3,subordinate,p,v,nil),
+    complemento_inf(inf(P,Asserz),Controllo,F3,X,H0,H1),
+    Rel=comparativa
+    ;
+    complex_assertion(Asserz, F3,X,H),
+    Rel=subordinata),!.
+
+subordinate_dir(Cp,F,X) 
+   :-
+   onelook(F,subordinate_dir,s,nil),
+   F=[S|F1],
+   subordin_dir(S,Subs),
+   Subs=..[Sub,_],
+   simple_assert(CP, Asserz, F1,X,nil),
+    Cp=..[cp,sub(Sub), rel(ipotattica), Asserz].
+
+subordinate_dir(Cp,F,X) 
+   :-
+   F=[S|F11],
+   subordin_dir(S,Subs),
+   Subs=..[Sub,_],
+   reverse(F11,[?|_]),
+   (inter_dir(Main,F11,F1, Sc, nil, C)
+    ;
+    yes_no_question(Main,F11,F1, nil)),
+   continua_inter(Main,F1,X,Asserz),
+    Cp=..[cp,sub(Sub), rel(ipotattica), Asserz].
+
+subordinate_dir(Cp,F,X) 
+   :-
+   F=[S|Frase],
+   subordin_dir(S,Subs),
+   Subs=..[Sub,_],
+   reverse(Frase,[QM|_]), QM\='?',
+       Frase=[Sec|F1], 
+      ( conjunction(Sec,_), F11=F1
+         ;
+         true, F11=Frase),
+         vocativo_cp(nil,Voc, F11,F2),
+         Voc\=[],
+              assert_ell(AsEll, F2, F3, nil), 
+              (F3='.', X=F3, X1=AsEll
+                ;
+	F3=!,
+              Ass=perf(exclamative),
+              AsEll=ip(Ind,Verbo,Supp,C,Args,Adjss),
+              Adjss=..[adjs|Resto],
+              append([Voc],Resto, Adj),
+              X1=ip(Ass,Ind,Verbo,Supp,C,Args,adjs(Adj))
+                ;
+	F3\=[], X=[],
+              doublelook(F3,assert_ell,i,x,nil),              
+              Ass=perf(exortative),
+              AsEll=ip(Ind,Verbo,Supp,C,Args,Adjss),
+              Adjss=..[adjs|Resto],
+              Resto=[Res],
+              append([Voc],Res, Adj),
+              view_args_imper(Voc,Args,Argss),
+              X1=ip(Ass,Ind,Verbo,Supp,C,args(Argss),adjs(Adj))
+              ;
+              X1=AsEll, F3=[], X=F3
+              ),
+    Cp=..[cp,sub(Sub), rel(paratattica), X1].
+
+subordinate_dir(Cp,F,X) 
+   :-
+   F=[S|Frase],
+   subordin_dir(S,Subs),
+   Subs=..[Sub,_],
+   reverse(Frase,[QM|_]), QM\='?',
+       Frase=[Sec|F1], 
+      ( conjunction(Sec,_), F11=F1
+         ;
+         true, F11=Frase),
+   vocativo_cp(nil,Voc, F11,F2),
+   complex_assertion(Asserz, F2,X, nil),
+    Cp=..[cp,sub(Sub), rel(paratattica), Asserz].
+
+subordinate_dir(Cp,F,X) 
+   :-
+   F=[S|Frase],
+   subordin_dir(S,Subs),
+   Subs=..[Sub,_],
+   reverse(Frase,[?|_]),
+       Frase=[Sec|F1], 
+      ( conjunction(Sec,_), F11=F1
+         ;
+         true, F11=Frase),
+   vocativo_cp(nil,Voc, F11,F2),
+   (inter_dir(Main,F2,F12, Sc, nil, C)
+     ;
+    yes_no_question(Main,F2,F12, nil)),
+    Main=..[Pref,Ind,Verb,Supp,CatV,Args,adjs(Adjs)],
+    append([Voc],Adjs,Adjss),
+    NewMain=..[Pref,Ind,Verb,Supp,CatV,Args,adjs(Adjss)],
+   continua_inter(NewMain,F12,X,Asserz),
+    Cp=..[cp,sub(Sub), rel(paratattica), Asserz].
+
+subordinate_dir(Cp,F,X) 
+   :-
+   F=[S|Frase],
+   subordin_dir(S,Subs),
+   Subs=..[Sub,_],
+   verbo1(Frase,R,Pers,
+      v(Verbo, imperat, Tempo, 2, Num, Gen), 
+      Pro1, Pro2, finito, CatGr, Supporto, 
+      CatV, PredVs, Gen, Num, Pers, Neg, Avv),
+   SN = sn(indice(Indsn),cat(Cat),
+           pr(pro_picc,pro,_,Pers,Gen,Num,Ca),
+           spec(def('+')),controllore(SNC)),
+   gen_sym(sn,Indsn),
+   Verb=v(Verbo, imperat, Tempo, 2, Num, Gen),
+   verbal_phrases([sn(SN, Gen, Num, Pers),[],[],[],[],[],[],
+       [],parent([]),[]],[[],[]],Verb,CatGr,
+       PredVs, SubCatOut, Supporto, cat(CatV), Args, Adjs, R,X,H), 
+   gen_sym(f,Simb),
+   VerboOut=  v(
+        Verbo, SubCatOut, imperat, Tempo, Pers, 
+        Num, Gen), 
+   Main = ip(indice(Simb),VerboOut,Supporto,
+           cat(CatV),Args,Adjs),
+   Cp=..[cp,sub(Sub), rel(imperat), Main],
+   !.
+view_args_imper([],Args,Args):-!.
+view_args_imper(Voc,Args,Argss):-
+   Voc=..[vocativo,Funx, Rol, SN],
+   trova_ind_SN(SN,Ind),
+   Args=..[args|Resto],
+   Resto=[Res],
+   remove(Arg,Res,Rest),
+   Arg=..[arg,F,R,SN2],
+   SN2=sn(indice(I), cat(Ca), pr(pro_picc, pro, _, _, _, _, _), spec(S), controllore(Contr)),
+   SN1=sn(indice(I), cat(Ca), pr(pro_picc, pro, _, _, _, _, _), spec(S), controllore(Ind)),
+   Arg1=..[arg,F,R,SN1],
+   append([Arg1],Rest,Argss),
+   !.
+view_args_imper(Voc,Args,Args):-!.
+
+continua_inter(Main,F,X,Cstr):-
+   (complex_assertion(Output, F,X, nil)
+    ;
+     onelook(F,other_assert,[s,p],nil),
+     F=[to|F1],
+     onelook(F1,other_assert,v,nil),
+     assertion_infinitive(Output,F1,X)),
+   (Output=[],
+     Cstr=Main,
+     !
+    ;
+    Output\=[],
+   (Output=..[cp_comp,I,main([]), cp(Ind,Rel,Rest)],
+    Rest\=[],
+   (
+    Cstr=..[cp_comp,I,main(Main), cp(Ind,Rel,Rest)]
+    ;
+    Rest=[],
+    Cstr=Main
+    )
+     ;
+    Y = adj(funzione(vcomp),ruolo(result),Output),
+    (Main=..[Pref,Ind,Verbo,Supp,C,Args,adjs(Adjs)],
+     append([Y],Adjs,Adjss),
+     Cstr=..[Pref,Ind,Verbo,Supp,C,Args,adjs(Adjss)]
+     ;
+     Main=..[Pref,Focus, IP],
+     IP=..[ip,Ind,Verbo,Supp,C,Args,adjs(Adjs)],
+     append([Y],Adjs,Adjss),
+     IP1=..[ip,Ind,Verbo,Supp,C,Args,adjs(Adjss)],
+     Cstr=..[Pref,Focus, IP1])
+    )),!.
+
+
+continua_inter(Main,F,X,Main):-
+   F=[Prep,P|_], punct(P),X=[P],
+   !.
+
+continua_inter(Main,F,F,Main):-
+   !.
+
+par_pun(';').
+par_pun(':').
+par_pun('.').
+par_pun(',').
+par_pun('-').
+par_pun('(').
+par_pun(')').
+par_pun('"').
+par_pun('[').
+par_pun(']').
+par_pun('{').
+par_pun('}').
+par_pun('<').
+par_pun('>').
+
+par_puna(':').
+par_puna(',').
+par_puna('-').
+par_puna('(').
+par_puna('"').
+par_puna('[').
+par_puna('{').
+par_puna('<').
+
+verify_verb_rest([]):-!,fail.
+verify_verb_rest([W|F]):-
+       find_pos(W, I, X, Si),
+       nogen_member(Cat-W,X),
+       check_vcat(Cat),
+       !.
+verify_verb_rest([W|F]):-
+     verify_verb_rest(F),!.
+
+verify_parpuntt([]):-!,fail.
+verify_parpuntt([W|F]):-
+       find_pos(W, I, X, Si),
+       nogen_member(x-W,X),
+       par_pun(W),
+       !.
+verify_parpuntt([W|F]):-
+     verify_parpuntt(F),!.
+      
+verify_punct_rest(0,[]):-fail.
+
+verify_punct_rest(0,F):-!.
+
+verify_punct_rest(N,[W|F]):-
+       find_pos(W, I, X, Si),
+       on(Cat-W,X),
+       Cat=x, fail,
+       !.
+verify_punct_rest(N,[W|F]):-
+     N1 is N - 1,
+     verify_punct_rest(N1,F),!.
+
+vocativo_cp(H0,vocativo(funzione(ncomp),ruolo(tema),SN),F,F3) :-
+          (var(H0)
+           ;
+            H0=nil),
+            F=[A,Punct,B,Punc, Pun|F1],retraction(vocat,x),
+            spy_lower(A,Low,1),
+            par_pun(Punc),
+            sint_n(adj,Fl,PredV,SN,G,N,P,C,F,F2,nil,nil),
+            par_pun(Pun),
+            (F2=[Pun,Pu|F3],
+             par_pun(Pu);
+             F2=[Pun|F3]),
+             !.
+
+vocativo_cp(H0,vocativo(funzione(ncomp),ruolo(tema),SN),F,F3) :-
+          (var(H0)
+           ;
+            H0=nil),
+            sn_mod(SN,G,N,P,C,Cat,F,F2),
+            F2=[Punct|F3],
+            par_pun(Punct),
+            verify_punct_rest(5,F3),
+            retraction(vocat,x).
+
+
+vocativo_cp(H0,[],F,F):-!.
+
+
+subordin_inf(Cp,F,X) 
+   :-
+   onelook(F,subordin_inf,s,nil),
+   F=[S|F1],
+   subord_inf(S,Sub),
+   assertion_infinitive(Asserz, F1,X),
+   Cp=..[cp,sub(Sub), rel(subordinata), Asserz].
+
+compar([], Verbo, SubCat, Controllore,F,X)
+   :- 
+  (F=[],X=[];F=[P], punct(P),X=[P]),!.
+
+compar(Cp, Verbo, SubCat, Controllore,F,X)
+   :-
+   F=[Maj|F1],
+   (Maj=more;Maj=mehr;Maj=piu_),
+   retraction(compar, _),
+   modificatore(compar,F1,[],[],SA, [], Gen, Num, Cat,F2),
+   SA =..[ M,sa(indice(_),cat(Cat), Testa, args(Args))],
+   Testa = agg(Agg, Gen, Num),
+   F2=[Com|F3],
+   (Com=che;Com=than;Com=als),
+   retraction(compl, c),
+   assertion_ell(Controllore, Asserz, Verbo, SubCat, F3,X),
+       Cp=..[subord_ell,sub(Agg), rel(comparativa), Asserz].
+
+compar([],_,_,_,F,F):-!. 
+
+
+subord_impl(sub(Sub),Asserz,F,X) :-
+     onelook(F,subord_impl,s,nil),
+     F=[S|F1],subord_inf(S,Sub),
+     assertion_infinitive(Asserz,F1,X).
+
+subord_impl(sub(Sub),Asserz,F,X) :-
+     onelook(F,subord_impl,[av,q],nil),
+      ( gerundive(Asserz,F,X)
+                        ;
+       participiale(F,_,_,Asserz,X)
+                        ).
+subord_impl(sub(Sub),Asserz,F,X) :-
+     gr(english),
+     onelook(F,subord_impl,[s],nil),
+     F=[Pp|F1],
+     prep(Pp,P),
+     gerundive(Asserz,F1,X).
+
+
+assertion_intrans(Asserz, F,X) 
+   :-
+   ip_one_bar(
+      [sn([],_,_,_),active,
+	  [], [], [], [], [], 
+      [], [], parent([]), []
+      ],V,Aux,CatGr,SubCatIn,SubCatOut, Supporto, cat(CatV), 
+      args(Args), adjs(Adjs),F,X,H0),
+   gen_sym(f, Simb),
+   V= v(Verbo, Modo, Tempo, Pers, Num, Gen), 
+   Asserz =  subj_dom(indice(Simb), 
+         v(Verbo, SubCatOut, Modo, Tempo, Pers, Num, Gen), 
+         Supporto, cat(CatV), 
+         args(Args), adjs(Adjs)). 
+
+assertion_intrans(Asserz, F,X) 
+   :-
+   soggetto(SN, Gen, Num, Pers,F,F1,H0,H1),
+   verbo1(F1,X,PersSn,
+   v(Verbo, Modo, Tempo, _, _, _), 
+   Pro1, Pro2, Forma, intr, Supporto, 
+   CatV, PredVs, Gen, Num, Pers, Neg, _),
+   gen_sym(f, Simb),
+   choose_predv(PredVs, PredV, CatGr, CatV1),
+   V=v(Verbo, LArgsV1, Modo, Tempo, Pers, Num, Gen),
+   CatGr=intr, 
+   interp_attiva_imper(Verbo,PredV,LArgsV1,SN/sogg,[],CatV1,Args,Adjs_x),
+   Adjs_par the_list Adjs_x && [],
+   Adjs the_list Adjs_par,
+    Asserz =   subj_dom(indice(Simb), V, Supporto, cat(CatV), 
+      args(Args), adjs(Adjs)). 
+
+
+/*  FRASI NORMALI: con cp1; la seconda chiama le frasi a oggetto
+invertito e la terza quelle a soggetto frasale  */
+
+simple_assert(CP, Fra,F,X,H)
+   :- 
+  (F=[],X=[];F=[P], punct(P),X=[P]),!.
+
+simple_assert(CP, Fra,F,X,H) :- assert_cp3(CP,Fra,F,X,H).
+simple_assert(CP, Fra,F,X,H) :- assert_cp1(CP,Fra,F,X,H).
+simple_assert(CP, Fra,F,X,H) :- focal_cp2(Fra,F,X,H).
+
+/* ************************************************************************* */
+
+inter_dir(inter_dir(focus(interrogativo,SN),R),[First|Frase],X,SimbContr,nil,Cat) 
+         :-
+         gr(romance),
+         doublelook([First|Frase],inter_dir,p,r,nil),
+         (
+          prep(First,Prep),
+          sn_int(Frase/Rest,SN,G,N,P,Caso,Cat,Simb),
+          SN1=SN
+          ;
+          pro(First,pr(pr_int,D,Pr_int,P,G,N,C)),
+          Pr_int=chi, Cat=[umano,animato],
+          gen_sym(sn,Simb), 
+          SN1=sn(indice(Simb),cat(Cat),
+                    pr(pr_int,D,Pr_int,P,G,N,C)),
+            retraction(inter_dir, _)
+          ),
+          assert_cp(CStr,_,V,S,Cv,Cg,Sc,
+                       R,Rest,X,sp/Prep/Simb/Cat/prorel(Prorel,G,N1,_,[obl])).
+
+inter_dir(inter_dir(focus(interrogativo,SN),R),Frase,X,SimbContr,nil,Cat) 
+      :-
+       eitherlook(Frase,inter_dir,[r,w],a),
+       sn_int(Frase/Rest,SN,G,N,P,Caso,Cat,Simb),
+       trova_ind_SN(SN,Simb),
+       trova_cat_SN(SN,CatRel),
+       aux_to_comp1(Rest,Aux/Resto,Verbo,Supporto,CatV,CatGr,SubCatIn),
+       assert_cp(CStr, Aux, Verbo, Supporto, CatV, 
+                 CatGr, SubCatIn, R,Resto,X,sn/Simb/Cat/prorel(pro,G,N1,P,C)).
+
+inter_dir(inter_dir(focus(interrogativo,sn(indice(Simb),cat(Cat),
+        pr(pr_int,D,Pr_int,P,G,N,C))),R),Frase,X,SimbContr,nil,Cat) 
+      :-
+       eitherlook(Frase,inter_dir,[r,w],a),
+       comp(Frase,_/Second),
+       Second=[Sec|Fra], 
+       pro(Sec,pr(pr_int,D,Pr_int,P,G,N,Ca)),
+       ( 
+       pro_interrogativo(Pr_int, C, Cat, Cos),
+       gen_sym(sn,Simb),retraction(inter_dir, r),
+       (Cos=sn, Extrap=sn/Simb/Cat/prorel(pro,G,N1,P,C)
+       ;
+       Cos=sp, 
+       (gr(deutsch), recoverprep(Pr_int, Prep)
+       ; Prep=in),
+       Extrap=sp/Prep/Simb/Cat/prorel(pro,G,N1,P,C))),
+       ambiguous_pro(Sec, Fra),
+       aux_to_comp1(Fra,Aux/Resto,Verbo,Supporto,CatV,CatGr,SubCatIn),
+       assert_cp(CStrCp1,Aux, Verbo, Supporto, CatV, CatGr, SubCatIn, R, Resto,X,Extrap).
+
+
+ambiguous_pro(Pro, Fra):-
+    amb_pro(Pro),
+    reverse(Fra, [Pu|RevFra]),
+    (Pu='?';Pu='!'),
+    !.
+ambiguous_pro(Pro, Fra):-
+    \+ amb_pro(Pro),!.
+
+amb_pro(when).
+amb_pro(why).
+amb_pro(how).
+amb_pro(where).
+
+pro_interrogativo(chi,[nom,acc],[umano,animato],sn) :-
+   gr(italiano).
+   
+pro_interrogativo(who,[nom,acc,obl],[umano,animato],sn) :-
+   gr(english).
+
+pro_interrogativo(whom,[acc,obl],[umano,animato],sn) :-
+   gr(english).
+   
+pro_interrogativo(cosa, [nom,acc], [oggetto,attivita,evento,stato,cibo],sn) :-
+   gr(italiano).
+
+pro_interrogativo(dove, [obl], [luogo],sp) :-
+   gr(italiano).
+
+pro_interrogativo(quando, [obl], [tempo],sp) :-
+   gr(italiano).
+
+pro_interrogativo(what, [nom,acc,obl], [_],sn) :-
+   gr(english).
+
+pro_interrogativo(come, [obl], [tempo],sa) :-
+   gr(italiano).
+
+pro_interrogativo(how, [obl], [_],sa) :-
+   gr(english).
+
+pro_interrogativo(where, [obl], [luogo],sp) :-
+   gr(english).
+
+pro_interrogativo(when, [obl], [luogo],sp) :-
+   gr(english).
+
+pro_interrogativo(which, [nom,acc], [_],sn) :-
+   gr(english).
+
+pro_interrogativo(Pro,Caso,Cats,MC) :-
+   gr(deutsch),
+   prointerrogativo(Pro,Caso,Cats,MC).
+
+/*
+prointerrogativo(wer,[nom],[umano,animato],sn).
+prointerrogativo(was, [nom,acc], [_],sn).
+prointerrogativo(wenn, [obl], [luogo],sp).
+prointerrogativo(wen,[acc],[umano,animato],sn).
+prointerrogativo(wem,[obl],[umano,animato],sn).
+prointerrogativo(wo, [obl], [luogo],sp).
+prointerrogativo(wohin, [obl], [luogo],sp).
+prointerrogativo(woher, [obl], [luogo],sp).
+prointerrogativo(wie, [obl], [_],sa).
+prointerrogativo(wodurch, [obl], [_],sp).
+prointerrogativo(woran, [acc,obl], [umano,animano],sp).
+prointerrogativo(wofuer, [obl], [_],sp).
+prointerrogativo(womit, [obl], [_],sp).
+
+recoverprep(woran, an).
+recoverprep(womit, mit).
+recoverprep(wofuer, fuer).
+recoverprep(woher, aus).
+recoverprep(wodurch, durch).
+*/
+
+adjunct_cp(F,X,Aux, Verbo2, Tempo, 
+           Sub_n, LSP, Avv, Voc, Par, SA1, Gen, Num)
+   :-
+   (var(Aux);Aux=[]), var(Verbo2),
+   sn_subordinato1(F,Sub_n/F1),
+   pp_ad(F1,F2,LSP0),
+   agnt_sa(pre, SA1, Gen, Num, F2, F3),
+   (
+   SA1 = [],
+   !
+   ;
+   SA1 = saa(I, cat([C]), T, Ar, Ad),
+   not(on(C, [quantif, deittico]))
+   ),
+   adjs_preverb(F3,F4,Tempo,LSP1,Avv1,_,_),
+   pp_ad(F4,F5,LSP2),
+   parent(Par, F5,F6),
+   vocativo(Voc, F6,F7),
+   (F7=[Punc|X], Punc=','
+     ;
+    X=F7),
+   append_sp(LSP0, LSP1, LSP2, Avv1, LSP, Avv).
+
+adjunct_cp(F,F,_, _, _, [], [], _, [], [], [], _, _):-!.
+
+yes_no_question(
+   yes_no_quest(indice(Simb),v(Verbo2, Voce, L, Modo, Tempo, Pers,Num, Gen), 
+      Supporto, cat(CatV), 
+      args(Args), adjs(Adjs)), F,X,H0) 
+   :-
+   gr(germanic),
+   aux_to_comp(F,Aux/F1,Verbo1,Supporto,CatV,CatGr,SubCatIn),
+   (Aux\=[], Aux=aux(A, Modo, Temp, _, _),
+    (Modo\=ger, Modo\=part)
+   ; 
+   Verbo1\=[],
+   Verbo1 = v(Verb, Modo, Temp, Pers, Num, Gen),
+   Verbo=Verbo1
+   ),
+   adjunct_cp(F1,F2,Aux, Verbo2, Temp,
+      Sub_n, LSP0, Avv1, Voc, Par, SA1, Gen, Num),
+   gen_sym(f, Simb),
+   i_double_bar(CStrIp, _,
+      [LSP0, SA1, Avv1, Voc, Sub_n],Voce,
+      Verbo,Aux,CatGr,SubCatIn,L, Supporto, 
+      cat(CatV), args(Args), adjs(Adjs), F2, X, H0),
+   Verbo=v(V, Modo, Tempo, Pers, Num, Gen),
+   (V=v(Verbo2,Modo, Tempo, Pers, Num, Gen),
+    nonvar(Verbo2)
+    ;
+    Verbo2=V, nonvar(V)).
+
+
+assert_cp1(cp(CStrIp), NewAsserz, F,X,H0)
+   :-
+   aux_to_comp(F,
+      Aux/F1, Verbo2, Supporto, CatV, CatGr, SubCatIn),
+   adjunct_cp(F1,F2,Aux, Verbo2, Tempo,
+      Sub_n, LSP0, Avv1, Voc, Par, SA1, Gen, Num),
+   i_double_bar(CStrIp, 
+      Subjective, [LSP0, SA1, Avv1, Voc, Sub_n],Voce, 
+      Verbo2, Aux, CatGr, SubCatIn, L, Supporto, 
+      cat(CatV), args(Args), adjs(Adjs),F2,X,H0),
+   Verbo2 = v(Verbo, Modo, Tempo, Pers, Num, Gen),
+   Verbo1 = v(Verbo, Voce, L, Modo, Tempo, Pers, Num, Gen),
+   (
+   nonvar(Verbo),
+   IP=ip(indice(Simb),Verbo1, Supporto,cat(CatV), args(Args), 
+         adjs(Adjs)),
+   (
+   nonvar(Subjective),
+   Subjective = subj_dom(I, V, S, C, args(Args1), adjs(Adj)),
+   Asserz = arg(funzione(fcomp), ruolo(prop), IP),
+   NewArgs the_list Args1 && Asserz,
+   NewAsserz = subj_dom(I, V, S, C, args(NewArgs), adjs(Adj))
+   ;
+   Subjective = [],
+   Adjs1 the_list Adjs && Par, 
+   IP1=ip(indice(Simb), Verbo1, Supporto,cat(CatV), args(Args), 
+         adjs(Adjs1)),
+   NewAsserz = IP1
+   ),
+   gen_sym(f, Simb)
+   ;
+   var(Verbo),
+   Voce=ellipsis,
+   IP=ip_ell(indice(Simb),args(Args), adjs(Adjs)),
+   gen_sym(f, Simb),
+   NewAsserz = IP),
+   !.
+
+/* strutture con soggetto e oggetto inversi e accordo nel vp */
+assert_cp1(cp(CStrIp), NewAsserz, F,X,H0)
+   :-
+   gr(romance),
+   oggetto(SN1, sn, _, _, _, F,F1,nil, nil),
+   sint_prep3(F1,F2,LSP0, nil, nil),
+   agnt_sa(pre,SA1, Gen, Num,F2,F3),
+   sint_prep3(F3,F4,LSP1, nil, nil),
+   sint_avv(F4,Tempo,Avv1/F5,Tipo1),
+   vocativo(Voc,F5,F6),
+   sint_avv(F6,Tempo,Avv2/F7,Tipo2),
+   parent(Par,F7,F8),
+   negaz(F8,Neg/F9),
+   gen_sym(f, Simb),
+   retraction(focal_cp2, v),
+   ip_one_bar([sn(SN1,G,N,P),Voce,
+						LSP0, LSP1, SA1, Avv1, [], Voc, Neg, parent(Par), []], 
+      Verbo,[],CatG,SubCatIn, SubCatOut,Supporto, cat(CatV), 
+      args(Args), adjs(Adjs), F9,X,H1),
+   Verbo=v(V, Modo, Tempo, Pers, Num,  Gen),
+   nonvar(V),
+   Verbo1 = v(V, Voce, SubCatOut, Modo, Tempo, Pers, Num, Gen),
+   verifyfocal(user, SN),
+   IP1=ip(indice(Simb), Verbo1, Supporto,cat(CatV), args(Args), 
+         adjs(Adjs)),
+   NewAsserz = IP1.
+
+assert_cp(cp(CStrIp), Aux, Verbo2, Supporto, CatV, 
+      CatGr, SubCatIn, Asserz, F,X,H0)
+   :-
+   i_double_bar(CStrIp, 
+      Par, [LSP0, SA1, Avv1, Voc, Sub_n],Voce,  
+      Verbo2, Aux, CatGr, SubCatIn, L, Supporto, 
+      cat(CatV), args(Args), adjs(Adjs), F,X,H0),
+   Verbo2 = v(Verbo, Modo, Tempo, Pers, Num, Gen),
+   Verbo1 = v(Verbo, Voce, L, Modo, Tempo, Pers, Num, Gen),
+   nonvar(Verbo),
+   IP=ip(indice(Simb), Verbo1, Supporto, cat(CatV),args(Args), 
+         adjs(Adjs)),
+   Asserz = IP,
+   gen_sym(f, Simb).
+

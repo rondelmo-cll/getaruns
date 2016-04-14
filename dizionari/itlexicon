@@ -1,0 +1,2199 @@
+﻿:- style_check(-singleton).
+
+quant(minor, minor, <,_, sing).
+quant(minima, minima, <<,_, sing).
+quant(minimo, minimo, <<,_, sing).
+quant(ciascuno, ciascuno, +, mas, sing).
+quant(ciascun, ciascuno, +, mas, sing).
+quant(ciascuna, ciascuno, +, fem, sing).
+quant(alcuno, alcuno, +, mas, sing).
+quant(alcun, alcuno, +, mas, sing).
+quant(alcuna, alcuno, +, fem, sing).
+quant(alcuni, alcuno, +, mas, plur).
+quant(alcune, alcuno, +, fem, plur).
+quant(molto, molto, +, mas, sing).
+quant(molta, molto, +, fem, sing).
+quant(molti, molto, +, mas, plur).
+quant(molte, molto, +, fem, plur).
+quant(poco, poco, +, mas, sing).
+quant(poca, poco, +, fem, sing).
+quant(pochi, poco, +, mas, plur).
+quant(poche, poco, +, fem, plur).
+quant(delle, exist, +, fem, plur).
+quant(dei, exist, +, mas, plur).
+quant(degli, exist, +, mas, plur).
+quant(del, exist, +, mas, sing).
+quant(della, exist, +, fem, sing).
+quant(tutto, tutto, -, mas, sing).
+quant(tutti, tutto, -, mas, plur).
+quant(tutta, tutto, -, fem, sing).
+quant(tutte, tutto, -, fem, plur).
+quant(diversi, diverso, +, mas, plur).
+quant(diverse, diverso, +, fem, plur).
+quant(nessuno, nessun, -, mas, sing).
+quant(nessuno, nessuno, -, mas, sing).
+quant(nessuna, nessuno, -, fem, sing).
+quant(ognuno, ognuno, -, mas, sing).
+quant(ognuna, ognuno, -, fem, sing).
+quant(ogni, ogni, -,_, sing).
+quant(chiunque, chiunque, -,_, sing).
+quant(niente, niente, -,_, sing).
+quant(nulla, nulla, -,_, sing).
+quant(qualche, qualche, +,_, sing).
+quant(massimo, massimo, >>,_, sing).
+quant(massima, massima, >>,_, sing).
+quant(maggior, maggior, >,_, sing).
+quant(pi√π, pi√π, >,_,_).
+quant(meno, meno, >,_,_).
+
+pred_n(accademia, nil, [istituzione, luogo], []).
+pred_n(accidente, nil, [informa, esclamativo], []).
+pred_n(acqua, nil, [oggetto, sostanza], []).
+pred_n(agilit√†, nil, [stato], []).
+pred_n(agnellino, nil, [animato], []).
+pred_n(aiuto, nil, [informa], []).
+pred_n(albero, nil, [oggetto, luogo], []).
+pred_n(allievo, nil, [umano], []).
+pred_n(amico, nil, [umano, relat], []).
+pred_n(amministrazione, trans, [astratto, luogo, istituzione], []).
+pred_n(animale, nil, [animato], []).
+pred_n(anno, nil, [tempo], []).
+pred_n(area, nil, [luogo], []).
+pred_n(aria, nil, [sostanza, luogo], []).
+pred_n(asino, nil, [animato], []).
+pred_n(attaccamento, nil, [emotivo], [sp/ogg/tema_emot/a/[umano, animato, attivita]]).
+pred_n(attacco, attaccare, [evento], []).
+pred_n(attenzione, nil, [exort, danger], []).
+pred_n(attimo, nil, [tempo, durata], []).
+pred_n(autobus, nil, [luogo, means_trans], []).
+pred_n('autorit√†', nil, [istituzione, umano], []).
+pred_n(avversaria, nil, [umano], []).
+pred_n(baffo, nil, [oggetto, body_part], []).
+pred_n(baldoria, nil, [stato], []).
+pred_n(bambino, nil, [umano], []).
+pred_n(belva, nil, [animato], []).
+pred_n(bibita, nil, [edible, oggetto], []).
+pred_n(biblioteca, nil, [luogo], []).
+pred_n(bordo, nil, [luogo], []).
+pred_n(bosco, nil, [luogo], []).
+pred_n(breve, nil, [tempo, durata], []).
+pred_n(buonasera, nil, [informa, salut], []).
+pred_n(buongiorno, nil, [informa, salut], []).
+pred_n(burocrate, nil, [umano, sociale, role], []).
+pred_n(calcagna, nil, [body_part, luogo, oggetto], []).
+pred_n(calcio, nil, [evento], []).
+pred_n(camino, nil, [oggetto, luogo], []).
+pred_n(cammino, nil, [attivita, modo], []).
+pred_n(campagna, nil, [luogo], []).
+pred_n(cannocchiale, nil, [oggetto, strumento], []).
+pred_n(canzone, nil, [astratto, informa], []).
+pred_n(capanna, nil, [oggetto], []).
+pred_n(capoturno, nil, [umano, sociale], []).
+pred_n(casa, nil, [oggetto, luogo], []).
+pred_n(cavalleria, nil, [istituzione, luogo], []).
+pred_n(cemento, nil, [oggetto, strumento, materia], []).
+pred_n(cesta, nil, [oggetto, luogo], []).
+pred_n(cesto, nil, [oggetto, luogo], []).
+pred_n(chiavistello, nil, [oggetto, strumento], []).
+pred_n(cibo, nil, [oggetto, attivita, evento], []).
+pred_n(collaborazione, nil, [attivita], []).
+pred_n(collegio, nil, [istituzione], []).
+pred_n(commercio, nil, [attivita], []).
+pred_n(compito, nil, [attivita], []).
+pred_n(controllo, nil, [attivita], []).
+pred_n(corsa, nil, [attivita], []).
+pred_n(crepapelle, nil, [modo], []).
+pred_n(croce, nil, [oggetto], []).
+pred_n(delegato, nil, [umano, sociale], []).
+pred_n(delegazione, nil, [umano, sociale, istituzione], []).
+pred_n(difettosit√†, nil, [aspetto], []).
+pred_n(dimostrante, nil, [umano], []).
+pred_n(disonest√†, nil, [relazionale], []).
+pred_n(dispiacere, psych, [emotivo], []).
+pred_n(dispositivo, nil, [strumento], []).
+pred_n(distinzione, nil, [stato], []).
+pred_n(ditta, nil, [umano, sociale, istituzione], []).
+pred_n(divisa, nil, [oggetto, militare], []).
+pred_n(dolore, nil, [stato], []).
+pred_n(donna, nil, [umano], []).
+pred_n(dopoguerra, nil, [tempo, evento], []).
+pred_n(dottore, nil, [umano, sociale], []).
+pred_n(elettore, nil, [umano, astratto, sociale, role], []).
+pred_n(esercito, nil, [coll, real, mil, hum_set], []).
+pred_n(esponente, nil, [ind, real, soc, role], []).
+pred_n(estero, nil, [coll, real, quant, gen_locat], []).
+pred_n(ex, nil, [umano, neg_prop], []).
+pred_n(ex_ufficiale, nil, [ind, real, mil, ex_role], []).
+pred_n(fa, nil, [astratto], []).
+pred_n(famiglia, nil, [umano, istituzione], []).
+pred_n(fessura, nil, [luogo, astratto], [sn/ogg/tema/[oggetto]]).
+pred_n(fetta, nil, [nquant, oggetto], []).
+pred_n(fiera, nil, [evento, luogo], []).
+pred_n(fiera, nil, [coll, real, soc, event], []).
+pred_n(figlia, nil, [ind, real, nat, relat], []).
+pred_n(figlio, nil, [ind, real, nat, relat], []).
+pred_n(file, nil, [oggetto], []).
+pred_n(film, nil, [oggetto], []).
+pred_n(fine, finire, [evento, tempo], []).
+pred_n(finestra, nil, [luogo, oggetto], []).
+pred_n(flauto, nil, [oggetto, strumento], []).
+pred_n(fondatore, tr, [ind, real, soc, role], []).
+pred_n(formazione, formare, [evento], []).
+pred_n(fortuna, nil, [stato], []).
+pred_n(forza, nil, [modo], []).
+pred_n(fratello, nil, [umano, animato, relazionale], []).
+pred_n(fretta, nil, [modo], []).
+pred_n(funzionario, nil, [umano, sociale], []).
+pred_n(fuoco, nil, [strumento, causer], []).
+pred_n(fuori, nil, [luogo], []).
+pred_n(generale, nil, [ind, real, soc, role], []).
+pred_n(genio, nil, [umano], []).
+pred_n(genio, nil, [umano], []).
+pred_n(giocattolo, nil, [oggetto], []).
+pred_n(giornata, nil, [tempo, durata], []).
+pred_n(giorno, nil, [tempo, durata], []).
+pred_n(giovinezza, nil, [ind, abst, quant, temp], []).
+pred_n(giro, nil, [modo], []).
+pred_n(grado, nil, [misura], []).
+pred_n(guardia, nil, [umano], []).
+pred_n(guarnigione, nil, [coll, real, soc, hum_set], []).
+pred_n(immigrato, unacc, [ind, real, soc, role], []).
+pred_n(imputato, nil, [umano], []).
+pred_n(incanto, nil, [modo], []).
+pred_n(incarico, nil, [attivita], [vcomp/prop/di/[sogg=x], sp/obl/locativo/a/[luogo]]).
+pred_n(incontro, incontrare, [durata, evento], []).
+pred_n(infermiera, nil, [umano, sociale], []).
+pred_n(informazione, nil, [informa], []).
+pred_n(insegnante, nil, [umano, sociale], []).
+pred_n(intenzione, nil, [stato, psyc_object], []).
+pred_n(interesse, psych, [ind, abst, nat, state], []).
+pred_n(interruzione, nil, [evento], []).
+pred_n(istituzione, tr, [ind, real, soc, instit], []).
+pred_n(ladro, nil, [umano], []).
+pred_n(laureato, pass, [ind, real, soc, role], []).
+pred_n(lavoratore, nil, [umano, animato, sociale], []).
+pred_n(lavoro, nil, [attivita], [sp/ogg/tema_aff/a/[oggetto, luogo, strumento]]).
+pred_n(legno, nil, [oggetto, strumento, materia], []).
+pred_n(lena, nil, [modo], []).
+pred_n(liberazione, passivo, [evento], []).
+pred_n(libert√†, nil, [stato], []).
+pred_n(libro, nil, [oggetto, informa], []).
+pred_n(linea, nil, [luogo], []).
+pred_n(luogo, nil, [luogo], []).
+pred_n(lupo, nil, [ferocious, animato], []).
+pred_n(macchina, nil, [oggetto], []).
+pred_n(madre, nil, [umano, relazionale], []).
+pred_n(male, nil, [stato], []).
+pred_n(maledizione, nil, [informa, esclamativo], []).
+pred_n(mamma, nil, [umano, relazionale], []).
+pred_n(mano, nil, [body_part, oggetto, luogo], []).
+pred_n(mattone, nil, [oggetto, strumento, materia], []).
+pred_n(mela, nil, [edible, oggetto], []).
+pred_n(merito, tr, [ind, abst, soc, state], []).
+pred_n(mese, nil, [tempo, durata], []).
+pred_n(metodo, nil, [attivita], []).
+pred_n(microscopio, nil, [strumento], []).
+pred_n(militare, nil, [ind, real, mil, role], []).
+pred_n(ministro, nil, [umano, sociale], []).
+pred_n(minuto, nil, [tempo, durata], []).
+pred_n(modo, nil, [modo], [vcomp/prop/di/[sogg=x]]).
+pred_n(moglie, nil, [umano, relazionale], []).
+pred_n(mondo, nil, [luogo, figurato], []).
+pred_n(mondo, nil, [luogo, istituzione, attivita], []).
+pred_n(museo, nil, [luogo, oggetto], []).
+pred_n(nebbia, nil, [event, atmosf_danger], []).
+pred_n(neve, nil, [event, atmosf_danger], []).
+pred_n(nevicata, nil, [event, danger], []).
+pred_n(nome, nil, [stato, astratto], []).
+pred_n(nota, nil, [ind, real, phys, nonliv], []).
+pred_n(notte, nil, [tempo, durata], []).
+pred_n(nubifragio, nil, [event, danger], []).
+pred_n(numero, nil, [nquant, oggetto], []).
+pred_n(nuvolosit√†, nil, [event, atmosf_danger], []).
+pred_n(occasione, nil, [evento], []).
+pred_n(operaio, nil, [umano, sociale], []).
+pred_n(operazione, nil, [attivita], []).
+pred_n(ora, nil, [tempo, durata], []).
+pred_n(organizzazione, organizzare, [istituzione], []).
+pred_n(outsider, nil, [ind, real, soc, role], []).
+pred_n(padre, nil, [umano, relazionale], []).
+pred_n(padrone, nil, [umano], []).
+pred_n(paglia, nil, [oggetto, strumento, materia], []).
+pred_n(paio, nil, [nquant, oggetto, tempo, ripetizione], [sn/ogg/tema/[tempo, ripetizione]]).
+pred_n(palmo, nil, [misura, luogo, oggetto], []).
+pred_n(parlamento, nil, [coll, real, soc, instit], []).
+pred_n(parte, nil, [nquant, oggetto], []).
+pred_n(partenza, partire, [evento], []).
+pred_n(partito, nil, [coll, real, soc, hum_set], []).
+pred_n(pasto, nil, [edible, evento, oggetto], []).
+pred_n(paura, psych, [stato, valutativo], [sn/ogg/tema/[animato], vcomp/prop/di/[sogg=x]]).
+pred_n(paura, psych, [valutativo], []).
+pred_n(pecora, nil, [animato], []).
+pred_n(pelle, nil, [oggetto], [sn/ogg/tema/[animato]]).
+pred_n(pentolone, nil, [oggetto], [[sp/obl/locativo/in/[luogo, oggetto]], [sn/ogg/tema/[oggetto, sostanza]]]).
+pred_n(percorso, nil, [luogo], []).
+pred_n(perdifiato, nil, [modo], []).
+pred_n(pericolo, nil, [stato], []).
+pred_n(permesso, permettere, [evento], []).
+pred_n(persona, nil, [umano], []).
+pred_n(pesce, nil, [animato], []).
+pred_n(pezzo, nil, [nquant, oggetto], []).
+pred_n(piede, nil, [body_part, oggetto, luogo], []).
+pred_n(pioggia, nil, [event, atmosf_danger], []).
+pred_n(polmone, nil, [oggetto, body_part], []).
+pred_n(porcellino, nil, [edible, animato], []).
+pred_n(porta, nil, [oggetto, luogo], [sn/ogg/tema/[oggetto]]).
+pred_n(posto, nil, [stato], []).
+pred_n(pranzetto, nil, [edible, evento, oggetto], []).
+pred_n(prefetto, nil, [umano, sociale], []).
+pred_n(presidente, tr, [ind, real, soc, role], []).
+pred_n(presidenza, presiedere, [umano, istituzione], []).
+pred_n(prigioniero, nil, [umano, sociale], []).
+pred_n(principio, nil, [tempo, evento], []).
+pred_n(procuratore, nil, [ind, real, soc, role], []).
+pred_n(produttore, nil, [umano, sociale], []).
+pred_n(professore, nil, [umano], []).
+pred_n(punto, nil, [luogo], []).
+pred_n(quadro, nil, [oggetto, astratto], []).
+pred_n(qualifica, tr, [stato, astratto], []).
+pred_n(questore, nil, [umano, sociale], []).
+pred_n(rabbia, nil, [stato, emotivo], []).
+pred_n(racconto, nil, [astratto, informa], []).
+pred_n(ragazza, nil, [umano], []).
+pred_n(ragazzo, nil, [ind, real, nat, hum], []).
+pred_n(rapporto, nil, [stato], []).
+pred_n(respiro, nil, [evento], []).
+pred_n(rivoluzione, nil, [evento], []).
+pred_n(salmone, nil, [animato], []).
+pred_n(salute, nil, [stato], []).
+pred_n(sconfitta, passivo, [evento], []).
+pred_n(segretario, nil, [umano, sociale], []).
+pred_n(seguito, tr, [coll, real, soc, hum_set], []).
+pred_n(sella, nil, [ind, real, phys, nonliv], []).
+pred_n(senato, nil, [coll, real, soc, instit], []).
+pred_n(senatore, nil, [ind, real, soc, role], []).
+pred_n(serie, nil, [misura], []).
+pred_n(settimana, nil, [tempo, durata], []).
+pred_n(sfera, nil, [ind, abst, soc, state], []).
+pred_n(sfilata, unerg, [ind, real, soc, event], []).
+pred_n(sicuro, nil, [modo], []).
+pred_n(sistema, nil, [strumento, astratto], [vcomp/prop/per/[sogg=x]]).
+pred_n(soffio, nil, [attivita], []).
+pred_n(sollevamento, sollevare, [evento], []).
+pred_n(sorella, nil, [umano, relazionale], []).
+pred_n(sospiro, nil, [evento], []).
+pred_n(spalla, nil, [body_part, oggetto, luogo], []).
+pred_n(specie, nil, [nquant, oggetto], []).
+pred_n(spessore, nil, [spazio], []).
+pred_n(sporco, nil, [stato], []).
+pred_n(stampa, nil, [umano, sociale, istituzione], []).
+pred_n(statale, nil, [luogo], []).
+pred_n(storia, nil, [evento, informa, tempo, durata], [sn/ogg/tema/[animato]]).
+pred_n(studente, nil, [umano], []).
+pred_n(stufa, nil, [strumento], []).
+pred_n(successo, nil, [ind, abst, soc, state], []).
+pred_n(suocero, nil, [umano, relazionale], []).
+pred_n(suonatore, nil, [umano, sociale], [sn/ogg/tema/[oggetto]]).
+pred_n(tegola, nil, [oggetto], []).
+pred_n(temperatura, nil, [misura], []).
+pred_n(tempo, nil, [tempo, durata], []).
+pred_n(terra, nil, [luogo], []).
+pred_n(testa, nil, [body_part, luogo], []).
+pred_n(tetto, nil, [oggetto, luogo], []).
+pred_n(tono, nil, [ind, abst, quant, meas], []).
+pred_n(toro, nil, [animato], []).
+pred_n(trasmissione, nil, [informa, evento, oggetto], []).
+pred_n(treno, nil, [luogo, means_trans], []).
+pred_n(ufficiale, nil, [ind, real, mil, role], []).
+pred_n(ufficio, nil, [luogo, oggetto], []).
+pred_n(universit√†, nil, [ind, real, soc, instit], []).
+pred_n(uomo, nil, [ind, real, nat, hum], []).
+pred_n(uscita, uscire, [luogo, evento], [sp/sogg/exper/per/[means_trans, umano]]).
+pred_n(vicepresidente, nil, [ind, real, soc, role], []).
+pred_n(violenza, nil, [evento], []).
+pred_n(violinista, nil, [umano, sociale], []).
+pred_n(violino, nil, [oggetto, strumento], []).
+pred_n(viso, nil, [body_part, oggetto, luogo], []).
+pred_n(vista, nil, [evento], []).
+pred_n(vittoria, vincere, [evento], [sp/obl/tema_aff/su/[umano]]).
+pred_n(vocazione, nil, [stato], []).
+pred_n(voce, nil, [evento], []).
+pred_n(voglia, nil, [stato, emotivo], [vcomp/prop/di/[sogg=x]]).
+pred_n(volta, nil, [tempo, ripetizione], []).
+pred_n(voto, tr, [ind, real, soc, nonliv], []).
+pred_n(zampa, nil, [animal_body_part, oggetto], []).
+pred_n(zanna, nil, [animal_body_part, oggetto], [sn/ogg/tema/[animato]]).
+
+conju(e).
+conju(ed).
+conju(tuttavia).
+conju(cio√®).
+
+cl(enclitico,_, loro, 3,_, plur,_).
+cl(clitico,_, me, 1,_, sing, [acc]).
+cl(clitico,_, m, 1,_, sing, [dat]).
+cl(clitico,_, mi, 1,_, sing, [dat]).
+cl(clitico,_, te, 2,_, sing, [acc]).
+cl(clitico,_, ti, 2,_, sing, [dat]).
+cl(clitico,_, t, 2,_, sing, [dat]).
+cl(clitico,_, gli, 3, mas, sing, [dat]).
+cl(clitico,_, le, 3, fem,_, [acc]).
+cl(clitico,_, lo, 3, mas, sing, [acc]).
+cl(clitico,_, la, 3, fem, sing, [acc]).
+cl(clitico,_, l, 3, fem, sing, [acc]).
+cl(clitico,_, li, 3, mas, plur, [acc]).
+cl(clitico,_, ci, 1, nonsp, plur, [dat]).
+cl(clitico,_, c, 1, nonsp, plur, [dat]).
+cl(clitico,_, ci,_,_, __4, __5).
+cl(clitico,_, ce, 1,_, plur, [gen]).
+cl(clitico,_, v,_, nonsp,_, [obl, dat]).
+cl(clitico,_, vi,_, nonsp,_, [obl, dat]).
+cl(clitico,_, ve, 2,_, plur, [gen]).
+cl(ana_clit, +, n, 3,_,_, [obl]).
+cl(ana_clit, +, ne, 3,_,_, [obl]).
+cl(rifl_corto,_, si, 3,_,_, __4).
+cl(rifl_corto,_, se, 3,_,_, [dat]).
+prepart(a, al, il).
+prepart(a, ai, i).
+prepart(a, allo, lo).
+prepart(a, alla, la).
+prepart(a, alle, le).
+prepart(da, dal, il).
+prepart(da, dai, i).
+prepart(da, dallo, lo).
+prepart(da, dagli, gli).
+prepart(da, dalla, la).
+prepart(da, dalle, le).
+prepart(con, col, il).
+prepart(con, coi, i).
+prepart(con, collo, lo).
+prepart(con, cogli, gli).
+prepart(con, colla, la).
+prepart(con, colle, le).
+prepart(di, del, il).
+prepart(di, dei, i).
+prepart(di, dello, lo).
+prepart(di, degli, gli).
+prepart(di, della, la).
+prepart(di, delle, le).
+prepart(in, nei, i).
+prepart(in, nello, lo).
+prepart(in, negli, gli).
+prepart(in, nella, la).
+prepart(in, nelle, le).
+prepart(su, sul, il).
+prepart(su, sui, i).
+prepart(su, sullo, lo).
+prepart(su, sugli, gli).
+prepart(su, sulla, la).
+prepart(su, sulle, le).
+prepart(da, dall, lo).
+prepart(a, all, la).
+prepart(in, nel, il).
+prepart(a, agli, gli).
+vcl(guardalo, guarda, lo).
+vcl(chiamarlo, chiamare, lo).
+vcl(coprendolo, coprendo, lo).
+vcl(fammi, fa, mi).
+vcl(fallo, fa, lo).
+vcl(proteggerlo, proteggere, lo).
+vcl(fermati, ferma, ti).
+vcl(sfuggirmi, sfuggire, mi).
+vcl(fermatevi, fermate, vi).
+vcl(entrarci, entrare, ci).
+vcl(valersi, valere, si).
+vcl(aprici, apri, ci).
+vcl(costruirsi, costruire, si).
+vcl(proteggersi, proteggere, si).
+vcl(divertirsi, divertire, si).
+vcl(obbedirgli, obbedire, gli).
+vcl(ubbidirgli, ubbidire, gli).
+vcl(esserci, essere, ci).
+vcl(essersi, essere, si).
+vcl(avendosi, avendo, si).
+vcl(essendosi, essendo, si).
+vcl(iscriversi, iscrivere, si).
+vcl(considerarsi, considerare, si).
+vcl(guardalo, guardare, lo).
+vcl(chiamarelo, chiamare, lo).
+vcl(coprendolo, coprire, lo).
+vcl(fammi, fare, mi).
+vcl(fallo, fare, lo).
+vcl(proteggere_lo, proteggere, lo).
+vcl(fermati, fermare, ti).
+vcl(sfuggiremi, sfuggire, mi).
+vcl(fermatevi, fermare, vi).
+vcl(entrarci, entrare, ci).
+vcl(valersi, valere, si).
+vcl(aprici, aprire, ci).
+vcl(costruiresi, costruire, si).
+vcl(proteggeresi, proteggere, si).
+vcl(divertirsi, divertire, si).
+vcl(obbedirgli, obbedire, gli).
+vcl(ubbidirgli, ubbidire, gli).
+vcl(esserci, essere, si).
+vcl(essersi, essere, si).
+vcl(avendsi, avere, si).
+vcl(essendosi, essere, si).
+vcl(iscriversi, iscrivere, si).
+vcl(considerarsi, considerare, si).
+sub_w_inf(per).
+sub_w_inf(senza).
+sub_w_inf(dopo).
+quant_2(solo).
+quant_2(anche).
+quant_2(proprio).
+mod_ex(altro, mas, sing).
+mod_ex(altro, mas, plur).
+art_det_rom(il, mas, sing).
+art_det_rom(i, mas, plur).
+art_det_rom(lo, mas, sing).
+art_det_rom(gli, mas, plur).
+art_det_rom(la, fem, sing).
+art_det_rom(le, fem, plur).
+prepos(a).
+prepos(ad).
+prepos(con).
+prepos(di).
+prepos(da).
+prepos(in).
+prepos(su).
+prepos(per).
+prepos(senza).
+prepos(contro).
+prepos(come).
+prepos(verso).
+prepos(sopra).
+prepos(fuori).
+prepos(fino).
+prepos(ex).
+
+inten(ben).
+inten(anche).
+inten(davvero).
+inten(proprio).
+inten(cos√¨).
+inten(pi√π).
+inten(meno).
+inten(quasi).
+inten(abbastanza).
+inten(alquanto).
+inten(almeno).
+inten(altrettanto).
+
+ap_rom(mio, miei, mia, mie).
+ap_rom(tuo, tuoi, tua, tue).
+ap_rom(suo, suoi, sua, sue).
+ap_rom(nostro, nostri, nostra, nostre).
+ap_rom(vostro, vostri, vostra, vostre).
+ap_rom(loro, loro, loro, loro).
+ap_rom(proprio, propri, propria, proprie).
+
+modsp(buona).
+modsp(parte).
+modsp(spalle).
+modsp(solo).
+modsp(fino).
+modsp(proprio).
+
+pred_a(abbandonato, [estens], [sn/sogg/[animato]]).
+pred_a(aguzzo, [valutativo], [sn/sogg/[animal_body_part]]).
+pred_a(alto, [valutativo], [sn/sogg/[evento, umano]]).
+pred_a(arrabbiatissimo, [emotivo], [sn/sogg/[umano, animato]]).
+pred_a(arrabbiato, [emotivo], [sn/sogg/[umano, animato]]).
+pred_a(assetato, [emotivo], [sn/sogg/[animato, umano]]).
+pred_a(bel, [valutativo], [sn/sogg/[luogo, oggetto]]).
+pred_a(bello, [valutativo], [sn/sogg/[umano, luogo, animato, attivita, strumento, oggetto]]).
+pred_a(bollente, [estens], [sn/sogg/[oggetto]]).
+pred_a(brasiliano, [provenienza], [sn/sogg/[umano, animato, oggetto]]).
+pred_a(bravo, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(buon, [valutativo], []).
+pred_a(buono, [valutativo], [sn/sogg/[_| __2]]).
+pred_a(cattivo, [valutativo], [sn/sogg/[umano, animato]]).
+pred_a(certo, [soggettivo], [sn/sogg/[umano, animato], vcomp/prop/di/[sogg=x]]).
+pred_a(commerciale, [estens], [sn/sogg/[umano, sociale, istituzione]]).
+pred_a(comodo, [valutativo], [sn/sogg/[oggetto]]).
+pred_a(deciso, [soggettivo], [sn/sogg/[animato, umano], vcomp/prop/a/[sogg=x]]).
+pred_a(democristiano, [astratto, umano], []).
+pred_a(diplomatico, [estens], [sn/sogg/[attivita]]).
+pred_a(disobbediente, [valutativo], []).
+pred_a(duro, [valutativo], [sn/sogg/[attivita, stato]]).
+pred_a(esausto, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(facile, [soggettivo], [sn/sogg/[evento, stato]]).
+pred_a(felice, [emotivo], [sn/sogg/[animato, umano]]).
+pred_a(forte, [valutativo], [sn/sogg/[animato, umano, oggetto]]).
+pred_a(fragile, [valutativo], [sn/sogg/[oggetto]]).
+pred_a(furioso, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(ghiacciato, [stato_temp], [sn/sogg/[oggetto]]).
+pred_a(giallo, [estens], [sn/sogg/[oggetto]]).
+pred_a(grande, [valutativo], [sn/sogg/[umano, istituzione]]).
+pred_a(grasso, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(immediato, [tempor], [sn/sogg/[evento, tempo, attivita]]).
+pred_a(impegnato, [estens], [sn/sogg/[animato, umano], sp/obl/modale/in/[attivita]]).
+pred_a(importante, [soggettivo], [sn/sogg/[umano, sociale, istituzione, attivita]]).
+pred_a(inferocito, [valutativo], [sn/sogg/[animato]]).
+pred_a(influente, [valutativo], []).
+pred_a(invitante, [valutativo], [sn/sogg/[animato, umano, oggetto]]).
+pred_a(ipercritico, [soggettivo], [sn/sogg/[umano]]).
+pred_a(legale, [astratto, umano], []).
+pred_a(lontano, [locat, luogo], [sp/obl/locat/da/[_1| _2]]).
+pred_a(malato, [stato], [sn/sogg/[animato, umano]]).
+pred_a(mancato, [estens], [sn/sogg/[umano, evento, stato]]).
+pred_a(militare, [umano, stato, istituzione], []).
+pred_a(misero, [soggettivo], [sn/sogg/[animato, umano]]).
+pred_a(necessario, [valutativo], [sn/sogg/[attivita, trattamento]]).
+pred_a(nero, [estens], [sn/sogg/[animal_body_part]]).
+pred_a(notevole, [valutativo], [sn/sogg/[stato]]).
+pred_a(ottimo, [valutativo], []).
+pred_a(ozioso, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(particolare, [estens], [sn/sogg/[umano]]).
+pred_a(piccolo, [valutativo], [sn/sogg/[_| __2]]).
+pred_a(pigro, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(politico, [astratto, umano], []).
+pred_a(potente, [valutativo], [sn/sogg/[evento]]).
+pred_a(povero, [soggettivo], [sn/sogg/[animato]]).
+pred_a(preferenziale, [astratto, informa], []).
+pred_a(preferito, [soggettivo], [sn/sogg/[oggetto]]).
+pred_a(preparato, [valutativo], [sn/sogg/[umano]]).
+pred_a(previdente, [valutativo], [sn/sogg/[umano, animato]]).
+pred_a(profondo, [valutativo], [sn/sogg/[evento, tempo, misura]]).
+pred_a(pronto, [telico], [sn/sogg/[oggetto]]).
+pred_a(proporzionale, [quantif], [sn/sogg/[spazio, tempo, misura], sp/obl/misura/a/[spazio, tempo, misura]]).
+pred_a(prossimo, [tempor], [sn/sogg/[evento, tempo, attivita]]).
+pred_a(pubblico, [istituzione, astratto], []).
+pred_a(quel, [deittico], []).
+pred_a(questo, [deittico], []).
+pred_a(resistente, [valutativo], [sn/sogg/[oggetto]]).
+pred_a(ricco, [valutativo], [sn/sogg/[umano]]).
+pred_a(riconoscente, [emotivo], [sn/sogg/[animato, umano]]).
+pred_a(robusto, [valutativo], [sn/sogg/[oggetto]]).
+pred_a(rosso, [estens], [sn/sogg/[oggetto]]).
+pred_a(saggio, [soggettivo], [sn/sogg/[animato, umano]]).
+pred_a(sano, [stato, valutativo], [sn/sogg/[animato, umano]]).
+pred_a(saporito, [valutativo], [sn/sogg/[animato, umano, oggetto]]).
+pred_a(scansafatiche, [soggettivo], [sn/sogg/[animato, umano]]).
+pred_a(sciocco, [soggettivo], [sn/sogg/[umano, animato]]).
+pred_a(semplice, [valutativo], [sn/sogg/[oggetto]]).
+pred_a(sicuro, [soggettivo], [sn/sogg/[animato, umano], vcomp/prop/di/[sogg=x]]).
+pred_a(sicuro, [valutativo], []).
+pred_a(simpatico, [soggettivo], [sn/sogg/[umano], sp/ogg2/esperiente/a/[umano]]).
+pred_a(solido, [valutativo], [sn/sogg/[oggetto, strumento]]).
+pred_a(solito, [valutativo], [sn/sogg/[_| __2]]).
+pred_a(solo, [estens], [sn/sogg/[_| __2]]).
+pred_a(spaventatissimo, [emotivo], [sn/sogg/[animato, umano]]).
+pred_a(stanco, [emotivo], [sn/sogg/[animato, umano], vcomp/prop/di/[sogg=x]]).
+pred_a(stesso, [deittico], [sn/sogg/[_| __2]]).
+pred_a(straniero, [estens], [sn/sogg/[umano, sociale, istituzione]]).
+pred_a(superiore, [quantif], [sn/sogg/[spazio, tempo, misura], sp/obl/misura/a/[spazio, tempo, misura]]).
+pred_a(tenero, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(terribile, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(terrorizzato, [emotivo], [sn/sogg/[animato, umano]]).
+pred_a(tremante, [estens], [sn/sogg/[animato, umano], sp/obl/cause/di/[stato]]).
+pred_a(vanitoso, [valutativo], []).
+pred_a(veloce, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(velocissimo, [valutativo], [sn/sogg/[animato, umano]]).
+pred_a(veronese, [luogo, umano], []).
+pred_a(viaggiante, [estens], [sn/sogg/[umano]]).
+pred_a(vicino, [soggettivo], [sn/sogg/[luogo, oggetto]]).
+pred_ap(loro,_, [sn/sogg/__2]).
+pred_ap(mia,_, [sn/sogg/__2]).
+pred_ap(mie,_, [sn/sogg/__2]).
+pred_ap(miei,_, [sn/sogg/__2]).
+pred_ap(mio,_, [sn/sogg/__2]).
+pred_ap(nostra,_, [sn/sogg/__2]).
+pred_ap(nostre,_, [sn/sogg/__2]).
+pred_ap(nostri,_, [sn/sogg/__2]).
+pred_ap(nostro,_, [sn/sogg/__2]).
+pred_ap(proprio,_, [sn/sogg/__2]).
+pred_ap(sua,_, [sn/sogg/__2]).
+pred_ap(sue,_, [sn/sogg/__2]).
+pred_ap(suo,_, [sn/sogg/__2]).
+pred_ap(suoi,_, [sn/sogg/__2]).
+pred_ap(tua,_, [sn/sogg/__2]).
+pred_ap(tue,_, [sn/sogg/__2]).
+pred_ap(tuo,_, [sn/sogg/__2]).
+pred_ap(tuoi,_, [sn/sogg/__2]).
+pred_ap(vostra,_, [sn/sogg/__2]).
+pred_ap(vostre,_, [sn/sogg/__2]).
+pred_ap(vostri,_, [sn/sogg/__2]).
+pred_ap(vostro,_, [sn/sogg/__2]).
+avv(rapidamente, avv(pred_avv(rapidamente), tipo(modal))).
+avv(tranquillamente, avv(pred_avv(tranquillamente), tipo(modal))).
+avv(allegramente, avv(pred_avv(allegramente), tipo(modal))).
+avv(prudentemente, avv(pred_avv(prudentemente), tipo(modal))).
+avv(forte, avv(pred_avv(forte), tipo(modal))).
+avv(insieme, avv(pred_avv(insieme), tipo(modal))).
+avv(meglio, avv(pred_avv(meglio), tipo(degree))).
+avv(tanto, avv(pred_avv(tanto), tipo(degree))).
+avv(molto, avv(pred_avv(molto), tipo(degree))).
+avv(ebbene, avv(pred_avv(ebbene), tipo(modal))).
+avv(bene, avv(pred_avv(bene), tipo(modal))).
+avv(davvero, avv(pred_avv(davvero), tipo(focal))).
+avv(certo, avv(pred_avv(certo), tipo(focal))).
+avv(anche, avv(pred_avv(anche), tipo(focal))).
+avv(sodo, avv(pred_avv(sodo), tipo(modal))).
+avv(benissimo, avv(pred_avv(bene), tipo(modal), spec(foc(molto)))).
+avv(presto, avv(pred_avv(presto), tipo(modal))).
+avv(dapprima, avv(pred_avv(dapprima), tipo(modal))).
+avv(attentamente, avv(pred_avv(attentamente), tipo(modal))).
+avv(completamente, avv(pred_avv(completamente), tipo(completive))).
+avv(pesantemente, avv(pred_avv(pesantemente), tipo(modal))).
+avv(mai, avv(pred_avv(mai), tipo(negation))).
+avv(neanche, avv(pred_avv(neanche), tipo(negation))).
+avv(nemmeno, avv(pred_avv(nemmeno), tipo(negation))).
+avv(immediatamente, avv(pred_avv(immediatamente), tipo(temp), duraz(punt), config([td=tr]))).
+avv(ora, avv(pred_avv(ora), tipo(temp), duraz(non_punt), config([td=tr]))).
+avv(subito, avv(pred_avv(subito), tipo(temp), duraz(punt), config([td=tr]))).
+avv(ancora, avv(pred_avv(ancora), tipo(temp), duraz(punt), config([td=tr]))).
+avv(intanto, avv(pred_avv(intanto), tipo(temp), duraz(non_punt), config([td=tr]))).
+avv(poi, avv(pred_avv(poi), tipo(temp), duraz(non_punt), config([td=tr]))).
+avv(tardi, avv(pred_avv(tardi), tipo(temp), duraz(non_punt), config([td=tr]))).
+avv(finalmente, avv(pred_avv(finalmente), tipo(temp), duraz(punt), config([td=tr]))).
+avv(improvvisamente, avv(pred_avv(improvvisamente), tipo(temp), duraz(punt), config([td=tr]))).
+avv(oggi, avv(pred_avv(oggi), tipo(deittico), duraz(non_punt), config([td=tr]))).
+avv(sempre, avv(pred_avv(sempre), tipo(temp), duraz(non_punt), config([td=tr]))).
+avv(ieri, avv(pred_avv(ieri), tipo(deittico), duraz(non_punt), config([tr<td]))).
+avv(domani, avv(pred_avv(domani), tipo(deittico), duraz(non_punt), config([td<tr]))).
+avv(dentro, avv(pred_avv(dentro), tipo(locat), spec(def(+)))).
+avv(via, avv(pred_avv(via), tipo(locat), spec(def(+), prox(-)))).
+avv(fuori, avv(pred_avv(fuori), tipo(locat), spec(def(+)))).
+avv(intorno, avv(pred_avv(intorno), tipo(locat), spec(def(+)))).
+avv(ovunque, avv(pred_avv(ovunque), tipo(locat), spec(def(+), part(-)))).
+avv(gi√†, avv(pred_avv(gi√†), tipo(temp), duraz(non_punt), config([td=tr]))).
+avv(gioved√¨, avv(pred_avv(gioved√¨), tipo(clock_cal), duraz(non_punt), config([]))).
+avv(gi√π, avv(pred_avv(gi√π), tipo(locat), spec(def(+)))).
+avv(l√†, avv(pred_avv(l√†), tipo(locat), spec(def(+), prox(-)))).
+avv(l√¨, avv(pred_avv(l√¨), tipo(locat), spec(def(+), prox(+)))).
+avv(per√≤, avv(pred_avv(per√≤), tipo(avvers))).
+avv(pi√π, avv(pred_avv(pi√π), tipo(abortive))).
+avv(allora, avv(pred_avv(allora), tipo(modal))).
+avv(appena, avv(pred_avv(appena), tipo(temp), duraz(punt), config([tr<td]))).
+avv(fa, avv(pred_avv(fa), tipo(temp), duraz(punt), config([tr<td]))).
+relp(quale, sing).
+relp(quali, plur).
+relp(chi,_).
+relp(cosa, sing).
+relp(dove, _1).
+pp_rom(accaduto, accaduti, accaduta, accadute, accadere).
+pp_rom(accennato, accennati, accennata, accennate, accennare).
+pp_rom(accusato, accusati, accusata, accusate, accusare).
+pp_rom(amato, amati, amata, amate, amare).
+pp_rom(andato, andati, andata, andate, andare).
+pp_rom(arrivato, arrivati, arrivata, arrivate, arrivare).
+pp_rom(aspettato, aspettati, aspettata, aspettate, aspettare).
+pp_rom(avuto, avuti, avuta, avute, avere).
+pp_rom(conosciuto, conosciuti, conosciuta, conosciute, conoscere).
+pp_rom(dato, dati, data, date, dare).
+pp_rom(deluso, delusi, delusa, deluse, deludere).
+pp_rom(deposto, deposti, deposta, deposte, deporre).
+pp_rom(diventato, diventati, diventata, diventate, diventare).
+pp_rom(cercato, cercati, cercata, cercate, cercare).
+pp_rom(compreso, compresi, compresa, comprese, comprendere).
+pp_rom(controllato, controllati, controllata, controllate, controllare).
+pp_rom(corso, corsi, corsa, corse, correre).
+pp_rom(costruito, costruiti, costruita, costruite, costruire).
+pp_rom(detto, detti, detta, dette, dire).
+pp_rom(dipinto, dipinti, dipinta, dipinte, dipingere).
+pp_rom(ereditato, ereditati, ereditata, ereditate, ereditare).
+pp_rom(fatto, fatti, fatta, fatte, fare).
+pp_rom(finito, finiti, finita, finite, finire).
+pp_rom(giunto, giunti, giunta, giunte, giungere).
+pp_rom(immischiato, immischiati, immischiata, immischiate, immischiare).
+pp_rom(incaricato, incaricati, incaricata, incaricate, incaricare).
+pp_rom(incontrato, incontrati, incontrata, incontrate, incontrare).
+pp_rom(inseguito, inseguiti, inseguita, inseguite, inseguire).
+pp_rom(insultato, insultati, insultata, insultate, insultare).
+pp_rom(lasciato, lasciati, lasciata, lasciate, lasciare).
+pp_rom(lavato, lavati, lavata, lavate, lavare).
+pp_rom(lavorato, lavorati, lavorata, lavorate, lavorare).
+pp_rom(letto, letti, letta, lette, leggere).
+pp_rom(mangiato, mangiati, mangiata, mangiate, mangiare).
+pp_rom(mosso, mossi, mossa, mosse, muovere).
+pp_rom(nevicato, nevicato, nevicato, nevicato, nevicare).
+pp_rom(nominato, nominati, nominata, nominate, nominare).
+pp_rom(ordinato, ordinati, ordinata, ordinate, ordinare).
+pp_rom(perso, persa, persi, perse, perdere).
+pp_rom(preso, presi, presa, prese, prendere).
+pp_rom(professato, professati, professata, professate, professare).
+pp_rom(raggiunto, raggiunti, raggiunta, raggiunte, raggiungere).
+pp_rom(ricoperto, ricoperti, ricoperta, ricoperte, ricoprire).
+pp_rom(riempito, riempiti, riempita, riempite, riempire).
+pp_rom(rilevato, rilevati, rilevata, rilevate, rilevare).
+pp_rom(rimasto, rimasti, rimasta, rimaste, rimanere).
+pp_rom(riuscito, riusciti, riuscita, riuscite, riuscire).
+pp_rom(rotto, rotti, rotta, rotte, rompere).
+pp_rom(rovinato, rovinati, rovinata, rovinate, rovinare).
+pp_rom(rubato, rubati, rubata, rubate, rubare).
+pp_rom(sbrigato, sbrigati, sbrigata, sbrigate, sbrigarsi).
+pp_rom(scappato, scappati, scappata, scappate, scappare).
+pp_rom(sfasciato, sfasciati, sfasciata, sfasciate, sfasciare).
+pp_rom(sfruttato, sfruttata, sfruttati, sfruttate, sfruttare).
+pp_rom(sposato, sposati, sposata, sposate, sposare).
+pp_rom(stato, stati, stata, state, essere).
+pp_rom(visto, visti, vista, viste, vedere).
+pp_rom(tornato, tornati, tornata, tornate, tornare).
+
+poss_agg_sv(durata, [camb_attiv, esistenza, risult_proc, attivita]).
+poss_agg_sv(form, [esistenza]).
+poss_agg_sv(loc_origin, [achiev, achievirr, camb_attiv, perloc, attivita, stato, evento, risultato, risult_proc, ist_soc, esistenza, percettivo]).
+poss_agg_sv(loc_direct, [achiev, achievirr, camb_attiv, perloc, attivita, stato, evento, risultato, risult_proc, ist_soc, esistenza, percettivo]).
+poss_agg_sv(misura, [achiev, achievirr, camb_attiv, attivita, cambiamento, evento, risultato, risult_proc, soggettivo]).
+poss_agg_sv(materia, [achiev, achievirr, camb_attiv, risult_proc, cambiamento, evento]).
+poss_agg_sv(modale, [achiev, achievirr, camb_attiv, emotivo, attivita, evento, risultato, risult_proc, soggettivo]).
+poss_agg_sv(strumentale, [achiev, achievirr, camb_attiv, affettivo, percettivo, attivita, risult_proc, cambiamento]).
+poss_agg_sv(malefattivo, [achiev, achievirr, camb_attiv, risult_proc, attivita, esistenza]).
+poss_agg_sv(causale, [achiev, achievirr, camb_attiv, perloc, percettivo, attivita, risultato, risult_proc, cambiamento, esistenza, evento, soggettivo, affettivo]).
+poss_agg_sv(clock_cal, [achiev, achievirr, camb_attiv, perloc, soggettivo, affettivo, esistenza, ist_soc, attivita, evento, percettivo, risult_proc, risultato]).
+poss_agg_sv(deittico, [achiev, achievirr, camb_attiv, perloc, soggettivo, affettivo, esistenza, ist_soc, attivita, evento, percettivo, risult_proc, risultato]).
+poss_agg_sv(comitativo, [achiev, achievirr, camb_attiv, attivita, evento,risult_proc,  risultato]).
+poss_agg_sv(temporale, [achiev, achievirr, camb_attiv, perloc, achiev, soggettivo, affettivo, esistenza, ist_soc, attivita, evento, percettivo, risult_proc, risultato]).
+poss_agg_sv(locativo, [achiev, achievirr, camb_attiv, perloc, attivita, soggettivo, stato, evento, risultato, risult_proc, ist_soc, esistenza, percettivo, ment_act, accomp]).
+poss_agg_sv(beneficiario, [achiev, achievirr, camb_attiv, cambiamento, attivita, risultato, risult_proc, accomp]).
+
+tipo_aagg(valutativo, [valutativo, umano]).
+tipo_aagg(enfatico, [umano, animato]).
+tipo_aagg(quantitativo, [quantif]).
+tipo_aagg(soggettivo, [soggettivo]).
+tipo_aagg(emotivo, [emotivo]).
+tipo_aagg(temporale, [tempor]).
+tipo_aagg(deittico, [deittico]).
+tipo_aagg(estensionale, [estens]).
+tipo_aagg(stato_temp, [stato_temp]).
+tipo_aagg(provenienza, [provenienza]).
+tipo_aagg(stato, [stato]).
+tipo_aagg(astratto, [astratto]).
+
+tipo_agg(temporale, da, [tempo]).
+tipo_agg(deittico, da, [deittico]).
+tipo_agg(locativo, da, [umano, animato]).
+tipo_agg(loc_origin, da, [luogo]).
+tipo_agg(temporale, verso, [tempo]).
+tipo_agg(loc_direct, verso, [luogo, umano, animato]).
+tipo_agg(subj_disc, su, [oggetto, umano, animato, evento, luogo, attivita]).
+tipo_agg(locativo, su, [luogo]).
+tipo_agg(locativo, sopra, [luogo, oggetto, animato, umano]).
+tipo_agg(locativo, sopra_di, [luogo, oggetto, animato, umano]).
+tipo_agg(malefattivo, contro, [umano, evento, attivita, istituzione]).
+tipo_agg(locativo, alle_spalle, [umano, animato]).
+tipo_agg(modale, buona_lena, [modo]).
+tipo_agg(temporale, in, [tempo, temp]).
+tipo_agg(locativo, in, [luogo, istituzione]).
+tipo_agg(modale, in, [modo]).
+tipo_agg(form, in, [form]).
+tipo_agg(temporale, fino, [tempo, deittico, temp]).
+tipo_agg(modale, come, [umano, relat, hum, sociale]).
+tipo_agg(comitativo, con, [umano, relat, hum, istituzione, evento]).
+tipo_agg(materia, con, [materia]).
+tipo_agg(strumentale, con, [strumento]).
+tipo_agg(durata, con, [tempo]).
+tipo_agg(modale, con, [modo, attivita, stato]).
+tipo_agg(modale, per, [neg]).
+tipo_agg(causale, per, [attivita, evento]).
+tipo_agg(durata, per, [tempo]).
+tipo_agg(locativo, per, [luogo]).
+tipo_agg(specific, a, [evento]).
+tipo_agg(beneficiario, a, [relat, hum, umano, animato]).
+tipo_agg(modale, a, [modo]).
+tipo_agg(clock_cal, a, [tempo]).
+tipo_agg(temporale, a, [tempo]).
+tipo_agg(locativo, a, [luogo, locat, event]).
+tipo_agg(subj_disc, di, [relat, hum, umano, animato, informa]).
+tipo_agg(misura, di, [misura]).
+tipo_agg(matter, di, [materia]).
+tipo_agg(modale, di, [attivita]).
+tipo_agg(specific, di, [oggetto, istituzione, hum, relat, luogo, attivita, stato, state]).
+
+poss_agg_san(estensionale, [_| __2]).
+poss_agg_san(soggettivo, [_| __2]).
+poss_agg_san(enfatico, [umano, animato, nonliv, hum, role]).
+poss_agg_san(emotivo, [umano, animato, nonliv, hum, role]).
+poss_agg_san(quantitativo, [umano, animato, oggetto, strumento, nonliv, hum, role]).
+poss_agg_san(valutativo, [umano, animato, oggetto, strumento, nonliv, hum, role]).
+poss_agg_san(stato_temp, [umano, animato, oggetto, nonliv, hum, role]).
+poss_agg_san(temporale, [evento, tempo, attivita, stato, nonliv, hum, role]).
+poss_agg_san(deittico, [_| __2]).
+poss_agg_san(provenienza, [umano, animato, oggetto, nonliv, hum, role]).
+poss_agg_san(stato, [umano, animato, oggetto, strumento, stato, istituzione, nonliv, hum]).
+poss_agg_san(astratto, [astratto, istituzione, informa, nonliv, hum, role]).
+
+poss_agg_sa(soggettivo, [camb_attiv, perloc, esistenza, attivita, risultato, risult_proc, cambiamento]).
+poss_agg_sa(quantitativo, [camb_attiv, perloc, esistenza, attivita, risultato, risult_proc, cambiamento]).
+poss_agg_sa(enfatico, [camb_attiv, perloc, esistenza, attivita, risultato, risult_proc, cambiamento]).
+poss_agg_sa(stato, [camb_attiv, perloc, esistenza, attivita, risultato, risult_proc, cambiamento]).
+poss_agg_sa(valutativo, [camb_attiv, perloc, esistenza, attivita, risultato, risult_proc, cambiamento]).
+poss_agg_sa(emotivo, [camb_attiv, perloc, esistenza, attivita, risultato, risult_proc, cambiamento]).
+poss_agg_sa(estensionale, [camb_attiv, perloc, esistenza, attivita, risultato, risult_proc, cambiamento]).
+poss_agg_sa(stato_temp, [oggetto]).
+poss_agg_sa(temporale, [evento, tempo, attivita]).
+poss_agg_sn(forma, [luogo]).
+poss_agg_sn(causale, [evento]).
+poss_agg_sn(modale, [umano]).
+poss_agg_sn(comitativo, [umano, istituzione, animato, attivita]).
+poss_agg_sn(matter, [oggetto, luogo]).
+poss_agg_sn(strumentale, [evento]).
+poss_agg_sn(attivita, [evento]).
+poss_agg_sn(subj_disc, [evento, informa]).
+poss_agg_sn(provenienza, [umano, animato, oggetto]).
+poss_agg_sn(specific, [luogo, umano, sociale, istituzione, animato, attivita, evento, role, hum, relat, soc, stato, state]).
+poss_agg_sn(locativo, [stato, luogo, oggetto, attivita]).
+
+pred_np(franco, nil, [umano, surname], []).
+pred_np(antonio, nil, [umano, surname], []).
+pred_np(marx, nil, [umano, informa], []).
+pred_np(novara, nil, [luogo, astratto], []).
+pred_np(1945, nil, [ind, abst, quant, temp], []).
+pred_np(1947, nil, [ind, abst, quant, temp], []).
+pred_np(jimmy, nil, [umano, animato], []).
+pred_np(jimmi, nil, [umano, animato], []).
+pred_np(marta, nil, [umano], []).
+pred_np(timmy, nil, [umano, animato], []).
+pred_np(tommy, nil, [umano, animato], []).
+pred_np(canelli, nil, [luogo], []).
+pred_np(592, nil, [luogo], []).
+pred_np(avveduti, nil, [umano], []).
+pred_np(verona, nil, [luogo], []).
+pred_np(alberti, nil, [umano], []).
+pred_np(trabucchi, nil, [umano], []).
+pred_np(1950, nil, [tempo, deittico], []).
+pred_np(novara_cavalleria, nil, [istituzione], []).
+pred_np(marco, nil, [umano], []).
+pred_np(mario, nil, [umano], []).
+pred_np(carlo, nil, [umano], []).
+pred_np(gianni, nil, [umano], []).
+pred_np(maria, nil, [umano], []).
+pred_np(francesca, nil, [umano], []).
+pred_np(luigi, nil, [umano], []).
+pred_np(gino, nil, [umano], []).
+pred_np('Bob', nil, [umano], []).
+pred_np('Gabriella', nil, [umano], []).
+pred_np(1948, nl, [ind, abst, quant, temp], []).
+% pred_np(amb, nl, [coll, real, soc, instit], []).
+pred_np(avveduti, nl, [ind, real, nat, hum], []).
+pred_np(bartoli, nl, [ind, real, nat, hum], []).
+pred_np(dc, nl, [coll, real, soc, hum_set], []).
+pred_np(de_gasperi, nl, [ind, real, nat, hum], []).
+pred_np(don_sturzo, nl, [ind, real, nat, hum], []).
+pred_np(italia, nl, [ind, real, quant, gen_locat], []).
+pred_np(novara_cavalleria, nl, [coll, real, soc, hum_set], []).
+pred_np(paola, nl, [ind, real, nat, hum], []).
+pred_np(pinerolo, nl, [ind, real, quant, locat], []).
+pred_np(roma, nl, [ind, real, quant, locat], []).
+pred_np(veneto, nl, [ind, real, quant, gen_locat], []).
+pred_np(verona, nl, [ind, real, quant, locat], []).
+aux(avendo, avere, ger, pres,_,_).
+aux(avere, avere, inf,_,_,_).
+aux(aveva, avere, ind, imp, 3, sing).
+aux(avevano, avere, ind, imp, 3, plur).
+aux(avrebbe, avere, cond, imp, 3, sing).
+aux(avrebbero, avere, cond, imp, 3, plur).
+aux(era, essere, ind, imp, 3, sing).
+aux(erano, essere, ind, pres, 3, plur).
+aux(essendo, essere, ger, pres,_,_).
+aux('√®', essere, ind, pres, 3, sing).
+aux(fu, essere, ind, pass_rem, 3, sing).
+aux(furono, essere, ind, pass_rem, 3, plur).
+aux(ha, avere, ind, pres, 3, sing).
+aux(hai, avere, ind, pres, 2, sing).
+aux(hanno, avere, ind, pres, 3, plur).
+aux(ho, avere, ind, pres, 1, sing).
+aux(sia, essere, cong, pres,_, sing).
+aux(siano, essere, cong, pres, 3, plur).
+aux(sono, essere, ind, pres, 3, plur).
+aux(sta, stare, ind, pres, 3, sing).
+aux(stanno, stare, ind, pres, 3, plur).
+aux(stare, stare, inf,_,_,_).
+aux(stava, stare, ind, imp, 3, sing).
+aux(stavano, stare, ind, imp, 3, plur).
+aux(vengono, venire, ind, pres, 3, plur).
+aux(venne, venire, ind, pass_rem, 3, sing).
+aux(viene, venire, ind, pres, 3, sing).
+aux(vennero, venire, ind, pass_rem, 3, plur).
+aux(sarebbe, essere, cond, pres, 3, sing).
+quant_int(quale, quale, +,_, sing).
+quant_int(quali, quale, +,_, plur).
+npro(avveduti, '?? ', mas).
+npro(verona, '?? ', fem).
+npro(alberti, '?? ', mas).
+npro(trabucchi, '?? ', mas).
+npro(1950, '?? ', mas).
+npro(592, '?? ', mas).
+npro(novara_cavalleria, '?? ', mas).
+npro(jimmy, '?? ', mas).
+npro(jimmi, '?? ', mas).
+npro(marta, '?? ', fem).
+npro(timmy, '?? ', mas).
+npro(tommy, '?? ', mas).
+npro(canelli, '?? ', mas).
+npro(marco, '?? ', mas).
+npro(mario, '?? ', mas).
+npro(carlo, '?? ', mas).
+npro(gianni, '?? ', mas).
+npro(maria, '?? ', fem).
+npro(francesca, '?? ', fem).
+npro(luigi, '?? ', mas).
+npro(gino, '?? ', mas).
+npro('Bob', '?? ', mas).
+npro(1945, '?? ', mas).
+npro(1947, '?? ', mas).
+npro(1948, '?? ', mas).
+npro(alberti, '?? ', mas).
+npro(amb, '?? ', fem).
+npro(antonio, '?? ', mas).
+npro(bartoli, '?? ', mas).
+npro(dc, '?? ', fem).
+npro(de_gasperi, '?? ', mas).
+npro(don_sturzo, '?? ', mas).
+npro(franco, '?? ', mas).
+npro(italia, '?? ', fem).
+npro(novara_cavalleria, '?? ', mas).
+npro(paola, '?? ', fem).
+npro(pinerolo, '?? ', fem).
+npro(roma, '?? ', fem).
+npro(veneto, '?? ', mas).
+npro(verona, '?? ', fem).
+npro(novara, novara, _).
+npro(marx, none, mas).
+nega(non).
+pred_vc(andare, inac, attivita, [[sn/sogg/agente/[animato, umano],sp/obl/locativo/[a,da,in,su,sotto,sopra,per]/[luogo], vcomp/prop/a/[sogg=sogg/agente]],[sn/sogg/agente/[animato, umano], vcomp/prop/a/[sogg=sogg/agente]],[sn/sogg/agente/[animato,umano],sp/obl/locativo/[a,da,in,su,sotto,sopra,per]/[luogo]]]).
+pred_vc(avere, cop, stato, [[sn/sogg/esperiente/[umano, animato], sn/ogg/agente/[_| _],pcomp/locativo/[luogo],idioms/ogg/form/[calcagna]], [sn/sogg/tema_bound/[umano, animato], ncomp/prop/[_| _]]]).
+pred_vc(bastare, vimp, risultato, [[expl/sogg/_1/[]], [expl/sogg/_2/[], vcomp/prop/[]/[sogg=x]]]).
+pred_vc(cercare, trans, attivita, [[sn/sogg/agente/[umano, animato], vcomp/prop/di/[sogg=sogg/agente]],[sn/sogg/agente/[umano, animato], sn/ogg/tema_nonaff/[umano, oggetto, animato, stato]]]).
+pred_vc(cominciare, trans, risultato, [[sn/sogg/agente/[animato, umano], sn/ogg/tema_aff/[attivita, informa,oggetto]], [sn/sogg/agente/[umano, animato], vcomp/prop/a/[sogg=sogg/agente]]]).
+pred_vc(confermare, trans, attivita, [[sn/sogg/esperiente/[umano], sn/ogg/tema_bound/[_| _], pcomp/prop/[_| _]],[sn/sogg/agente/[umano],sn/ogg/tema_aff/[attivita, stato, evento]]]).
+pred_vc(correre, intr, camb_attiv, [[sn/sogg/agente/[umano], sp/obl/locativo/[a,da]/[umano,fam_loc]],[sn/sogg/agente/[umano], sp/obl/locativo/a/[luogo]], [sn/sogg/agente/[umano, animato], sp/obl/loc_direct/verso/[luogo]], [sn/sogg/agente/[umano, animato]]]).
+pred_vc(dire, trans, riport_dir, [[sn/sogg/actor/[umano, informa, astratto], vcomp/prop/di/[sogg=sogg/actor]],[sn/sogg/actor/[umano, informa, astratto], sn/ogg/tema_nonaff/[informa, astratto]], [sn/sogg/actor/[umano, informa, astratto], sp/ogg2/esperiente/a/[umano],f/fcomp/prop/[sogg=sogg/agente, sogg=x]],[sn/sogg/actor/[umano, informa,astratto], f/fcomp/propq/[sogg=sogg/agente, sogg=x]]]).
+pred_vc(essere, cop, esistenza, [[sn/sogg/tema_bound/[_| _], xcomp/prop/[_| _]], [vcomp/prop/[]/[sogg=x],acomp/prop/[_| _]]]).
+pred_vc(fare, trans, camb_attiv, [[sn/sogg/agente/[umano, animato], sn/ogg_avv/tema_nonaff/[oggetto, stato,attivita]], [sn/sogg/agente/[umano, animato], sp/obl/form/in/[tempo], vcomp/prop/a/[sogg=sogg/agente]],[sn/sogg/agente/[umano, animato], sn/ogg/tema_nonaff/[oggetto, stato, attivita], sp/ogg2/paziente/a/[umano, animato]], [sn/sogg/agente/[umano, animato], sp/ogg2/paziente/a/[umano, animato], vcomp/prop/a/[sogg=ogg2/paziente]], [sn/sogg/agente/[umano, animato], f/fcomp/prop/[sogg=x]]]).
+pred_vc(incontrare, trans, risultato, [[sn/sogg/esperiente/[umano], sn/ogg/actor/[umano, animato, oggetto],pcomp/locativo/[luogo]], [sn/sogg/esperiente/[umano], sn/ogg/actor/[umano]]]).
+pred_vc(lasciare, trans, risultato, [[sn/sogg/actor/[animato, umano], sn/ogg/tema_nonaff/[oggetto, strumento,umano]], [sn/sogg/actor/[umano, animato], vcomp/prop/[]/[sogg=sogg/actor]]]).
+pred_vc(leccare, trans, soggettivo, [[sn/sogg/esperiente/[animato, umano], sn/ogg/tema_aff/[oggetto,body_part], idioms/ogg/form/[baffo], idioms/ogg2/form/[si]], [sn/sogg/esperiente/[animato, umano], sn/ogg/tema_aff/[oggetto,body_part]]]).
+pred_vc(mettersi, rifl, risult_proc, [[sn/sogg/actor/[umano, animato], vcomp/prop/a/[sogg=sogg/actor]],[sn/sogg/agente/[animato, umano], sp/obl/modale/in/[modo]]]).
+pred_vc(parlare, intr, attivita, [[sn/sogg/actor/[umano, animato,evento,informa], sp/obl1/address/a/[animato, umano],sp/obl2/subj_dis/di/[_| _]],[sn/sogg/actor/[umano, animato]]]).
+pred_vc(pensare, intr, ment_perloc, [[sn/sogg/esperiente/[umano], vcomp/prop/di/[sogg=sogg/esperiente]],[sn/sogg/actor/[umano, animato], sp/obl/tema/a/[_| _]], [sn/sogg/esperiente/[umano], f/fcomp/prop/[sogg=sogg/esperiente, sogg=x]]]).
+pred_vc(piacere, psych, emotivo, [[sn/sogg/tema_emot/[oggetto, umano, animato], sp/ogg2/esperiente/a/[umano,animato]], [vcomp/propint/[]/[sogg=ogg2/esperiente],sp/ogg2/esperiente/a/[animato, umano]]]).
+pred_vc(sapere, trans, presuppositivo, [[sn/sogg/actor/[umano], f/fcomp/propq/[sogg=sogg/actor]],[sn/sogg/actor/[umano], f/fcomp/prop/[sogg=sogg/actor]], [sn/sogg/actor/[umano],vcomp/prop/[]/[sogg=sogg/actor]]]).
+pred_vc(sembrare, cop, soggettivo, [[expl/sogg/_1/[], f/fcomp/prop/[sogg=x]], [sn/sogg/actor/[umano],vcomp/prop/[]/[sogg=sogg/actor]], [sn/sogg/tema_bound/[_| _], acomp/prop/[_| _]]]).
+pred_vc(tenere, trans, risult_proc, [[sn/sogg/agente/[umano, animato], sn/ogg/tema_aff/[umano,animato, stato,oggetto], acomp/prop/[_|_]], [sn/sogg/agente/[umano, animato], sn/ogg/tema_nonaff/[umano, animato, stato, oggetto], xcomp/prop/[_| _]]]).
+pred_vc(vedere, trans, percettivo, [[sn/sogg/esperiente/[umano, animato], sn/ogg/tema_nonaff/[umano,animato, oggetto], pcomp/locativo/[luogo]], [sn/sogg/perceiver/[umano, animato],f/fcomp/propq/[sogg=x]],[sn/sogg/perceiver/[umano, animato], sn/ogg/tema_nonaff/[umano, animato, oggetto]],[sn/sogg/perceiver/[umano, animato], sn/ogg/tema_nonaff/[umano, oggetto, animato], xcomp/prop/[_| _]]]).
+pred_vc(venire, inac, risultato, [[sn/sogg/agente/[umano, animato],sp/obl/[da,a]/locativo/[umano,fam_loc]],[sn/sogg/agente/[umano, animato],sp/obl/[da]/proven/[luogo]],[sn/sogg/actor/[umano, animato,means_trans],vcomp/prop/[a,ad]/[sogg=sogg/actor]]]).
+pred_vc(volere, trans, soggettivo, [[sn/sogg/esperiente/[umano, animato], vcomp/prop/[]/[sogg=sogg/esperiente]], [sn/sogg/esperiente/[umano, animato], f/fcomp/prop/[sogg=sogg/esperiente, sogg=x]], [sn/sogg/agente/[umano, animato], sn/ogg/tema_nonaff/[_1| _2]]]).
+pred_vc(passare, trans, camb_attiv, [[sn/sogg/tema_nonaff/[animato, umano], sn/ogg_avv/tema_nonaff/[tempo],sadv/adv/modal/[modo, attivita, stato]],[sn/sogg/tema_nonaff/[informa, astratto, deitt], idioms/ogg2/form/[mi],sp/obl/locativo/per/[luogo, body_part]]]).
+
+
+n(accademia, accademie, fem).
+n(accidente, accidenti, mas).
+n(acqua, acque, fem).
+n('agilit√†', agilit√†, fem).
+n(agnellino, agnellini, mas).
+n(aiuto, aiuti, mas).
+n(albero, alberi, mas).
+n(allievo, allievi, mas).
+n(amico, amici, mas).
+n(amministrazione, amministrazioni, fem).
+n(animale, animali, mas).
+n(anno, anni, mas).
+n(area, aree, fem).
+n(aria, '?? ', fem).
+n(asino, asini, mas).
+n(assalto, assalti, mas).
+n(attaccamento, attaccamenti, mas).
+n(attacco, attacchi, mas).
+n(attimo, attimi, mas).
+n(autobus, autobus, mas).
+n(autorit√†, autorit√†, fem).
+n(avversaria, avversarie, fem).
+n(baffo, baffi, mas).
+n(baldoria, baldorie, fem).
+n(bambino, bambini, mas).
+n(belva, belve, fem).
+n(bibita, bibite, fem).
+n(biblioteca, biblioteche, mas).
+n(bolla, bolle, fem).
+n(bollicina, bollicine, fem).
+n(bordo, bordi, mas).
+n(bosco, boschi, mas).
+n(breve, '?? ', mas).
+n(burocrate, burocrati, mas).
+n(calcagna, calcagna, fem).
+n(calcio, calci, mas).
+n(camino, camini, mas).
+n(cammino, cammini, mas).
+n(campagna, campagne, fem).
+n(cannocchiale, cannocchiali, mas).
+n(canzone, canzoni, fem).
+n(capanna, capanne, fem).
+n(capoturno, capoturni, mas).
+n(carriera, carriere, fem).
+n(casa, case, fem).
+n(cavalleria, '?? ', fem).
+n(cemento, cementi, mas).
+n(cesta, ceste, fem).
+n(cesto, cesti, mas).
+n(chiavistello, chiavistelli, mas).
+n(cibo, cibi, mas).
+n(collaborazione, collaborazioni, fem).
+n(collegio, collegi, mas).
+n(commercio, commerci, mas).
+n(compito, compiti, mas).
+n(controllo, controlli, mas).
+n(corrosione, corrosioni, mas).
+n(corsa, corse, fem).
+n(cottura, cotture, fem).
+n(crepapelle, '?? ',_).
+n(croce, croci, fem).
+n(delegato, delegati, mas).
+n(delegazione, delegazioni, fem).
+n(difettosit√†, difettosit√†, fem).
+n(dimostrante, dimostranti, mas).
+n(disonest√†, disonest√†, fem).
+n(dispiacere, dispiaceri, mas).
+n(dispositivo, dispositivi, mas).
+n(distinzione, distinzioni, fem).
+n(ditta, ditte, fem).
+n(divisa, divise, fem).
+n(dolore, dolori, mas).
+n(donna, donne, fem).
+n(dopoguerra, '?? ', mas).
+n(dottore, dottori, mas).
+n(eleganza, '?? ', fem).
+n(elettore, elettori, mas).
+n(esercito, eserciti, mas).
+n(esponente, esponenti, mas).
+n(estero, esteri, mas).
+n(ex, ex, _).
+n(ex_ufficiale, ex_ufficiali, mas).
+n(famiglia, famiglie, fem).
+n(fessura, fessure, fem).
+n(fetta, fette, fem).
+n(fiera, fiere, fem).
+n(figlia, figlie, fem).
+n(figlio, figli, mas).
+n(file, file, mas).
+n(film, film, mas).
+n(fine, fine, fem).
+n(finestra, finestre, fem).
+n(flauto, flauti, mas).
+n(fondatore, fondatori, mas).
+n(formazione, formazioni, fem).
+n(fortuna, fortune, fem).
+n(forza, forze, fem).
+n(fratello, fratelli, mas).
+n(fretta, frette, fem).
+n(funzionario, funzionari, mas).
+n(fuoco, fuochi, mas).
+n(fuori, fuori, mas).
+n(generale, generali, mas).
+n(genio, geni, mas).
+n(giocattolo, giocattoli, mas).
+n(giornata, giornate, fem).
+n(giorno, giorni, mas).
+n(giovinezza, '?? ', fem).
+n(giro, giri, mas).
+n(grado, gradi, mas).
+n(graffio, graffi, mas).
+n(guardia, guardie, fem).
+n(guarnigione, guarnigioni, fem).
+n(immigrato, immigrati, mas).
+n(imputato, imputati, mas).
+n(incanto, incanti, mas).
+n(incarico, incarichi, mas).
+n(incontro, incontri, mas).
+n(infermiera, infermiere, fem).
+n(informazione, informazioni, fem).
+n(insegnante, insegnanti, mas).
+n(intenzione, intenzioni, mas).
+n(interesse, interessi, mas).
+n(interruzione, interruzioni, fem).
+n(istituzione, istituzioni, fem).
+n(ladro, ladri, mas).
+n(laureato, laureati, mas).
+n(lavoratore, lavoratori, mas).
+n(lavoro, lavori, mas).
+n(legno, legni, mas).
+n(lena, lene, fem).
+n(liberazione, liberazioni, fem).
+n(libert√†, libert√†, fem).
+n(libro, libri, mas).
+n(linea, linee, fem).
+n(luogo, luoghi, mas).
+n(lupo, lupi, mas).
+n(macchina, macchine, fem).
+n(madre, madri, fem).
+n(male, mali, mas).
+n(maledizione, maledizioni, fem).
+n(mamma, mamme, fem).
+n(mano, mani, fem).
+n(mascheratura, mascherature, fem).
+n(mattone, mattoni, mas).
+n(mela, mele, fem).
+n(merito, meriti, mas).
+n(mese, mesi, mas).
+n(metodo, metodi, mas).
+n(microscopio, microscopi, mas).
+n(militare, militari, mas).
+n(ministro, ministri, mas).
+n(minuto, minuti, mas).
+n(modo, modi, mas).
+n(moglie, mogli, fem).
+n(mondo, mondi, mas).
+n(museo, musei, mas).
+n(nebbia, nebbie, fem).
+n(neve, nevi, fem).
+n(nevicata, nevicate, fem).
+n(nome, nomi, mas).
+n(nota, note, fem).
+n(notte, notti, fem).
+n(nubifragio, nubifragi, mas).
+n(numero, numeri, mas).
+n(nuvolosit√†, nuvolosit√†, fem).
+n(occasione, occasioni, fem).
+n(operaio, operai, mas).
+n(operazione, operazioni, fem).
+n(ora, ore, fem).
+n(organizzazione, organizzazioni, fem).
+n(ossido, ossidi, mas).
+n(outsider, outsiders, mas).
+n(padre, padri, mas).
+n(padrone, padroni, mas).
+n(paglia, paglie, fem).
+n(paio, paio, mas).
+n(paia, paia, mas).
+n(palmo, palmi, mas).
+n(parlamento, parlamenti, mas).
+n(parte, parti, fem).
+n(partenza, partenze, fem).
+n(partito, partiti, mas).
+n(pasto, pasti, mas).
+n(paura, paure, fem).
+n(pecora, pecore, fem).
+n(pelle, pelli, fem).
+n(pentolone, pentoloni, mas).
+n(percorso, percorsi, mas).
+n(perdifiato, perdifiato, mas).
+n(pericolo, pericoli, mas).
+n(permesso, permessi, mas).
+n(persona, persone, fem).
+n(pesce, pesci, mas).
+n(pezzo, pezzi, mas).
+n(piede, piedi, mas).
+n(pioggia, pioggie, fem).
+n(polmone, polmoni, mas).
+n(porcellino, porcellini, mas).
+n(porta, porte, fem).
+n(posto, posti, mas).
+n(pranzetto, pranzetti, mas).
+n(prefetto, prefetti, mas).
+n(presidente, presidenti, mas).
+n(presidenza, presidenze, fem).
+n(prigioniero, prigionieri, mas).
+n(principio, principi, mas).
+n(procuratore, procuratori, mas).
+n(produttore, produttori, mas).
+n(professore, professori, mas).
+n(punto, punti, mas).
+n(quadro, quadri, mas).
+n(qualifica, qualifiche, fem).
+n(questore, questori, mas).
+n(rabbia, rabbie, fem).
+n(racconto, racconti, mas).
+n(ragazza, ragazze, fem).
+n(ragazzo, ragazzi, mas).
+n(rapporto, rapporti, mas).
+n(residuo, residui, mas).
+n(resist, '?? ', mas).
+n(respiro, respiri, mas).
+n(rivoluzione, rivoluzioni, fem).
+n(run, run, mas).
+n(salmone, salmoni, mas).
+n(salute, nil, fem).
+n(sconfitta, sconfitte, fem).
+n(segretario, segretari, mas).
+n(seguito, seguiti, mas).
+n(senato, senati, mas).
+n(senatore, senatori, mas).
+n(serie, serie, fem).
+n(settimana, settimane, fem).
+n(sfera, sfere, fem).
+n(sfilata, sfilate, fem).
+n(sicuro, sicuro, mas).
+n(sistema, sistemi, mas).
+n(soffio, soffi, mas).
+n(sollevamento, sollevamenti, mas).
+n(sorella, sorelle, fem).
+n(sospiro, sospiri, mas).
+n(sovrattacco, sovrattachi, mas).
+n(spalla, spalle, fem).
+n(specie, specie, fem).
+n(spessore, spessori, mas).
+n(sporco, sporchi, mas).
+n(stampa, stampe, fem).
+n(statale, statali, fem).
+n(storia, storie, fem).
+n(studente, studenti, mas).
+n(stufa, stufe, fem).
+n(successo, successi, mas).
+n(suocero, suoceri, mas).
+n(suonatore, suonatori, mas).
+n(tegola, tegole, fem).
+n(temperatura, temperature, fem).
+n(tempo, tempi, mas).
+n(terra, terre, fem).
+n(testa, teste, fem).
+n(tetto, tetti, mas).
+n(tono, toni, mas).
+n(toro, tori, mas).
+n(trasmissione, trasmissioni, fem).
+n(ufficiale, ufficiali, mas).
+n(ufficio, uffici, mas).
+n(universit√†, universit√†, fem).
+n(uomo, uomini, mas).
+n(uscita, uscite, fem).
+n(velo, veli, mas).
+n(vicepresidente, vicepresidenti, mas).
+n(vino, vini, mas).
+n(violenza, violenze, fem).
+n(violinista, violinisti, mas).
+n(violino, violini, mas).
+n(viso, visi, mas).
+n(vista, viste, fem).
+n(vittoria, vittorie, fem).
+n(vocazione, vocazioni, fem).
+n(voce, voci, fem).
+n(voglia, voglie, fem).
+n(volta, volte, fem).
+n(voto, voti, mas).
+n(wafer, wafer, mas).
+n(zampa, zampe, fem).
+n(zanna, zanne, fem).
+
+pred_vs(abbattere, trans, risultato, sn-sogg, agente, [umano, animato], sn-ogg, [nn], tema_aff, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(abitare, cop, stato, sn-sogg, tema_unaff, [umano, animato], pcomp, [nn], comitat, [_1| _2], nn, [nn], nn, nn).
+pred_vs(accadere, inac, cambiamento, sn-sogg, tema_nonaff, [evento], sp-ogg2, a, tema_nonaff, [oggetto], nn, [nn], nn, nn).
+pred_vs(accasciarsi, rifl, risultato, sn-sogg, esperiente, [umano, animato, oggetto], pcomp, [nn], locativo, [luogo], nn, [nn], nn, nn).
+pred_vs(accendere, trans, cambiamento, sn-sogg, agente, [umano], sn-ogg, [nn], tema_nonaff, [oggetto, strumento], sp-obl, sotto, locativo, [oggetto]).
+pred_vs(accennare, intr, attivita, sn-sogg, actor, [umano], sp-ogg2, a, tema_nonaff, [oggetto], nn, [nn], nn, nn).
+pred_vs(accennare, trans, attivita, sn-sogg, actor, [umano], sp-ogg2, a, tema_nonaff, [umano], f, [nn], prop, [sogg=sogg/actor, sogg=x]).
+pred_vs(accettare, trans, risultato, sn-sogg, actor, [umano], sn-ogg, [nn], tema_nonaff, [oggetto, stato], nn, [nn], nn, nn).
+pred_vs(acchiappare, trans, risultato, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_aff, [animato, umano], nn, [nn], nn, nn).
+pred_vs(acciuffare, trans, risultato, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_aff, [animato], nn, [nn], nn, nn).
+pred_vs(accompagnare, trans, attivita, sn-sogg, agente, [umano], sn-ogg_avv, [nn], tema_nonaff, [umano], sp-obl, con, strumentale, [oggetto]).
+pred_vs(accorgersi, rifl, risultato, sn-sogg, esperiente, [umano, animato], fcomp-[sogg=x], [nn], prop, _1, nn, [nn], nn, nn).
+pred_vs(accusare, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano], vcomp-[sogg=ogg], di, prop, _1).
+pred_vs(adottare, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_nonaff, [strumento, astratto], vcomp-[sogg=sogg], per, prop, _1).
+pred_vs(agitarsi, rifl, attivita, sn-sogg, agente, [animato, umano], sp-obl, in, locativo, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(amare, trans, affettivo, sn-sogg, esperiente, [umano], sn-ogg, [nn], tema_nonaff, [luogo, umano, animato, oggetto, attivita], nn, [nn], nn, nn).
+pred_vs(ammirare, trans, attivita, sn-sogg, esperiente, [umano], sn-ogg, [nn], tema_nonaff, [umano, animato, evento, sociale, attivita], nn, [nn], nn, nn).
+pred_vs(apparire, cop, stato, sn-sogg, actor, [animato, umano], ncomp, [nn], prop, [_1| _2], nn, [nn], nn, nn).
+pred_vs(apparire, inac, risultato, sn-sogg, actor, [evento, umano, animato], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(aprire, trans, risultato, sn-sogg, agente, [umano, animato], sn-ogg, [nn], tema_aff, [oggetto], sp-ogg2, a, goal, [umano, animato]).
+pred_vs(arrivare, inac, risultato, sn-sogg, tema_aff, [umano, animato, strumento], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(aspettare, trans, attivita, sn-sogg, actor, [umano], sn-ogg, [nn], tema_nonaff, [umano], nn, [nn], nn, nn).
+pred_vs(attaccare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto, sostanza], nn, [nn], nn, nn).
+pred_vs(augurare, trans, attivita, sn-sogg, actor, [umano, animato], sn-ogg, [nn], tema_nonaff, [salut, informa], nn, [nn], nn, nn).
+pred_vs(avvisare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano], nn, [nn], nn, nn).
+pred_vs(ballare, intr, attivita, sn-sogg, actor, [animato, umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(balzare, inac, risultato, sn-sogg, agente, [umano, animato], sp-obl, da, locativo, [oggetto], nn, [nn], nn, nn).
+pred_vs(battere, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano, animato], nn, [nn], nn, nn).
+pred_vs(bere, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [sostanza], nn, [nn], nn, nn).
+pred_vs(bussare, intr, attivita, sn-sogg, agente, [umano], sp-obl, a, goal, [oggetto], nn, [nn], nn, nn).
+pred_vs(cadere, inac, risultato, sn-sogg, tema_aff, [oggetto], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(cantare, trans, affettivo, sn-sogg, esperiente, [umano, animato], sn-ogg, [nn], tema_nonaff, [astratto, informa], nn, [nn], nn, nn).
+pred_vs(canticchiare, trans, attivita, sn-sogg, actor, [umano], sn-ogg_avv, [nn], tema_nonaff, [informa], nn, [nn], nn, nn).
+pred_vs(cavalcare, intr, attivita, sn-sogg, actor, [umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(chiamare, trans, attivita, sn-sogg, actor, [umano], sn-ogg, [nn], tema_nonaff, [umano, animato], nn, [nn], nn, nn).
+pred_vs(chiudere, trans, risultato, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_aff, [umano, animato, oggetto], nn, [nn], nn, nn).
+pred_vs(chiudersi, rifl, risultato, sn-sogg, agente, [animato, umano], sp-obl, in, locat, [luogo, oggetto], nn, [nn], nn, nn).
+pred_vs(comprendere, psyc, risultato, sn-sogg, esperiente, [umano, animato], sn-ogg, [nn], tema_nonaff, [psyc_object], nn, [nn], nn, nn).
+pred_vs(conoscere, trans, ment_act, sn-sogg, esperiente, [umano], sn-ogg, [nn], topic, [_1| _2], nn, [nn], nn, nn).
+pred_vs(considerare, trans, soggettivo, sn-sogg, esperiente, [umano], sn-ogg, [nn], tema_bound, [_1| _2], ncomp-[sogg=ogg], [nn], prop, [_3| _4]).
+pred_vs(considerare, trans, soggettivo, sn-sogg, esperiente, [umano], sn-ogg, [nn], tema_bound, [_1| _2], xcomp, [nn], prop, [_3| _4]).
+pred_vs(continuare, trans, attivita, sn-sogg, agente, [umano, animato], vcomp-[sogg=sogg], a, prop, _1, nn, [nn], nn, nn).
+pred_vs(controllare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto, sostanza, misura, luogo, umano], nn, [nn], nn, nn).
+pred_vs(coprire, trans, achiev, sn-sogg, agente, [umano], sn-ogg, [nn], paziente, [ist_soc, instit, hum], sp-obl, di, instr, [oggetto, astratto, nonliv]).
+pred_vs(corrispondere, cop, stato, sn-sogg, tema_bound, [attivita], pcomp, [nn], tema_nonaff, [stato], nn, [nn], nn, nn).
+pred_vs(costruire, trans, cambiamento, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_eff, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(criticare, trans, valutativo, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano], nn, [nn], nn, nn).
+pred_vs(curare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano, sociale, istituzione], nn, [nn], nn, nn).
+pred_vs(dare, trans, risultato, sn-sogg, source, [animato, umano], sn-ogg, [nn], tema_nonaff, [evento, azione], sp-obl, a, goal, [oggetto]).
+pred_vs(decidere, trans, perloc, sn-sogg, actor, [animato, umano], vcomp-[sogg=sogg], di, prop, _1, nn, [nn], nn, nn).
+pred_vs(deludere, trans, achiev, sn-sogg, causer_emot, [umano], sn-ogg, [nn], esperiente, [umano], nn, [nn], nn, nn).
+pred_vs(deporre, trans, achiev, sn-sogg, actor, [umano], sn-ogg, [nn], tema_aff, [umano, oggetto], nn, [nn], nn, nn).
+pred_vs(deridere, trans, attivita, sn-sogg, actor, [umano, animato], sn-ogg, [nn], tema_nonaff, [umano, animato], nn, [nn], nn, nn).
+pred_vs(desiderare, trans, soggettivo, sn-sogg, esperiente, [umano, animato], fcomp-[sogg=sogg, sogg=x], [nn], propint, _1, nn, [nn], nn, nn).
+pred_vs(dimettere, trans, achiev, sn-sogg, actor, [umano], sn-ogg, [nn], actee, [umano], sp-obl, [da], locativo, [luogo, astratto, hum_set]).
+pred_vs(dimettersi, rifl, achievirr, sn-sogg, tema_aff, [umano], obl-source, [nn], da, [ist_soc, astratto], nn, [nn], nn, nn).
+pred_vs(dipingere, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto], nn, [nn], nn, nn).
+pred_vs(dipingere, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto], acomp, [nn], prop, [_1| _2]).
+pred_vs(dirigere, trans, attivita, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_aff, [attivita, umano, luogo], nn, [nn], nn, nn).
+pred_vs(dirigersi, rifl, attivita, sn-sogg, agente, [animato, umano], sp-obl, verso, goal, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(distruggere, trans, cambiamento, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_aff, [oggetto], nn, [nn], nn, nn).
+pred_vs(diventare, cop, risultato, sn-sogg, tema_bound, [_1| _2], xcomp, [nn], prop, [_3| _4], nn, [nn], nn, nn).
+pred_vs(divertirsi, rifl, emotivo, sn-sogg, esperiente, [umano, animato], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(dovere, supporto, modale, nn, nn, nn, nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(durare, intr, esistenza, sn-sogg, tema_nonaff, [attivita, evento], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(entrare, inac, risultato, sn-sogg, agente, [animato, umano], sp-obl, in, goal, [luogo, oggetto], nn, [nn], nn, nn).
+pred_vs(ereditare, trans, risultato, sn-sogg, receiver, [umano], sn-ogg, [nn], tema_nonaff, [evento, stato, oggetto, istituzione], nn, [nn], nn, nn).
+pred_vs(esclamare, trans, dir_speech, sn-sogg, actor, [umano, astratto, informa], fcomp-[sogg=sogg, sogg=x], [nn], prop, _1, nn, [nn], nn, nn).
+pred_vs(faticare, intr, attivita, sn-sogg, agente, [animato, umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(fermare, trans, risultato, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_aff, [umano, animato], nn, [nn], nn, nn).
+pred_vs(fuggire, inac, cambiamento, sn-sogg, agente, [animato, umano], sp-obl, in, goal, [luogo], nn, [nn], nn, nn).
+pred_vs(funzionare, cop, attivita, sn-sogg, tema_bound, [umano], ncomp, [nn], modale, [sociale, attivita], nn, [nn], nn, nn).
+pred_vs(gettare, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto], nn, [nn], nn, nn).
+pred_vs(giocare, intr, attivita, sn-sogg, actor, [umano, animato], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(giostrare, intr, attivita, sn-sogg, agente, [umano], sp-obl, in, modale, [attivita], nn, [nn], nn, nn).
+pred_vs(giungere, inac, risultato, sn-sogg, actor, [umano, animato], sp-obl, in, goal, [luogo], nn, [nn], nn, nn).
+pred_vs(gridare, trans, attivita, sn-sogg, agente, [umano, animato], sn-ogg_avv, [nn], tema_nonaff, [informa], nn, [nn], nn, nn).
+pred_vs(guardare, trans, percettivo, sn-sogg, perceiver, [umano, animato], sn-ogg, [nn], tema_nonaff, [oggetto, animato, umano], nn, [nn], nn, nn).
+pred_vs(immischiare, trans, achiev, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano], obl-comitat, [nn], con, [ist_soc, attivita,figurato]).
+pred_vs(importare, psyc, emotivo, sn-sogg, tema_nonaff, [umano], ogg2-esperiente, [nn], a, [umano, animato], nn, [nn], nn, nn).
+pred_vs(impressionare, trans, emotivo, sn-sogg, causer_emot, [umano, stato], sn-ogg, [nn], tema_emot, [umano], nn, [nn], nn, nn).
+pred_vs(inseguire, trans, attivita, sn-sogg, actor, [umano, animato], sn-ogg, [nn], goal, [luogo, stato, istituzione, umano, animato], nn, [nn], nn, nn).
+pred_vs(insultare, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano], nn, [nn], nn, nn).
+pred_vs(interrogare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano], nn, [nn], nn, nn).
+pred_vs(invidiare, trans, soggettivo, sn-sogg, esperiente, [umano], sn-ogg, [nn], tema_nonaff, [_1| _2], sp-ogg2, a, actor, [umano]).
+pred_vs(iscrivere, trans, achiev, sn-sogg, actor, [umano], sn-ogg, [nn], actor, [umano], sp-obl, [a, in], goal, [luogo, istituzione]).
+pred_vs(lavare, trans, attivita, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_aff, [animato, umano, body_part, oggetto], nn, [nn], nn, nn).
+pred_vs(lavorare, intr, attivita, sn-sogg, agente, [animato, umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(leggere, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto, informa], nn, [nn], nn, nn).
+pred_vs(mandare, trans, accomp, sn-sogg, agente, [umano], sn-ogg, [nn], paziente, [umano], obl-goal, [nn], a, [ist_soc, luogo]).
+pred_vs(mangiare, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto, animato], nn, [nn], nn, nn).
+pred_vs(mangiare, trans, attivita, sn-sogg, agente, [umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(mobilitare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano], nn, [nn], nn, nn).
+pred_vs(morire, intr, risultato, sn-sogg, actor, [umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(muovere, trans, risultato, sn-sogg, agente, [umano, animato], sn-ogg, [nn], tema_aff, [oggetto, strumento], nn, [nn], nn, nn).
+pred_vs(nascondere, trans, risultato, sn-sogg, agente, [animato, umano], sp-obl, dietro, locativo, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(nevicare, vatm, attivita, expl-sogg, form, [], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(nominare, trans, ist_soc, sn-sogg, agente, [umano], sn-ogg, [nn], tema_bound, [umano], ncomp, [nn], prop, [umano]).
+pred_vs(notare, trans, risultato, sn-sogg, esperiente, [umano, animato], fcomp-[sogg=sogg, sogg=x], [nn], prop, _1, nn, [nn], nn, nn).
+pred_vs(nutrire, trans, attivita, sn-sogg, esperiente, [animato, umano], sn-ogg, [nn], tema_nonaff, [animato, umano], sp-obl, di, cibo, [edible, umano, animato]).
+pred_vs(obbedire, trans, attivita, sn-sogg, paziente, [umano, soc_low], sp-obl, a, agente, [umano, soc_high], nn, [nn], nn, nn).
+pred_vs(ordinare, trans, attivita, sn-sogg, agente, [umano, soc_high], sp-ogg2, a, paziente, [umano, soc_low], vcomp-[sogg=ogg2], di, prop, _1).
+pred_vs(organizzare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_nonaff, [evento, sociale, attivita], nn, [nn], nn, nn).
+pred_vs(osservare, trans, percettivo, sn-sogg, esperiente, [umano], sn-ogg, [nn], tema_nonaff, [umano, animato, oggetto], nn, [nn], nn, nn).
+pred_vs(partire, inac, risultato, sn-sogg, agente, [umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(penetrare, intr, attivita, sn-sogg, actor, [umano, animato], sp-obl, in, locativo, [luogo], nn, [nn], nn, nn).
+pred_vs(perdere, trans, risultato, sn-sogg, actor, [umano], sn-ogg, [nn], tema_nonaff, [oggetto, evento, stato, umano], nn, [nn], nn, nn).
+pred_vs(picchiare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano, animato], nn, [nn], nn, nn).
+pred_vs(piovere, vatm, attivita, expl-sogg, form, [], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(potere, supporto, modale, nn, nn, nn, nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(preferire, trans, soggettivo, sn-sogg, actor, [umano], vcomp-[sogg=sogg], [], prop, _1, nn, [nn], nn, nn).
+pred_vs(prendere, trans, attivita, sn-sogg, actor, [umano], sp-obl, in, modale, [modo], sn-ogg, [nn], tema_aff, [umano, animato]).
+pred_vs(preoccupare, trans, emotivo, sn-sogg, tema_emot, [umano, stato], sn-ogg, [nn], esperiente, [umano], nn, [nn], nn, nn).
+pred_vs(presiedere, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_nonaff, [evento, sociale, attivita], nn, [nn], nn, nn).
+pred_vs(professare, trans, attivita, sn-sogg, actor, [umano], sn-ogg, [nn], tema_unaff, [astratto, attivita, ist_soc], acomp, [nn], prop, [_1| _2]).
+pred_vs(promettere, trans, perloc, sn-sogg, actor, [umano, animato], sp-ogg2, a, tema_nonaff, [umano, animato], fcomp-[sogg=sogg, sogg=x], [nn], propint, _1).
+pred_vs(promuovere, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano], nn, [nn], nn, nn).
+pred_vs(proteggere, trans, attivita, sn-sogg, agente, [animato, umano, luogo], sn-ogg, [nn], esperiente, [animato, umano, luogo, informa], sp-obl, da, malef, [animato, umano, oggetto]).
+pred_vs(provocare, trans, risultato, sn-sogg, causante, [emozione, evento], sp-ogg2, a, esperiente, [umano], sn-ogg, [nn], tema_eff, [evento, emozione]).
+pred_vs(raggiungere, trans, risultato, sn-sogg, actor, [umano, animato], sn-ogg, [nn], goal, [luogo, stato, istituzione, umano, animato], nn, [nn], nn, nn).
+pred_vs(rassegnarsi, rifl, soggettivo, sn-sogg, actor, [umano], vcomp-[sogg=sogg], a, prop, _1, nn, [nn], nn, nn).
+pred_vs(regalare, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto], sp-ogg2, a, esperiente, [umano]).
+pred_vs(rendere, trans, attivita, sn-sogg, agente, [_1| _2], sn-ogg, [nn], tema_bound, [_3| _4], acomp, [nn], prop, [_5| _6]).
+pred_vs(riconoscere, psyc, percettivo, sn-sogg, esperiente, [umano, animato], sn-ogg, [nn], tema_nonaff, [body_part, oggetto], nn, [nn], nn, nn).
+pred_vs(ricoprirsi, rifl, cambiamento, sn-sogg, agente, [umano, animato], sp-obl, con, strumentale, [oggetto], nn, [nn], nn, nn).
+pred_vs(ridere, intr, attivita, sn-sogg, actor, [umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(riempire, trans, cambiamento, sn-sogg, agente, [animato, umano], sn-ogg, [nn], tema_aff, [oggetto, body_part], sp-obl, di, materia, [sostanza, materia, oggetto]).
+pred_vs(rientrare, inac, risultato, sn-sogg, agente, [umano, animato], sp-obl, in, locativo, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(rifiutare, trans, attivita, sn-sogg, agente, [umano, istituzione], sn-ogg, [nn], tema_nonaff, [_1| _2], sp-ogg2, a, tema_aff, [umano, istituzione]).
+pred_vs(rilevare, trans, attivita, sn-sogg, actor, [umano], sn-ogg, [nn], tema_nonaff, [aspetto, sostanza], nn, [nn], nn, nn).
+pred_vs(rimanere, inac, stato, sn-sogg, tema_nonaff, [oggetto], vcomp-[sogg=sogg], a, prop, _1, nn, [nn], nn, nn).
+pred_vs(rimproverare, trans, dir_speech, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano, animato], fcomp-[sogg=sogg, sogg=x], [nn], propq, _1).
+pred_vs(rimuovere, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano, oggetto, sostanza], nn, [nn], nn, nn).
+pred_vs(rinfacciare, trans, risultato, sn-sogg, actor, [umano], sn-ogg, [nn], tema_nonaff, [_1| _2], sp-obl, a, goal, [umano]).
+pred_vs(ringhiare, trans, dir_speech, sn-sogg, agente, [umano, astratto, informa], fcomp-[sogg=sogg, sogg=x], [nn], prop, _1, nn, [nn], nn, nn).
+pred_vs(rinunciare, intr, attivita, sn-sogg, actor, [umano, animato], sp-obl, a, tema_aff, [umano, animato, oggetto], nn, [nn], nn, nn).
+pred_vs(ripetere, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_nonaff, [attivita], nn, [nn], nn, nn).
+pred_vs(riprendere, intr, risultato, sn-sogg, agente, [umano, animato], vcomp-[sogg=sogg], a, prop, _1, nn, [nn], nn, nn).
+pred_vs(rispondere, trans, dir_speech, sn-sogg, agente, [umano, animato, astratto, informa], sp-ogg2, a, paziente, [umano], fcomp-[sogg=sogg, sogg=x], [nn], prop, V).
+pred_vs(ritenere, trans, soggettivo, sn-sogg, esperiente, [umano], fcomp-[sogg=sogg, sogg=x], [nn], prop, _1, nn, [nn], nn, nn).
+pred_vs(riuscire, trans, risultato, sn-sogg, agente, [umano, animato], vcomp-[sogg=sogg], a, prop, _1, nn, [nn], nn, nn).
+pred_vs(rompere, trans, risultato, sn-sogg, agente, [umano, animato], sn-ogg, [nn], tema_aff, [oggetto, strumento], pcomp, [nn], locativo, [luogo]).
+pred_vs(rovinare, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto], nn, [nn], nn, nn).
+pred_vs(rubare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto], sp-ogg2, a, paziente, [umano]).
+pred_vs(salire, inac, risultato, sn-sogg, agente, [umano, animato], sp-obl, su, locativo, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(sbarrare, trans, risultato, sn-sogg, agente, [umano, animato], sn-ogg, [nn], tema_aff, [luogo, oggetto], nn, [nn], nn, nn).
+pred_vs(sbirciare, intr, percettivo, sn-sogg, agente, [umano], sp-obl, attraverso, locativo, [oggetto], nn, [nn], nn, nn).
+pred_vs(sbrigarsi, rifl, risultato, sn-sogg, agente, [animato, umano], sp-obl, in, modale, [modo], nn, [nn], nn, nn).
+pred_vs(sbucare, inac, risultato, sn-sogg, agente, [umano, animato], sp-obl, da, locativo, [luogo, oggetto], nn, [nn], nn, nn).
+pred_vs(sbuffare, intr, attivita, sn-sogg, agente, [animato, umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(scappare, inac, achiev, sn-sogg, tema_aff, [umano, animato], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(scappare, intr, attivita, sn-sogg, agente, [umano, animato], sp-obl, da, malef, [umano, animato, ferocious, evento, attivita, luogo], nn, [nn], nn, nn).
+pred_vs(scivolare, inac, attivita, sn-sogg, agente, [umano, animato], sp-obl, per, locativo, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(scomparire, inac, cambiamento, sn-sogg, actor, [oggetto], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(scoppiare, inac, cambiamento, sn-sogg, actor, [umano, animato], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(seguire, trans, attivita, sn-sogg, agente, [umano, animato], sn-ogg, [nn], tema_unaff, [_1| _2], nn, [nn], nn, nn).
+pred_vs(sentire, trans, percettivo, sn-sogg, perceiver, [umano, animato], vcomp, [nn], prop, [sogg=soggx], nn, [nn], nn, nn).
+pred_vs(sentirsi, rifl, soggettivo, sn-sogg, esperiente, [umano, animato, oggetto], pcomp, [nn], modale, [modo], nn, [nn], nn, nn).
+pred_vs(sfasciare, trans, risultato, sn-sogg, agente, [umano, animato], sn-ogg, [nn], tema_aff, [oggetto, strumento], nn, [nn], nn, nn).
+pred_vs(sfruttare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [evento, stato, umano], nn, [nn], nn, nn).
+pred_vs(sfuggire, intr, attivita, sn-sogg, tema_aff, [umano, animato], sp-obl, a, agente, [umano, animato], nn, [nn], nn, nn).
+pred_vs(smontare, inac, achievirr, sn-sogg, tema_aff, [umano], obl-source, [nn], di, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(soffiare, intr, attivita, sn-sogg, agente, [animato, umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(sopportare, psyc, soggettivo, sn-sogg, esperiente, [umano], vcomp-[sogg=sogg], di, prop, _1, nn, [nn], nn, nn).
+pred_vs(sostenere, trans, affettivo, sn-sogg, esperiente, [umano], sn-ogg, [nn], tema_nonaff, [luogo, umano, animato, oggetto, attivita, evento], nn, [nn], nn, nn).
+pred_vs(sparare, intr, attivita, sn-sogg, agente, [umano], sp-obl, a, tema_aff, [umano, animato, oggetto], nn, [nn], nn, nn).
+pred_vs(spassarsi, rifl, attivita, sn-sogg, esperiente, [umano, animato], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(sposare, trans, achiev, sn-sogg, actor, [umano], sn-ogg, [nn], actee, [umano], nn, [nn], nn, nn).
+pred_vs(spronare, trans, attivita, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [umano, animato], nn, [nn], nn, nn).
+pred_vs(stare, cop, esistenza, sn-sogg, actor, [umano, animato], sp-obl, a, locativo, [modo], nn, [nn], nn, nn).
+pred_vs(stare, supporto, attivita, nn, nn, nn, nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(studiare, trans, attivita, sn-sogg, actor, [umano], sn-ogg, [nn], tema_nonaff, [evento, informa, sociale, attivita], nn, [nn], nn, nn).
+pred_vs(suonare, trans, affettivo, sn-sogg, esperiente, [umano, animato], sn-ogg, [nn], tema_nonaff, [astratto, oggetto, strumento], nn, [nn], nn, nn).
+pred_vs(telefonare, intr, comunicativo, sn-sogg, actor, [umano, animato], sp-obl1, a, address, [umano], nn, [nn], nn, nn).
+pred_vs(temere, trans, affettivo, sn-sogg, esperiente, [umano], sn-ogg, [nn], malef, [luogo, umano, animato, oggetto, attivita, evento], nn, [nn], nn, nn).
+pred_vs(tirare, trans, risultato, sn-sogg, agente, [umano, animato], sn-ogg, [nn], tema_aff, [oggetto], nn, [nn], nn, nn).
+pred_vs(tornare, inac, risultato, sn-sogg, agente, [animato, umano], sp-obl, [da,a], goal, [oggetto, luogo], nn, [nn], nn, nn).
+pred_vs(trasferire, trans, accomp, sn-sogg, actor, [umano, means_trans], sn-ogg, [nn], tema_aff, [umano, oggetto], sp-obl, [a, da, in, presso, sopra, sotto, su], locativo, [luogo]).
+pred_vs(ubbidire, trans, attivita, sn-sogg, paziente, [umano, soc_low], sp-obl, a, agente, [umano, soc_high], nn, [nn], nn, nn).
+pred_vs(urlare, intr, attivita, sn-sogg, agente, [umano, animato], sp-obl, di, causer, [stato], nn, [nn], nn, nn).
+pred_vs(urlare, trans, dir_speech, sn-sogg, agente, [umano, animato, astratto, informa], fcomp-[sogg=sogg, sogg=x], [nn], prop, _1, nn, [nn], nn, nn).
+pred_vs(valersi, rifl, attivita, sn-sogg, esperiente, [umano], sp-obl, di, tema_nonaff, [umano, attivita], nn, [nn], nn, nn).
+pred_vs(viaggiare, intr, attivita, sn-sogg, actor, [umano], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(vincere, trans, risultato, sn-sogg, agente, [umano], sn-ogg, [nn], tema_aff, [oggetto], nn, [nn], nn, nn).
+pred_vs(vivere, intr, esistenza, sn-sogg, actor, [umano, animato], sp-obl, [a, da, in, presso, sopra, sotto, su], locativo, [luogo], nn, [nn], nn, nn).
+pred_vs(volare, intr, attivita, sn-sogg, actor, [oggetto], nn, [nn], nn, nn, nn, [nn], nn, nn).
+pred_vs(volere, supporto, modale, nn, nn, nn, nn, [nn], nn, nn, nn, [nn], nn, nn).
+
+v(abbattere, abbattere, inf,_,_,_).
+v(abbiamo, avere, ind, pres, 1, plur).
+v(accendiamo, accendere, imperat, pres, 1, plur).
+v(accenna, accennare, ind, pres, 3, sing).
+v(accenno, accennare, ind, pres, 1, sing).
+v(accettare, accettare, inf,_,_,_).
+v(acciuffare, acciuffare, inf,_,_,_).
+v(accompagnava, accompagnare, ind, imp, 3, sing).
+v(accorse, accorgersi, ind, pass_rem, 3, sing).
+v(accusare, accusare, inf,_,_,_).
+v(accusava, accusare, ind, imp, 3, sing).
+v(adottare, adottare, inf,_,_,_).
+v(agitava, agitarsi, ind, imp, 3, sing).
+v(ama, amare, ind, pres, 3, sing).
+v(amava, amare, ind, imp, 3, sing).
+v(ami, amare, cong, pres,_, sing).
+v(ammiri, ammirare, cong, pres,_, sing).
+v(andare, andare, inf,_,_,_).
+v(andarono, andare, ind, pass_rem, 3, plur).
+v(appare, apparire, ind, pres, 3, sing).
+v(apparire, apparire, inf,_,_,_).
+v(apparve, apparire, ind, pass_rem, 3, sing).
+v(apparvero, apparire, ind, pass_rem, 3, plur).
+v(apri, aprire, imperat, pres, 2, sing).
+v(apre, aprire, ind, pres, 3, sing).
+v(aprire, aprire, inf,_,_,_).
+v(aprono, aprire, ind, pres, 3, plur).
+v(arriva, arrivare, ind, pres, 3, sing).
+v(arrivando, arrivare, ger, pres,_,_).
+v(arrivava, arrivare, ind, imp, 3, sing).
+v(aspetta, aspettare, ind, pres, 3, sing).
+v(aspettava, aspettare, ind, imp, 3, sing).
+v(attacca, attaccare, ind, pres, 3, sing).
+v(attaccare, attaccare, inf,_,_,_).
+v(abitare, abitare, inf,_,_,_).
+v(aveva, avere, ind, imp, 3, sing).
+v(avevano, avere, ind, imp, 3, plur).
+v(avvisare, avvisare, inf,_,_,_).
+v(ballando, ballare, ger, pres,_,_).
+v(ballare, ballare, inf,_,_,_).
+v(basta, bastare, imperat, pres, 2, sing).
+v(batte, battere, ind, pres, 3, sing).
+v(battono, battere, ind, pres, 3, plur).
+v(beve, bere, ind, pres, 3, sing).
+v(bussare, bussare, inf,_,_,_).
+v(cadere, cadere, inf,_,_,_).
+v(cantando, cantare, ger, pres,_,_).
+v(cantare, cantare, inf,_,_,_).
+v(cantava, cantare, ind, imp, 3, sing).
+v(cantavano, cantare, ind, imp, 3, plur).
+v(canticchiando, canticchiare, ger, pres,_,_).
+v(cavalcando, cavalcare, ger, pres,_,_).
+v(cercando, cercare, ger, pres,_,_).
+v(cercare, cercare, inf,_,_,_).
+v(chiamare, chiamare, inf,_,_,_).
+v(chiam√≤, chiamare, ind, pass_rem, 3, sing).
+v(chiudere, chiudere, inf,_,_,_).
+v(chiuse, chiudersi, ind, pass_rem, 3, sing).
+v(chiuse, chiudere, ind, pass_rem, 3, sing).
+v(chiusero, chiudere, ind, pass_rem, 3, plur).
+v(cominciarono, cominciare, ind, pass_rem, 3, plur).
+v(comincia, cominciare, ind, pres, 3, sing).
+v(considera, considerare, ind, pres, 3, sing).
+v(considerano, considerare, ind, pres, 3, plur).
+v(considerare, considerare, inf,_,_,_).
+v(continuarono, continuare, ind, pass_rem, 3, plur).
+v(continuate, continuare, imperat, pres, 2, plur).
+v(continuava, continuare, ind, imp, 3, sing).
+v(coprendo, coprire, ger, pres,_,_).
+v(controllare, controllare, inf,_,_,_).
+v(corre, correre, ind, pres, 3, sing).
+v(correndo, correre, ger, pres,_,_).
+v(correre, correre, inf,_,_,_).
+v(correvano, correre, ind, imp, 3, plur).
+v(correva, correre, ind, imp, 3, sing).
+v(corrispondere, corrispondere, inf,_,_,_).
+v(corrispondeva, corrispondere, ind, imp, 3, sing).
+v(corse, correre, ind, pass_rem, 3, sing).
+v(corsero, correre, ind, pass_rem, 3, plur).
+v(costruivano, costruire, ind, imp, 3, plur).
+v(costruendo, costruire, ger, pres,_,_).
+v(costruire, costruire, inf,_,_,_).
+v(costruscono, costruire, ind, pres, 3, plur).
+v(costruirono, costruire, ind, pass_rem, 3, plur).
+v(costruiscano, costruire, cong, pres, 3, plur).
+v(costruiva, costruire, ind, imp, 3, sing).
+v(critica, criticare, ind, pres, 3, sing).
+v(criticava, criticare, ind, imp, 3, sing).
+v(curare, curare, inf,_,_,_).
+v(dai, dare, imperat, pres, 2, sing).
+v(dare, dare, inf,_,_,_).
+v(decidere, decidere, inf,_,_,_).
+v(decide, decidere, ind, pres, 3, sing).
+v(decise, decidere, ind, pass_rem, 3, sing).
+v(decidono, decidere, ind, pres, 3, plur).
+v(decisero, decidere, ind, pass_rem, 3, plur).
+v(deridere, deridere, inf,_,_,_).
+v(desidera, desiderare, ind, pres, 3, sing).
+v(dice, dire, ind, pres, 3, sing).
+v(diceva, dire, ind, imp, 3, sing).
+v(dici, dire, ind, pres, 2, sing).
+v(dimise, dimettere, ind, pass_rem, 3, sing).
+v(dipinge, dipingere, ind, pres, 3, sing).
+v(dire, dire, inf,_,_,_).
+v(diresse, dirigersi, ind, pass_rem, 3, sing).
+v(diressero, dirigersi, ind, pass_rem_, 3, plur).
+v(disse, dire, ind, pass_rem, 3, sing).
+v(distruggere, distruggere, inf,_,_,_).
+v(divertiamo, divertirsi, ind, pres, 1, plur).
+v(divertire, divertirsi, inf,_,_,_).
+v(dura, durare, ind, pres, 3, sing).
+v(durano, durare, ind, pres, 3, plur).
+v(durare, durare, inf,_,_,_).
+v(durava, durare, ind, imp, 3, sing).
+v(dureranno, durare, ind, futuro, 3, plur).
+v(entrando, entrare, ger,_,_,_).
+v(entrare, entrare, inf,_,_,_).
+v(entrarono, entrare, ind, pass_rem, 3, plur).
+v(eravamo, essere, ind, imp, 1, sing).
+v(era, essere, ind, imp, 3, sing).
+v(erano, essere, ind, imp, 3, plur).
+v(ereditare, ereditare, inf,_,_,_).
+v(esclamarono, esclamare, ind, pass_rem, 3, plur).
+v(esiste, esistere, ind, pres, 3, sing).
+v(essere, essere, inf,_,_,_).
+v(fa, fare, ind, pres, 3, sing).
+v(fa, fare, imperat, pres, 2, sing).
+v(facendo, fare, ger, pres, _,_).
+v(far, fare, inf,_,_,_).
+v(fare, fare, inf,_,_,_).
+v(faceva, fare, ind, imp, 3, sing).
+v(faticare, faticare, inf,_,_,_).
+v(fece, fare, ind, pass_rem, 3, sing).
+v(fecero, fare, ind, pass_rem, 3, plur).
+v(fermarsi, fermarsi, inf,_,_,_).
+v(fu, essere, ind, pass_rem, 3, sing).
+v(funzionava, funzionare, ind, imp, 3, sing).
+v(furono, essere, ind, pres, 3, plur).
+v(gettare, gettare, inf,_,_,_).
+v(giocare, giocare, inf,_,_,_).
+v(giostrare, giostrare, inf,_,_,_).
+v(giostrava, giostrare, ind, imp, 3, sing).
+v(gridare, gridare, inf,_,_,_).
+v(gridano, gridare, ind, pres, 3, plur).
+v(gridarono, gridare, ind, pass_rem, 3, plur).
+v(guardarono, guardarsi, ind, pass_rem, 3, plur).
+v(ha, avere, ind, pres, 3, sing).
+v(ha, avere, ind, pres, 3, sing).
+v(hai, avere, ind, pres, 2, sing).
+v(hanno, avere, ind, pres, 3, plur).
+v(importa, importare, ind, pres, 3, sing).
+v(impressionava, impressionare, ind, imp, 3, sing).
+v(incontri, incontrare, ind, pres, 2, sing).
+v(insultava, insultare, ind, imp, 3, sing).
+v(interrogai, interrogare, ind, pass_rem, 1, sing).
+v(invidia, invidiare, ind, pres, 3, sing).
+v(invidiava, invidiare, ind, imp, 3, sing).
+v(invidiavano, invidiare, ind, imp, 3, plur).
+v(iscrisse, iscrivere, ind, pass_rem, 3, sing).
+v(iscrivere, iscrivere, inf,_,_,_).
+v(lasciare, lasciare, inf,_,_,_).
+v(lava, lavare, ind, pres, 3, sing).
+v(lavava, lavare, ind, imp, 3, sing).
+v(lavora, lavorare, ind, pres, 3, sing).
+v(lavorano, lavorare, ind, pres, 3, plur).
+v(lavorare, lavorare, inf,_,_,_).
+v(lavorando, lavorare, ger,_,_,_).
+v(lavorava, lavorare, ind, imp, 3, sing).
+v(lavoravano, lavorare, ind, imp, 3, plur).
+v(leccava, leccare, ind, imp, 3, sing).
+v(legge, leggere, ind, pres, 3, sing).
+v(leggere, leggere, inf,_,_,_).
+v(leggono, leggere, ind, pres, 3, plur).
+v(leggendo, leggere, ger,_,_,_).
+v(mangia, mangiare, ind, pres, 3, sing).
+v(mangiare, mangiare, inf,_,_,_).
+v(mandavano, mandare, ind, imp, 3, plur).
+v(mise, mettersi, ind, pass_rem, 3, sing).
+v(misero, mettersi, ind, pass_rem, 3, plur).
+v(misero, mettersi, ind, pass_rem, 3, plur).
+v(mobilitare, mobilitare, inf,_,_,_).
+v(morire, morire, inf,_,_,_).
+v(mosse, muovere, ind, pass_rem, 3, sing).
+v(muoversi, muoversi, inf,_,_,_).
+v(nascose, nascondersi, ind, pass_rem, 3, sing).
+v(nevica, nevicare, ind, pres, 3, sing).
+v(nevicando, nevicare, ger, pres,_,_).
+v(nevicare, nevicare, inf,_,_,_).
+v(nomimare, nominare, inf,_,_,_).
+v(nominarono, nominare, ind, pass_rem, 3, plur).
+v(nutriva, nutrire, ind, imp, 3, sing).
+v(obbedire, obbedire, inf,_,_,_).
+v(obbedisce, obbedire, ind, pres, 3, sing).
+v(occorrono, occorrere, ind, pres, 3, plur).
+v(ordina, ordinare, ind, pres, 3, sing).
+v(ordinare, ordinare, inf,_,_,_).
+v(osservare, osservare, inf,_,_,_).
+v(parlando, parlare, ger, pres,_,_).
+v(parlare, parlare, inf,_,_,_).
+v(parlava, parlare, ind, imp, 3, sing).
+v(parli, parlare, cong, pres, 3, sing).
+v(partire, partire, inf,_,_,_).
+v(partiva, partire, ind, imp, 3, sing).
+v(passa, passare, ind, pres, 3, sing).
+v(passare, passare, inf,_,_,_).
+v(passavano, passare, ind, imp, 3, plur).
+v(penetrare, penetrare, inf,_,_,_).
+v(pensa, pensare, ind, pres, 3, sing).
+v(pensando, pensare, ger, pres,_,_).
+v(pensava, pensare, ind, imp, 3, sing).
+v(pensavano, pensare, ind, imp, 3, plur).
+v(pensi, pensare, cong, pres, 3, sing).
+v(pensarono, pensare, ind, pass_rem, 3, plur).
+v(perdere, perdere, inf,_,_,_).
+v(perse, perdere, ind, pass, 3, sing).
+v(piacciono, piacere, ind, pres, 3, plur).
+v(piace, piacere, ind, pres, 3, sing).
+v(piacere, piacere, inf,_,_,_).
+v(piaceva, piacere, ind, imp, 3, sing).
+v(piacevano, piacere, ind, imp, 3, plur).
+v(picchia, picchiare, ind, pres, 3, sing).
+v(picchiano, picchiare, ind, pres, 3, plur).
+v(portare, portare, inf,_,_,_).
+v(posso, potere, ind, pres, 1, sing).
+v(poteva, potere, ind, imp, 3, sing).
+v(potevano, potere, ind, imp, 3, plur).
+v(poterono, potere, ind, pass_rem, 3, plur).
+v(preferire, preferire, inf,_,_,_).
+v(preferiva, preferire, ind, imp, 3, sing).
+v(prendere, prendere, inf,_,_,_).
+v(preoccupa, preoccupare, ind, pres, 3, sing).
+v(promisero, promettere, ind, pass_rem, 3, plur).
+v(promosse, promuovere, ind, pass_rem, 3, sing).
+v(proteggere, proteggere, inf,_,_,_).
+v(proteggeva, proteggere, ind, imp, 3, sing).
+v(puoi, potere, ind, pres, 2, sing).
+v(raggiungere, raggiungere, inf,_,_,_).
+v(raggiunsero, raggiungere, ind, pass_rem, 3, plur).
+v(regala, regalare, ind, pres, 3, sing).
+v(rende, rendere, ind, pres, 3, sing).
+v(rendono, rendere, ind, pres, 3, plur).
+v(riconobbero, riconoscere, ind, pass_rem, 3, plur).
+v(ridendo, ridere, ger, pres,_,_).
+v(ridere, ridere, inf,_,_,_).
+v(ridete, ridere, imperat, pres, 2, plur).
+v(riempirono, riempire, ind, pass_rem, 3, plur).
+v(rientrarono, rientrare, ind, pass_rem, 3, plur).
+v(rifiutarono, rifiutare, ind, pass_rem, 3, plur).
+v(rileva, rilevare, ind, pres, 3, sing).
+v(rilevare, rilevare, inf,_,_,_).
+v(rimuove, rimuovere, ind, pres, 3, sing).
+v(rimuovere, rimuovere, inf,_,_,_).
+v(rinfaccia, rinfacciare, ind, pres, 3, sing).
+v(rinunciare, rinunciare, inf,_,_,_).
+v(ripete, ripetere, ind, pres, 3, sing).
+v(ripetere, ripetere, inf,_,_,_).
+v(ripresero, riprendere, ind, pass_rem, 3, plur).
+v(rispose, rispondere, ind, pass_rem, 3, sing).
+v(rispondere, rispondere, inf,_,_,_).
+v(ritiene, ritenere, ind, pres, 3, sing).
+v(riuscirono, riuscire, ind, pass_rem, 3, plur).
+v(rubare, rubare, inf,_,_,_).
+v(ruppe, rompere, ind, pass_rem, 3, sing).
+v(ruppero, rompere, ind, pass_rem, 3, plur).
+v(sai, sapere, ind, pres, 2, sing).
+v(sapere, sapere, inf,_,_,_).
+v(sapendo, sapere, ger,_,_,_).
+v(sapeva, sapere, ind, imp, 3, sing).
+v(sapevano, sapere, ind, imp, 3, plur).
+v(sbarrando, sbarrare, ger, pres,_,_).
+v(sbarrarono, sbarrare, ind, pass_rem, 3, plur).
+v(sbirciarono, sbirciare, ind, pass_rem, 3, plur).
+v(sbrigarono, sbrigarsi, ind, pass_rem, 3, plur).
+v(sbrigarsi, sbrigarsi, inf,_,_,_).
+v(sbucarono, sbucare, ind, pass_rem, 3, plur).
+v(scappando, scappare, ger, pres,_,_).
+v(scappare, scappare, inf,_,_,_).
+v(scomparve, scomparire, ind, pass_rem, 3, sing).
+v(scoppiare, scoppiare, inf,_,_,_).
+v(seguendo, seguire, ger, pres,_,_).
+v(sembra, sembrare, ind, pres, 3, sing).
+v(sembrano, sembrare, ind, pres, 3, plur).
+v(sembrare, sembrare, inf,_,_,_).
+v(sembrava, sembrare, ind, imp, 3, sing).
+v(sentirono, sentire, ind, pass_rem, 3, plur).
+v(sentivano, sentirsi, ind, imp, 3, plur).
+v(sfruttare, sfruttare, inf,_,_,_).
+v(sfuggire, sfuggire, inf,_,_,_).
+v(sia, essere, cong, pres, 3, sing).
+v(siamo, essere, ind, pres, 1, plur).
+v(siete, essere, ind, pres, 2, plur).
+v(soffiare, soffiare, inf,_,_,_).
+v(soffia, soffiare, ind, pres, 3, sing).
+v(sono, essere, ind, pres, 3, plur).
+v(sopportava, sopportare, ind, imp, 3, sing).
+v(sostenevano, sostenere, ind, imp, 3, plur).
+v(spassavano, spassarsi, ind, imp, 3, plur).
+v(sprona, spronare, ind, pres, 3, sing).
+v(spronare, spronare, inf,_,_,_).
+v(sta, stare, ind, pres, 3, sing).
+v(stanno, stare, ind, pres, 3, plur).
+v(stare, stare, inf,_,_,_).
+v(stava, stare, ind, imp, 3, sing).
+v(stavano, stare, ind, imp, 3, plur).
+v(studia, studiare, ind, pres, 3, sing).
+v(suonare, suonare, inf, pres,_,_).
+v(suonando, suonare, ger, pres,_,_).
+v(suonava, suonare, ind, imp, 3, sing).
+v(teme, temere, ind, pres, 3, sing).
+v(temevano, temere, ind, imp, 3, plur).
+v(temono, temere, ind, pres, 3, plur).
+v(tenere, tenere, inf,_,_,_).
+v(tenne, tenere, ind, pass_rem, 3, sing).
+v(tirando, tirare, ger, pres,_,_).
+v(tirare, tirare, inf,_,_,_).
+v(tirarono, tirare, ind, pass_rem, 3, plur).
+v(tornarono, tornare, ind, pass_rem, 3, plur).
+v(torni, tornare, cong, pres,_, sing).
+v(torni, tornare, ind, pres, 2, sing).
+v(ubbidire, ubbidire, inf,_,_,_).
+v(ubbidisce, ubbidire, ind, pres, 3, sing).
+v(urlando, urlare, ger, pres,_,_).
+v(urlava, urlare, ind, imp, 3, sing).
+v(valere, valersi, inf,_,_,_).
+v(vede, vedere, ind, pres, 3, sing).
+v(vedere, vedere, inf,_,_,_).
+v(vide, vedere, ind, pass_rem, 3, sing).
+v(vedono, vedere, ind, pres, 3, plur).
+v(videro, vedere, ind, pass_rem, 3, plur).
+v(vedeva, vedere, ind, imp, 3, plur).
+v(vieni, venire, imperat, pres, 2, sing).
+v(veniva, venire, ind, imp, 3, sing).
+v(viaggiando, viaggiare, ger, pres,_,_).
+v(vivendo, vivere, ger, pres,_,_).
+v(vivere, vivere, inf,_,_,_).
+v(viveva, vivere, ind, imp, 3, sing).
+v(vissero, vivere, ind, pass_rem, 3, sing).
+v(vivevano, vivere, ind, imp, 3, plur).
+v(vivi, vivere, cong, pres, 3, sing).
+v(volare, volare, inf,_,_,_).
+v(voleva, volere, ind, imp, 3, sing).
+v(volevano, volere, ind, imp, 3, plur).
+v(vuole, volere, ind, pres, 3, sing).
+v(conosce, conoscere, ind, pres, 3, sing).
+v(ammira, ammirare, ind, pres, 3, sing).
+v(abitava, abitare, ind, imp, 3, sing).
+v(conoscere, conoscere, inf, pres, _1, _2).
+v(studi, studiare, cong, pres, 3, sing).
+v(studi, studiare, cong, pres, 3, sing).
+v(deve, dovere, ind, pres, 3, sing).
+v(dovrebbe, dovere, cond, pres, 3, sing).
+v(trasfer√¨, trasferire, ind, pass_rem, 3, sing).
+v(accasci√≤, accasciarsi, ind, pass_rem, 3, sing).
+v(acchiapper√≤, acchiappare, ind, fut, 1, sing).
+v(acciuffer√≤, acciuffare, ind, fut, 1, sing).
+v(apr√¨, aprire, ind, pass_rem, 3, sing).
+v(avvis√≤, avvisare, ind, pass_rem, 3, sing).
+v(balz√≤, balzare, ind, pass_rem, 3, sing).
+v(busser√†, bussare, ind, fut, 3, sing).
+v(cominci√≤, cominciare, ind, pass_rem, 3, sing).
+v(conferm√≤, confermare, ind, pass_rem, 3, sing).
+v(continu√≤, continuare, ind, pass_rem, 3, sing).
+v(correr√†, correre, ind, futuro, 3, sing).
+v(costru√¨, costruire, ind, pass_rem, 3, sing).
+v(divent√≤, diventare, ind, pass_rem, 3, sing).
+v(entr√≤, entrare, ind, pass_rem, 3, sing).
+v(eredit√≤, ereditare, ind, pass_rem, 3, sing).
+v(esclam√≤, esclamare, ind, pass_rem, 3, sing).
+v(√®, essere, ind, pres, 3, sing).
+v(far√≤, fare, ind, fut, 1, sing).
+v(rimprover√≤, rimproverare, ind, pass_rem, 3, sing).
+v(torn√≤, tornare, ind, pass_rem, 3, sing).
+v(tir√≤, tirare, ind, pass_rem, 3, sing).
+v(telefon√≤, telefonare, ind, pass_rem, 3, sing).
+v(sbuc√≤, sbucare, ind, pass_rem, 3, sing).
+v(star√≤, stare, ind, fut, 1, sing).
+v(sposer√†, sposare, ind, futuro, 3, sing).
+v(spar√≤, sparare, ind, pass_rem, 3, sing).
+v(soffi√≤, soffiare, ind, pass_rem, 3, sing).
+v(sbarr√≤, sbarrare, ind, pass_rem, 3, sing).
+v(pu√≤, potere, ind, pres, 3, sing).
+v(pot√®, potere, ind, pass_rem, 3, sing).
+v(provoc√≤, provocare, ind, pass_rem, 3, sing).
+v(sar√≤, essere, ind, fut, 1, sing).
+v(fugg√¨, fuggire, ind, pass_rem, 3, sing).
+v(grid√≤, gridare, ind, pass_rem, 3, sing).
+v(incontr√≤, incontrare, ind, pass_rem, 3, sing).
+v(not√≤, notare, ind, pass_rem, 3, sing).
+v(soffier√≤, soffiare, ind, fut, 1, sing).
+v(lavor√≤, lavorare, ind, pass_rem, 3, sing).
+v(mor√¨, morire, ind, pass_rem, 3, sing).
+v(scivoler√≤, scivolare, ind, fut, 1, sing).
+v(pens√≤, pensare, ind, pass_rem, 3, sing).
+v(lascer√†, lasciare, ind, futuro, 3, sing).
+v(insult√≤, insultare, ind, pass_rem, 3, sing).
+v(lasci√≤, lasciare, ind, pass_rem, 3, sing).
+v(passer√≤, passare, ind, fut, 1, sing).
+v(riemp√¨, riempire, ind, pass_rem, 3, sing).
+v(ringhi√≤, ringhiare, ind, pass_rem, 3, sing).
+v(riuscir√≤, riuscire, ind, fut, 1, sing).
+v(rub√≤, rubare, ind, pass_rem, 3, sing).
+v(smont√≤, smontare, ind, pass_rem, 3, sing).
+v(salir√≤, salire, ind, fut, 1, sing).
+v(rassegn√≤, rassegnarsi, ind, pass_rem, 3, sing).
+v(sbuffer√≤, sbuffare, ind, fut, 1, sing).
+v(scapp√≤, scappare, ind, pass_rem, 3, sing).
+v(sfasci√≤, sfasciare, ind, pass_rem, 3, sing).
+v(promise, promettere, ind, pass_rem, 3, sing).
+v(rubarono, rubare, ind, pass_rem, 3, plur).
+v(ruberanno, rubare, ind, fut, 3, plur).
+
+a_rom(pubblico, pubblici, pubblica, pubbliche).
+a_rom(disponibile, disponibili, disponibile, disponibili).
+a_rom(rischioso, rischiosi, rischiosa, rischiose).
+a_rom(disgiunto, disgiunti, disgiunta, disgiunte).
+a_rom(militare, militari, militare, militari).
+a_rom(numeroso, numerosi, numerosa, numerose).
+a_rom(liscio, lisci, liscia, liscie).
+a_rom(primo, primi, prima, prime).
+a_rom(legale, legali, legale, legali).
+a_rom(democristiano, democristiani, democristiana, democristiane).
+a_rom(vecchio, vecchi, vecchia, vecchie).
+a_rom(popolare, popolari, popolare, popolare).
+a_rom(veneto, veneti, veneta, venete).
+a_rom(influente, influenti, influente, influenti).
+a_rom(politico, politici, politico, politiche).
+a_rom(veronese, veronesi, veronese, veronesi).
+a_rom(preferenziale, preferenziali, preferenziale, preferenziali).
+a_rom(agricolo, agricoli, agricola, agricole).
+a_rom(aguzzo, aguzzi, aguzza, aguzze).
+a_rom(arrabbiato, arrabbiati, arrabbiata, arrabbiate).
+a_rom(arrabbiatissimo, arrabbiatissimi, arrabbiatissima, arrabbiatissime).
+a_rom(alto, alti, alta, alte).
+a_rom(abbandonato, abbandonati, abbandonata, abbandonate).
+a_rom(bel, bei, bella, belle).
+a_rom(bravo, bravi, brava, brave).
+a_rom(bollente, bollenti, bollente, bollenti).
+a_rom(comodo, comodi, comoda, comode).
+a_rom(certo, certi, certa, certe).
+a_rom(duro, duri, dura, dure).
+a_rom(fragile, fragili, fragile, fragili).
+a_rom(forte, forti, forte, forti).
+a_rom(furioso, furiosi, furiosa, furiose).
+a_rom(impegnato, impegnati, impegnata, impegnate).
+a_rom(inferocito, inferociti, inferocita, inferocite).
+a_rom(misero, miseri, misera, misere).
+a_rom(nero, neri, nera, nere).
+a_rom(rosso, rossi, rossa, rosse).
+a_rom(giallo, gialli, gialla, gialle).
+a_rom(potente, potenti, potente, potenti).
+a_rom(pronto, pronti, pronta, pronte).
+a_rom(previdente, previdenti, previdente, previdenti).
+a_rom(preferito, preferiti, preferita, preferite).
+a_rom(profondo, profondi, profonda, profonde).
+a_rom(povero, poveri, povera, povere).
+a_rom(resistente, resistenti, resistente, resistenti).
+a_rom(robusto, robusti, robusta, robuste).
+a_rom(sano, sani, sana, sane).
+a_rom(salvo, salvi, salva, salve).
+a_rom(semplice, semplici, semplice, semplici).
+a_rom(scansafatiche, scansafatiche, scansafatiche, scansafatiche).
+a_rom(sicuro, sicuri, sicura, sicure).
+a_rom(stanco, stanchi, stanca, stanche).
+a_rom(sciocco, sciocchi, sciocca, sciocche).
+a_rom(tremante, tremanti, tremante, tremanti).
+a_rom(terrorizzato, terrorizzati, terrorizzata, terrorizzate).
+a_rom(vicino, vicini, vicina, vicine).
+a_rom(velocissimo, velocissimi, velocissima, velocissime).
+a_rom(ipercritico, ipercritici, ipercritica, ipercritiche).
+a_rom(riconoscente, riconoscenti, riconoscente, riconoscenti).
+a_rom(ozioso, oziosi, oziosa, oziose).
+a_rom(veloce, veloci, veloce, veloci).
+a_rom(attaccato, attaccati, attaccata, attaccate).
+a_rom(compreso, compresi, comprese, comprese).
+a_rom(esplorato, esplorati, esplorata, esplorate).
+a_rom(esterno, esterni, esterna, esterne).
+a_rom(incorporato, incorporati, incorporata, incorporate).
+a_rom(necessario, necessari, necessaria, necessarie).
+a_rom(proporzionale, proporzionali, proporzionale, proporzionali).
+a_rom(scarto, scarti, scarta, scarte).
+a_rom(superiore, superiori, superiore, superiori).
+a_rom(statistico, statistici, statistica, statistiche).
+a_rom(terribile, terribili, terribile, terribili).
+a_rom(ricco, ricchi, ricca, ricche).
+a_rom(bello, belli, bella, belle).
+a_rom(preparato, preparati, preparata, preparate).
+a_rom(felice, felici, felice, felici).
+a_rom(facile, facili, facile, facili).
+a_rom(buono, buoni, buona, buone).
+a_rom(deciso, decisi, decisa, decise).
+a_rom(sicuro, sicuri, sicura, sicure).
+a_rom(esausto, esausti, esausta, esauste).
+a_rom(solo, soli, sola, sole).
+a_rom(spaventatissimo, spaventatissimi, spaventatissima, spaventatissime).
+a_rom(solito, soliti, solita, solite).
+a_rom(cattivo, cattivi, cattiva, cattive).
+a_rom(pigro, pigri, pigra, pigre).
+a_rom(mancato, mancati, mancata, mancate).
+a_rom(viaggiante, viaggianti, viaggiante, viaggianti).
+a_rom(diplomatico, diplomatici, diplomatica, diplomatiche).
+a_rom(commerciale, commerciali, commerciale, commerciali).
+a_rom(straniero, stranieri, straniera, straniere).
+a_rom(grande, grandi, grande, grandi).
+a_rom(notevole, notevoli, notevole, notevoli).
+a_rom(solido, solidi, solida, solide).
+a_rom(prossimo, prossimi, prossima, prossime).
+a_rom(saporito, saporiti, saporita, saporite).
+a_rom(invitante, invitanti, invitante, invitanti).
+a_rom(ghiacciato, ghiacciati, ghiacciata, ghiacciate).
+a_rom(maggiore, maggiori, maggiore, maggiori).
+a_rom(questo, questi, questa, queste).
+a_rom(quel, quelli, quella, quelle).
+a_rom(quello, quelli, quella, quelle).
+a_rom(particolare, particolari, particolare, particolari).
+a_rom(simpatico, simpatici, simpatica, simpatiche).
+a_rom(importante, importanti, importante, importanti).
+a_rom(brasiliano, brasiliani, brasiliana, brasiliane).
+a_rom(stesso, stessi, stessa, stesse).
+a_rom(grasso, grassi, grassa, grasse).
+a_rom(tenero, teneri, tenera, tenere).
+a_rom(piccolo, piccoli, piccola, piccole).
+a_rom(saggio, saggi, saggia, sagge).
+a_rom(malato, malati, malata, malate).
+a_rom(assetato, assetati, assetata, assetate).
+a_rom(immediato, immediati, immediata, immediate).
+a_rom(lontano, lontani, lontana, lontane).
+a_rom(disobbediente, disobbedienti, disobbediente, disobbedienti).
+a_rom(buon, buoni, buon, buone).
+a_rom(ottimo, ottimi, ottima, ottime).
+a_rom(vanitoso, vanitosi, vanitosa, vanitose).
+pred_p(pro, io, nil, [umano], []).
+pred_p(pro, tu, nil, [umano], []).
+pred_p(pro, egli, nil, [umano], []).
+pred_p(pro, ella, nil, [umano], []).
+pred_p(pro, esso, nil, [animato], []).
+pred_p(pro, essa, nil, [animato], []).
+pred_p(pro, lui, nil, [umano, animato], []).
+pred_p(pro, lei, nil, [umano], []).
+pred_p(pro, noi, nil, [umano], []).
+pred_p(pro, voi, nil, [umano], []).
+pred_p(pro, essi, nil, [animato], []).
+pred_p(pro, esse, nil, [animato], []).
+pred_p(pro, loro, nil, [animato], []).
+pred_p(pro, me, nil, [umano], []).
+pred_p(pro, mi, nil, [umano], []).
+pred_p(pro, te, nil, [umano], []).
+pred_p(pro, ti, nil, [umano], []).
+pred_p(pro, chiunque, nil, [umano], []).
+pred_p(pro, ognuno, nil, [umano], []).
+pred_p(pro, ognuna, nil, [umano], []).
+pred_p(pro, ciascuno, nil, [umano], []).
+pred_p(pro, ciascuna, nil, [umano], []).
+pred_p(pro, altro, nil, [umano, oggetto, animato], []).
+pred_p(pro, altri, nil, [umano, oggetto, animato], []).
+pred_p(pro, altra, nil, [umano, oggetto, animato], []).
+pred_p(pro, altre, nil, [umano, oggetto, animato], []).
+pred_p(pro, maggiore, nil, [animato, umano], []).
+pred_p(pro, maggiori, nil, [animato, umano], []).
+pred_p(pro, massimo, nil, [oggetto, animato, umano], []).
+pred_p(pro, massima, nil, [oggetto, animato, umano], []).
+pred_p(pro, massime, nil, [oggetto, animato, umano], []).
+pred_p(pro, massimi, nil, [oggetto, animato, umano], []).
+pred_p(pro, minimo, nil, [oggetto, animato, umano], []).
+pred_p(pro, minima, nil, [oggetto, animato, umano], []).
+pred_p(pro, minime, nil, [oggetto, animato, umano], []).
+pred_p(pro, minimi, nil, [oggetto, animato, umano], []).
+pred_p(pro, qualcuno, nil, [umano], []).
+pred_p(pro, nessuno, nil, [umano], []).
+pred_p(pro, nessuna, nil, [umano], []).
+pred_p(pro, niente, nil, [oggetto, neg], []).
+pred_p(pro, nulla, nil, [oggetto, neg], []).
+pred_p(pro, tutto, nil, [oggetto, animato, umano], []).
+pred_p(pro, tutta, nil, [oggetto, animato, umano], []).
+pred_p(pro, tutte, nil, [oggetto, animato, umano], []).
+pred_p(pro, tutti, nil, [oggetto, animato, umano], []).
+pred_p(pro, molto, nil, [_], []).
+pred_p(pro, molta, nil, [_], []).
+pred_p(pro, molte, nil, [_], []).
+pred_p(pro, molti, nil, [_], []).
+pred_p(pro, alcuno, nil, [_| __2], []).
+pred_p(pro, alcuna, nil, [_| __2], []).
+pred_p(pro, alcuni, nil, [_| __2], []).
+pred_p(pro, alcune, nil, [_| __2], []).
+pred_p(pro, gli, nil, [umano], []).
+pred_p(pro, le, nil, [umano], []).
+pred_p(pro, li, nil, [umano], []).
+pred_p(pro, c, nil, [luogo, umano, animato],[]).
+pred_p(pro, ci, nil, [luogo, umano, animato],[]).
+pred_p(pro, lo, nil, [umano, animato, oggetto], []).
+pred_p(pro, la, nil, [umano, animato, oggetto], []).
+pred_p(pro, si, nil, [umano, animato, oggetto], []).
+pred_p(pro, vi, nil, [luogo, umano, animato], []).
+pred_p(pro, ne, nil, [umano, animato, oggetto], []).
+pred_p(pro, se_stesso, nil, [umano, animato], []).
+pred_p(pro, s√©, nil, [umano, animato], []).
+pred_p(pro, questo, nil,_, []).
+pred_p(pro, questa, nil,_, []).
+pred_p(pro, questi, nil,_, []).
+pred_p(pro, queste, nil,_, []).
+pred_p(pro, quello, nil,_, []).
+pred_p(pro, ci√≤, nil, [oggetto], []).
+pred_p(pro, quella, nil,_, []).
+pred_p(pro, quelle, nil,_, []).
+pred_p(pro, quelli, nil,_, []).
+pred_p(pro, quei, nil,_, []).
+pred_p(pro, suo, nil, [umano, oggetto, animato], []).
+pred_p(pro, mio, nil, [umano, oggetto, animato], []).
+pred_p(pro, tuo, nil, [umano, oggetto, animato], []).
+pred_p(pro, vostro, nil, [umano, oggetto, animato], []).
+pred_p(pro, nostro, nil, [umano, oggetto, animato], []).
+pred_p(pro, loro, nil, [umano, oggetto, animato], []).
+partic(a).
+partic(di).
+partic(da).
+partic(ad).
+compl(che).
+compl(da).
+sub_w(se).
+sub_w(ma).
+sub_w(quando).
+sub_w(tanto).
+sub_w(mentre).
+sub_w(poi).
+sub_w(intanto).
+sub_w(tuttavia).
+sub_w(cos√¨).
+sub_w(perch√©).
+sub_w(poich√©).
+interjc(buongiorno).
+interjc(buonasera).
+interjc(attenzione).
+interjc(detto).
+interjc(fatto).
+interjc(puff).
+interjc(ecco).
+ord(primo, primo, mas, sing).
+ord(primi, primo, mas, plur).
+ord(prima, primo, fem, sing).
+ord(prime, primo, fem, plur).
+sub_w_sn(come, comparativa).
+sub_w_sn('cio√®', esplicativa).
+art_ndet_rom(un, mas, sing).
+art_ndet_rom(una, fem, sing).
+art_ndet_rom(uno, mas, sing).
+sub_w_dir(‚Äú).
+sub_w_dir('"').
+sub_w_dir(!).
+foca(anche).
+foca(proprio).
+pr(personale,_, io, 1,_, sing,_).
+pr(personale,_, tu, 2,_, sing,_).
+pr(personale,_, egli, 3, mas, sing,_).
+pr(personale,_, ella, 3, fem, sing,_).
+pr(personale,_, esso, 3, mas, sing,_).
+pr(personale,_, essa, 3, fem, sing,_).
+pr(personale,_, lui, 3, mas, sing,_).
+pr(personale,_, lei, 3, fem, sing,_).
+pr(personale,_, noi, 1,_, plur,_).
+pr(personale,_, voi, 2,_, plur,_).
+pr(personale,_, essi, 3, mas, plur,_).
+pr(personale,_, esse, 3, fem, plur,_).
+pr(personale,_, loro, 3,_, plur,_).
+
+pr(pr_quantif, -, chiunque, 3,_, sing, [__2]).
+pr(pr_quantif, -, ognuno, 3, mas, sing, [_]).
+pr(pr_quantif, -, ognuna, 3, fem, sing, [_]).
+pr(pr_quantif, -, ciascuno, 3, mas, sing, [_]).
+pr(pr_quantif, -, ciascuna, 3, fem, sing, [_]).
+pr(pr_quantif, +, qualcuno, 3, mas, sing, [_]).
+pr(pr_quantif, +, qualcuna, 3, fem, sing, [_]).
+pr(pr_quantif, most, maggior, 3, mas, sing, [_]).
+pr(pr_quantif, least, minor, 3, mas, sing, [_]).
+pr(pr_quantif, the_most, massimo, 3, mas, sing, [_]).
+pr(pr_quantif, the_least, minimo, 3, mas, sing, [_]).
+pr(pr_quantif, -, nessun, 3, mas, sing, [_]).
+pr(pr_quantif, -, nessuno, 3, mas, sing, [_]).
+pr(pr_quantif, -, nessuna, 3, fem, sing, [_]).
+pr(pr_quantif, -, tutto, 3, mas, sing, [_]).
+pr(pr_quantif, -, tutti, 3, mas, plur, [_]).
+pr(pr_quantif, -, tutta, 3, fem, sing, [_]).
+pr(pr_quantif, -, tutte, 3, fem, plur, [_]).
+pr(pr_quantif, +, molto, 3, mas, sing, [_]).
+pr(pr_quantif, +, molti, 3, mas, plur, [_]).
+pr(pr_quantif, +, molta, 3, fem, sing, [_]).
+pr(pr_quantif, +, molte, 3, fem, plur, [_]).
+pr(pr_quantif, +, alcune, 3, fem, plur, [_]).
+pr(pr_quantif, +, alcuno, 3, mas, sing, [_]).
+pr(pr_quantif, +, alcuni, 3, mas, plur, [_]).
+pr(pr_quantif, -, niente, 3, mas, sing, [_]).
+pr(pr_quantif, -, nulla, 3, mas, sing, [_]).
+
+pr(rifl_lungo,_, 's√©', 3,_,_, [obl]).
+pr(rifl_corto,_, se_stesso, 3, mas, sing, [__2]).
+
+pr(deittico,_, questi, 3, mas, plur,_).
+pr(deittico,_, questo, 3, mas, sing,_).
+pr(deittico,_, questa, 3, fem, sing,_).
+pr(deittico,_, queste, 3, mas, plur,_).
+pr(deittico,_, quelli, 3, mas, plur,_).
+pr(deittico,_, quei, 3, mas, plur,_).
+pr(deittico,_, quello, 3, mas, sing,_).
+pr(deittico,_, quella, 3, fem, sing,_).
+pr(deittico,_, quelle, 3, mas, plur,_).
+pr(deittico, -, maggiore, 3,_, sing, [__2]).
+pr(deittico, -, maggiori, 3,_, plur, [__2]).
+pr(deittico, +, altro, 3, mas, sing,_).
+pr(deittico, +, altri, 3, mas, plur,_).
+pr(deittico, +, altra, 3, fem, sing,_).
+pr(deittico, +, altre, 3, fem, plur,_).
+pr(deittico,_, ci√≤, 3, mas, sing,_).
+
+pr(pr_int, -, dove, 3,_, sing, [luogo]).
+pr(pr_int, -, quando, 3,_, sing, [tempo]).
+pr(pr_int, -, come, 3,_, sing, [modo,maniera]).
+pr(pr_int, -, che_cosa, 3,_, sing, [oggetto]).
+pr(pr_int, -, 'perch√©', 3,_, sing, [__2]).
+pr(pr_int, -, chi, 3,_, sing, [animato,umano]).
+pr(pr_int, -, cosa, 3,_, sing, [oggetto]).
+pr(pr_int, +, quale, 3,_, sing, [__2]).
+pr(pr_int, +, quali, 3,_, plur, [__2]).
+pr(possessivo,_, suo, 3, mas, sing,_).
+pr(possessivo,_, sua, 3, fem, sing,_).
+pr(possessivo,_, suoi, 3, mas, plur,_).
+pr(possessivo,_, sue, 3, fem, plur,_).
+pr(possessivo,_, nostro, 1, mas, sing,_).
+pr(possessivo,_, nostra, 1, fem, sing,_).
+
+cardin(1, 1, sing).
+cardin(due, 2, plur).
+cardin(tre, 3, plur).
+cardin(mille, 1000, plur).
+cardin(venti, 20, plur).
+
+alterato(canzoncina, canzone, piccolo, fem, sing).
+alterato(casetta, casa, piccolo, fem, sing).
+alterato(casette, case, piccolo, fem, plur).
+alterato(pezzetti, pezzi, piccolo, mas, plur).
+alterato(fratellino, fratello, piccolo, mas, sing).
+alterato(fratellini, fratelli, piccolo, mas, plur).
+
+modal(nil,nil,nil,nil,nil,nil).
+
+

@@ -1,0 +1,5179 @@
+﻿:- style_check(-singleton).
+
+
+readsfrase(File, [Out|Frase], [Tok|Tokens], T):-
+    readsfile(File, Out, Tok),
+    (Out=end_of_file,Frase=[],Tokens=[],!
+    ;
+     Out=_-da_riempire-_,Frase=[],Tokens=[], T=1,!
+    ;
+     Out=_-dirs-_,Frase=[],Tokens=[], T=1,!
+    ;
+     Out=_-punto-_,Frase=[],Tokens=[], T=1,!
+    ;
+     Out=_-puntint-_,Frase=[],Tokens=[], T=2,!
+    ;
+     readsfrase(File, Frase, Tokens, T)).
+
+readsfrases(File, [Out|Frase], [Tok|Tokens], T):-
+    readsfiles(File, Out, Tok),
+    (Out=end_of_file,Frase=[],Tokens=[],!
+    ;
+     Out=_-da_riempire-_,Frase=[],Tokens=[], T=1,!
+    ;
+     Out=_-dirs-_,Frase=[],Tokens=[], T=1,!
+    ;
+     Out=_-punto-_,Frase=[],Tokens=[], T=1,!
+    ;
+     Out=_-puntint-_,Frase=[],Tokens=[], T=2,!
+    ;
+     readsfrases(File, Frase, Tokens, T)).
+
+selectcats(W,Catss,Lem-[mfeats=mfs]):-
+    is_list(Catss),
+    appiattisci(Catss,Roots),
+    length(Roots,L),
+    (1<L,
+     member(W-Lem,Roots)
+     ;
+     member(W-Lem,Roots)
+     ;
+     member(Root-Lem,Roots)),
+    !.
+
+getcatgen(Cat,Gen):-
+    check_all_verbs(Cat),Gen=v
+    ;
+    nouncats(Cat),Gen=n
+    ;
+    proncat(Cat),qcats(Cat),Gen=p
+    ;
+    dets(Cat),Gen=a,
+    !.
+samecatgen(Cat,Gen):-
+    getcatgen(Cat,Ge),
+    Gen=Ge,
+    !.
+
+winvars(W):-
+    mlt(PL,W,T);
+    l(W,T);
+    pw(Ws,W);
+    avvs(W);
+    dmc(W);
+    t(W,T);
+    tml(W,T),
+    !.
+
+getlem(W,Cat,Lem):-
+      prepos(W), Lem=W
+      ;
+      Cat=php,Lem=W
+      ;
+      checkab(W),
+      psl(W,s,N,Le,Caa,N),
+      getcatfeats(Le,Cat,Gen,Num),
+      Lem=Le-[num=Num,gen=Gen]
+      ;
+      prepart(P,W,_),
+     i(W, Cat, Root-Feats), Lem=Root-Feats,
+     !.
+getlem(W,Cat,Lem):-
+   \+ firstword(W),
+   upgetlem(W,Cat,Lem),
+   \+ lowgetlem(W,Cat,Lems),
+   !.
+getlem(W,Cat,Lem):-
+   spy_lower(W,Low,Pol),
+   (nonvar(Cat),
+    (Cat=ag;Cat=ppas),
+    i(W, Cat, Root-Feats), 
+     (member(sems=S,Feats),Feat=Feats,
+      Lem=Root-Feat
+      ;
+      \+member(sems=S,Feats),
+      de(Root,Morfs),
+      findall(P,member(a:P,Morfs),Sems),
+      append([sems=Sems],Feats,Feat),
+      Lem=Root-Feat)
+    ;
+     nonvar(Cat),
+    i(W, Cat, Root-Feats), 
+     Lem=Root-Feats
+    ;
+    nonvar(Cat),
+    i(W, Cat, Feats), 
+    Lem=W-Feats
+    ;
+    nonvar(Cat),
+    findall(Lem-Ca,(i(W, Ca, Root-Feats), 
+                  Lem=Root-Feats, 
+                  (nouncats(Cat),nouncats(Ca);
+                   \+nouncats(Cat),\+nouncats(Ca))),Lems),
+    Lems\=[],cacompatible(Lems,Cat,Ca,Lem)
+    ;
+    Pol=1,
+    nonvar(Cat),
+    psl(Low,e,N,Le,Caa,N),
+    traducipsl(e,Cat),
+    (nouncats(Cat);check_vcat(Cat)),
+    getcatfeats(W,Cat,Gen,Num),
+    Lem=Le-[num=Num,gen=Gen]
+    ;
+    var(Cat),
+    (i(W, Ca, Root-Feats),Lem=Root-Feats, Cat=Ca;
+      firstword(W),
+      Pol=1,i(Low, Ca, Root-Feats),Lem=W-Feats, Cat=Ca)
+    ),
+    !.
+getlem(W,Cat,Lem):-
+   nouncats(Cat),
+   spy_lower(W,Low,Pol),
+   (
+    Pol=1,
+    if_first_name(W),Lem=W-[mfeats=mfs],(var(Cat),Cat=nh;nonvar(Cat)),!
+    ;
+    Pol=1,
+    \+ gi(W,Loc,Clas,Sem),
+     (jrc([W],Code,Nu);
+      jrc([A,W],Code,Nu);
+      jrc([A,_,W],Code,Nu);
+      jrc([A,_,_,W],Code,Nu)),
+      (nonvar(A),getgender(W,A,Gen,Lem), \+ up(W)
+        ;
+        Lem=W-[mfeats=mfs]),
+      (var(Cat),
+       (Code=pers,Cat=nh;Cat=npro);
+        nonvar(Cat))
+     ),
+    !.
+getlem(W,Cat,Lem):-
+   nouncats(Cat),
+   spy_lower(W,Low,Pol),
+   (
+    firstword(W),
+    (i(Low, Ca, Root-Feats), Lem=Root-Feats
+     ;
+     i(Low, Ca, Feats), Lem=W-Feats)
+     ;
+    (its(W,Cats,Tags);mist(W,_,Cats,Tags);mist(_,W,Cats,Tags);
+        firstword(W),
+        its(Low,Cats,Tags);mist(Low,_,Cats,Tags);mist(_,Low,Cats,Tags)
+        ),
+    Cat\=v,Cat\=verb,
+    (member(Cat:N,Tags),
+     transcatcateg(Cat,Catg),
+     getcatfeats(W,Catg,Gen,Num)
+     ;
+     member(Ca:N,Tags),Ca=p,Gen=m,Num=s),
+    Lem=W-[gen=Gen,num=Num]
+    ;
+    gi(W,Loc,Clas,Sem),Cat\=v,
+     Lem=W-[mfeats=mfs],(var(Cat),Cat=np;nonvar(Cat)),!
+     ;
+    (lm(W,Acc,Cats);lm(Low,Acc,Cats)),
+     getcatsnew(Cats,Cat),
+     getcatfeats(Low,Cat,Gen,Num),
+     concat(Gen,Num,Ft),
+     Lem=W-[mfeats=Ft]
+    ;
+    W\=Low,
+    nouncats(Cat),
+    firstword(W),
+     (sku([Low],Code);
+      sku([A,Low],Code);
+      sku([A,_,Low],Code);
+      sku([A,_,_,Low],Code)),Lem=W-[mfeats=mfs],(var(Cat),Cat=nh;nonvar(Cat))
+    ;
+    Cat=n,
+    (up(W), Lem= W-[mfeats=mfs]
+     ;
+     Pol=1, upl(W), Lem= W-[mfeats=mfs]
+     ;
+     nmi(W), Lem= W-[mfeats=ms]
+     ;
+     den(W), Lem= W-[mfeats=mfs]
+     ;
+     nfi(W), Lem= W-[mfeats=fs])
+     ),
+    !.
+getlem(W,Cat,Lem):-
+     Cat\=v,Cat\=verb,
+     winvars(W),
+     tolower(W,Low),
+     getcatfeats(Low,Cat,Gen,Num),
+     concat(Gen,Num,Ft),
+     Lem=W-[mfeats=Ft],
+     !.
+
+getlem(W,Cat,Lem):-
+       (swr(SW),(member(W,SW));
+       swrw(SW),(member(W,SW))
+       ),
+     tolower(W,Low),
+     getcatfeats(Low,Cat,Gen,Num),
+     concat(Gen,Num,Ft),
+     Lem=W-[mfeats=Ft],
+     !.
+getlem(W,Cat,Lem-Feat):-
+    analtoken(W, Out),Out\=[],
+    length(Out,L),
+    (nonvar(Cat),
+     matchcatsfeats(L,W,Cat,Out,Lem,Feat)
+     ;
+     nonvar(Cat),
+     member(W-Feat,Out),
+     member(cat=Cat,Feat),
+     member(pred=Lem,Feat)
+     ;
+     var(Cat),
+     Out=[Lem-Feat|_],
+     member(cat=Cat,Feat)
+     ;
+     Out=[Lem-Feat|_],
+     \+member(encl=ti,Feat)
+     ),
+     atomic(Lem),
+    !.
+getlem(W,Cat,Lem):-
+     tolower(W,Low),
+     findcatsuf(Low,Cats),
+     member(Cat,Cats),
+     getcatfeats(Low,Cat,Gen,Num),
+     concat(Gen,Num,Ft),
+     Lem=W-[mfeats=Ft],
+     !.
+getlem(W,nh,W-[umano]):-
+    !.
+getlem(W,nw,W-[umano,istituzione]):-
+    !.
+getlem(W,npro,W-[istituzione,umano]):-
+    !.
+getlem(W,Cat,W-Feat):-
+    recover_descs(W,List),
+    is_list(List),
+    tolower(W,Low),
+    (
+     mlt(_, W, Cat), Cat\=v,Cat\=verb, recovfeatsmults(W,Cat,Feat)
+     ;
+     jrc(List, Sem, Ca), Cat\=v,Cat\=verb, recovfeatsmults(W,Cat,Feat)
+     ;
+     mwec(_,W), Cat\=v,Cat\=verb, recovfeatsmults(W,Cat,Feat)
+     ;
+     pw(_,W), Cat\=v,Cat\=verb, recovfeatsmults(W,Cat,Feat)
+     ;
+     matchmult(W,Low,_), Cat\=v,Cat\=verb, recovfeatsmults(W,Cat,Feat)
+     ;
+     member(First,List),
+     getlem(First,Cat,Lem-Feat)),
+    !.
+
+getlem(W,Cat,[]):-
+    !.
+
+recovfeatsmults(W,Cat,Feat):-
+     getcatfeats(W,Cat,Gen,Num),
+     nonvar(Gen),nonvar(Num),
+     concat(Gen,Num,Ft),
+     Feat=[mfeats=Ft],
+     !.
+     
+cacompatible(Lems,Cat,Ca,Lem-Fea):-
+    member(Lem-Fea-Ca,Lems),
+    (
+     nouncats(Cat),
+     nouncats(Ca),
+     (
+       (Cat=np;Cat=nh;Cat=npro),Ca\=n;
+       Cat=n,Ca\=np,Ca\=nh,Ca\=npro;
+       Cat\=n,Cat\=np,Cat\=nh,Cat\=npro)
+     ;
+     Cat=ag,
+     (Ca=ppas;Ca=ppres)
+     ;
+     check_all_verbs(Cat),
+     check_all_verbs(Ca),
+     \+member(Lem1-Fea1-vcl,Lems),
+     (Ca=ppas,
+       \+member(Lem1-Fea1-vppt,Lems);Ca\=ppas)
+     ;
+     \+ nouncats(Cat),
+     \+ check_all_verbs(Cat),
+     \+ nouncats(Ca),
+     \+ check_all_verbs(Ca)
+     ),
+    !.
+
+traducipsl(Ca,Cat):-
+   nouncats(Cat),
+   (Ca=s;
+    stringof(List,Ca),
+    List=[s|_];
+    Ca=e;
+    stringof(List,Ca),
+    List=[e|_]),
+    !.    
+traducipsl(Ca,Cat):-
+   check_vcat(Cat),
+   (Ca=v;
+    stringof(List,Ca),
+    List=[v|_]),
+    !.
+traducipsl(Ca,Cat):-
+   Cat=ag,
+   (Ca=g;
+    stringof(List,Ca),
+    List=[g|_]),
+    !.
+    
+lowgetlem(W,Cat,Lem):-
+    spy_lower(W,Low,Pol),
+    (i(Low, Ca, Root-Feats), Lem=Root-Feats
+     ;
+     i(Low, Ca, Feats), Lem=W-Feats),
+    !.
+    
+upgetlem(W,Cat,Lem):-
+   spy_lower(W,Low,Pol),
+   (
+    i(W, Cat, Root-Feats), Lem=Root-Feats
+    ;
+    i(W, Cat, Feats), Lem=W-Feats
+    ;
+    Pol=1,Cat\=v,
+    if_first_name(W),Lem=W-[mfeats=mfs],(var(Cat),Cat=nh;nonvar(Cat)),!
+    ;
+    nclp(W,Polar,Fea),
+    (getgender(W,W,Gen,Lem);Lem=W-[mfeats=mfs])
+    ;
+    Pol=1,Cat\=v,
+    \+ gi(W,Loc,Clas,Sem),
+     (jrc([W],Code,Nu);
+      jrc([A,W],Code,Nu);
+      jrc([A,_,W],Code,Nu);
+      jrc([A,_,_,W],Code,Nu)),
+      (nonvar(A),getgender(W,A,Gen,Lem)
+        ;
+        Lem=W-[mfeats=mfs]),
+      (var(Cat),
+       (Code=pers,Cat=nh;Cat=npro);
+        nonvar(Cat))
+     ;
+     (lm(W,Acc,Cats);lm(Low,Acc,Cats)),
+     getcatsnew(Cats,Cat),
+     getcatfeats(Low,Cat,Gen,Num),
+     concat(Gen,Num,Ft),
+     Lem=W-[mfeats=Ft]
+    ;
+    tolower(W,Low),W\=Low,
+    nouncats(Cat),
+    firstword(W),
+     (sku([Low],Code);
+      sku([A,Low],Code);
+      sku([A,_,Low],Code),
+      sku([A,_,_,Low],Code)),Lem=W-[mfeats=mfs],(var(Cat),Cat=nh;nonvar(Cat))
+    ;
+    Cat=n,
+    (up(W), Lem= W-[mfeats=mfs]
+     ;
+     Pol=1, upl(W), Lem= W-[mfeats=mfs]
+     ;
+     nmi(W), Lem= W-[mfeats=ms]
+     ;
+     den(W), Lem= W-[mfeats=mfs]
+     ;
+     nfi(W), Lem= W-[mfeats=fs])
+     ),
+    !.
+
+getgender(A,W,Gen,Lem):-
+    (
+     nmi(W), Lem= New-[mfeats=ms]
+     ;
+     nfi(W), Lem= New-[mfeats=fs]),
+     \+ checkmultiplenames(A,W),
+     concat(W,'_',W1),
+     concat(W1,A,New),
+     !.
+getgender(A,W,Gen,Lem):-
+    Lem= A-[mfeats=mfs],
+     !.
+
+checkmultiplenames(W,B):-
+     (jrc([W],Code,Nu);
+      jrc([A,W],Code,Nu);
+      jrc([A,_,W],Code,Nu);
+      jrc([A,_,_,W],Code,Nu)),
+      A\=B,
+      !.
+
+categsparavia([abbr,acron,agg,agg_inv,avv,cong,inter,loc_agg_inv,loc_avv,
+loc_sf_inv,loc_sm_inv,loc_inter,loc_cong,loc_di_com,npf,npm,prep,sf,sm,
+smf_inv,sm_inv,smpl,sfpl,smf,vt,vin,vinpron,vproc,vtpron,ppas,ppres,sigla,simb]).
+
+getcatsnew(Cats,Cat):-
+    atomic(Cats),
+    categsparavia(Categs),
+    member(Cats,Categs),
+    atom_chars(Cats,[S|List]),
+    checkcatlm(Cats,S,Cat)
+    ;
+    is_list(Cats),
+    member(Ca,Cats),
+    categsparavia(Categs),
+    member(Ca,Categs),
+    atom_chars(Ca,[S|List]),
+    checkcatlm(Ca,S,Cat),
+    !.    
+
+checkcatlm(Ca,a,Cat):-
+    (Ca=abbr;Ca=acron),
+    nouncats(Cat),
+    !.
+checkcatlm(Ca,s,Cat):-
+    nouncats(Cat),
+    !.
+checkcatlm(Ca,l,Cat):-
+    nouncats(Cat),
+    !.
+checkcatlm(Ca,n,Cat):-
+    nouncats(Cat),
+    !.
+checkcatlm(v,Cat):-
+    check_vcat(Cat),
+    !.
+checkcatlm(p,Cat):-
+    check_vcat(Cat),
+    !.
+checkcatlm(a,Cat):-
+    (Cat=ag;Cat=avv),
+    !.
+checkcatlm(i,intj):-!.
+checkcatlm(l,intj):-!.
+checkcatlm(l,cong):-!.
+checkcatlm(l,ag):-!.
+    
+transcatcateg(n,noun).
+transcatcateg(v,verb).
+transcatcateg(a,adj).
+transcatcateg(r,adv).
+transcatcateg(p,noun).
+
+catlm(Tg,ag,[m,s]):-
+    Tg=agg;
+    Tg=aggf;
+    Tg=agg_inv;
+    Tg=loc_agg_inv;
+    Tg=aggf_inv,
+    !.
+catlm(Tg,n,[G,N]):-
+    Tg=sigla,G=m,N=s;
+    Tg=simb,G=m,N=s;
+    Tg=acron,G=m,N=s;
+    Tg=loc_smpl,G=m,N=p;
+    Tg=loc_sm_inv,G=m,N=s;
+    Tg=loc_smf_inv,G=f,N=s;
+    Tg=loc_sf_inv,G=f,N=s;
+    Tg=smf,G=m,N=s;
+    Tg=smpl,G=m,N=p;
+    Tg=sfpl,G=f,N=p;
+    Tg=sf_inv,G=f,N=s;
+    Tg=sm_inv,G=m,N=s;
+    Tg=sm,G=m,N=s;
+    Tg=sf,G=f,N=s,
+    !.
+
+findcatsuf(Low,[ag,n]):-
+      stringof(List,Low),
+      reverse(List,Rev),
+      checksuffsall(Rev,NewLis),
+      stringof(NewLis,Lem)
+      ;
+      findinvar(Low),Lem=Low
+      ;
+      guesstok(Low,Lem),
+     !.
+     
+gettaglms(Tags,Tag,[G,N]):-
+     atomic(Tags),
+     catlm(Tags,Tag,[G,N]),
+     !.
+gettaglms(Tags,Tag,[G,N]):-
+     is_list(Tags),
+     member(Tg,Tags),
+     catlm(Tg,Tag,[G,N]),
+     !.
+
+getcatfeats(W,Categ,Gen,Num):-
+     atomic(W),nonvar(W),
+     tolower(W,Low),
+     lm(Low,S,Tags),
+     gettaglms(Tags,Categ,[Gen,Num]),
+     !.
+getcatfeats(W,Categ,Gen,Num):-
+     nleaf(cw(Pred, Feat), Cat, W, MorphoOut),
+     Cat=root(root(R), Decl, Categ, C, Reg, Feats),
+     member(pred=Pred,Feats),
+     (on(gen=Gen,Feats),
+      on(num=Num,Feats)
+      ;
+      on(gen=Gen,Feats),Num=s
+      ;
+      on(num=Num,Feats),Gen=m
+      ),
+     !.
+getcatfeats(W,C,Gen,Num):-
+     analtoken(W, Out),
+     Out=[Pred-Feats|_],
+     member(cat=C,Feats),
+     (on(gen=Gen,Feats),
+      on(num=Num,Feats)
+      ;
+      on(gen=Gen,Feats)
+      ;
+      on(num=Num,Feats)
+      ),
+     !.
+getcatfeats(W,Ca,Gen,Num):-
+     i(W,Ca,Pred-Feats),
+     genfet(Feats,Gen,Num),
+     !.
+getcatfeats(W,Categ,Gen,Num):-
+     recover_descs(W,List),
+     List=[W1|_],
+     genfet(Feats,Gen,Num),
+     !.
+getcatfeats(W,Cat,Gen,Num):-
+     stringof(List,W),
+     reverse(List,RevList),
+     RevList=[V|_],
+     (V=e,Cat=n,Gen=f,Num=p
+      ;
+      V=a,Cat=n,Gen=f,Num=s
+      ;
+      V=i,Cat=n,Gen=m,Num=p
+      ;
+      V=o,Cat=n,Gen=m,Num=s
+      ;
+      V=e,Cat=ag,Gen=mf,Num=sp
+      ;
+      V=a,Cat=ag,Gen=f,Num=s
+      ;
+      V=i,Cat=ag,Gen=m,Num=p
+      ;
+      V=o,Cat=ag,Gen=m,Num=s),
+     !.
+   
+readsfile(File, Out, Strn):-
+   read(Strn),
+   (Strn=end_of_file, 
+     Out=end_of_file,
+     !
+    ;
+%    Strn=i(Word,Cat,Lem),
+%    Strn=i(_-_,Cos-Word-Cost, Cats-Cat-_, Feats),
+%    Strn=s(Word,Cat,_),
+    Strn=s(Word-Cat-_),
+    getlem(Word,Cat,Lem),
+     Out=Word-Cat-[Lem]),
+     !.
+readsfiles(File, Out, Strn):-
+   read(Strn),
+   (Strn=end_of_file, 
+     Out=end_of_file,
+     !
+    ;
+    Strn=i(_-_,Cos-Word-Cost, Cats-Cat-_, Feats),
+    getlem(Word,Cat,Lem),
+     Out=Word-Cat-[Lem]),
+     !.
+
+shallow_parsing(Tags, FunctsOut, CFile,Outs):-
+   initheaps,
+   collect_np(Tags, CStruct, Words),
+   parsecs1(CStruct,  Chunk),
+   parsecs1(Chunk,  Chunks),
+   initscl,
+%   ctofmaps(Chunks, Outss),
+%   shallparsing(Outss, FunctsOut, Clauses),
+   assign_all_functions(Chunks, Rest, FunctsOut),
+   search_f_boundaries(FunctsOut,Outs),
+/*   nl,
+   closedisambswin(user),
+   write_fss(CStruct),
+   nl,
+   write_css(Chunks,Out),
+   writeseqnl(CFile, Chunks),
+   nl,
+   closedisambswin(user),
+   write_fss(FunctsOut),
+   nl,
+   closedisambswin(user),
+*/   
+   write_fss1(Outs),
+   nl,
+   !.
+
+/* COLLECT NP */
+
+collect_np(Cats, NFeats, Words):-
+     build_allnps(Cats, NP, Main, Feats, NFeats, Words),
+      !.
+%     search_fpp(FunctsOut, Out).
+
+
+reorg(N, Frase, Frase1):-
+   Frase=[_-P|RFrase],
+   (P='#',
+    OutF=RFrase
+     ;
+    P\='#',
+    OutF=Frase
+    ),
+    reorgs(N, OutF, Frase1),!.
+    
+reorgs(1, Frase, Frase):-!.
+reorgs(2, Frase, Frase1):-
+   reverse(Frase, [P|RFrase]),
+   reverse(RFrase, NFrase),
+   append([P], NFrase, Frase1),!.
+
+rtn_parseall1(Label, NodeFrom, StrIn, StrOut, Parse):-
+    rtn_parse1(Label, NodeFrom, StrIn, StrOut, Parse).
+
+rtn_parseall1(Net, NodeFrom, [Cats-Word|StrIn], StrOut, Parse) :-!.
+
+rtn_parse1(Net, NodeFrom, [], [], []):-!.
+
+rtn_parse1(Net, Node, [Cats-Word|StrIn], StrOut, Parses):-
+   var(StrIn),
+   try_cats(PNet, Node, Op, Cats, Label, NodeTo, NNet),
+   rtn_parse1(NNet, NodeTo, StrIn, StrOut, Parses).
+
+rtn_parse1(Net, NodeFrom, [end_of_file], [], []):-!.
+
+rtn_parse1(Net, NodeFrom, [Cats-Word|StrIn], StrOut, Parse) :-
+   var(Net),
+   try_cats(PNet, Node, push, Cats, Label, NodeTo, NNet),
+   parop1(push, RecNet, NodeTo, NNet, [Cats-Word|StrIn], StrOut, Parse).
+
+rtn_parse1(Net, NodeTo, [punto-'''.'''|_], [], [punto-'.']).
+
+rtn_parse1(Net, NodeTo, [punto-'.'|_], [], [punto-'.']).
+
+rtn_parse1(Net, NodeFrom, [Cats-Word|StrIn], StrOut, Parse) :-
+   try_cats(Net, NodeFrom, Op, Cats, Label, NodeTo, NNet),
+   parop1(Op, Label, NodeTo, NNet, [Cats-Word|StrIn], StrOut, Parse).
+
+
+parop1(Op, RNet, NTo, Net, [punto-'''.'''|_], [], [punto-'.']).
+
+parop1(Op, RNet, NTo, Net, [punto-'.'|_], [], [punto-'.']).
+
+parop1(pop, RNet, NTo, Net, Str, Str, []).
+
+
+parop1(wrd, Word, NodeTo, Net, [Cat-Word|StrIn], StrOut, [Cat-Word|Parses])
+   :-
+   !,
+   rtn_parse1(Net, NodeTo, StrIn, StrOut, Parses).
+
+parop1(cat, Category, NodeTo, Net, [Cats-Word|StrIn], StrOut, [Cats-Word|Parses])
+   :-
+     (Cats=[NCat],
+      Category=NCat
+      ;
+      Category=Cats
+      ;
+     on(Category, Cats)
+     ),
+   !,
+   rtn_parse1(Net, NodeTo, StrIn, StrOut, Parses).
+
+
+parop1(push, RecNet, NodeTo, Net, [Cats-Word|StrIn], StrOut, [RecNet-RecParses|Parses])
+   :-
+     (Cats=[NCat],
+      Category=NCat
+      ;
+     on(Category, Cats)
+      ;
+      Category=Cats
+     ),
+   legal_push1(StrIn, Category, RecNet),
+   rtn_parse1(RecNet, 1, [Cats-Word|StrIn], StrMid, RecParses),
+   rtn_parse1(Net, NodeTo, StrMid, StrOut, Parses),
+   !.
+
+parop1(jmp, [], NodeTo, Net, StrIn, StrOut, Parses)
+   :-
+   rtn_parse1(Net, NodeTo, StrIn, StrOut, Parses).
+
+syntrtn(Frase1,Out1):-
+   rtn_parseall1(Label, NodeFrom, Frase1, StrOut, Parse),
+   nl,nl,
+   abolish(ibar/1), 
+   assert(ibar(nil)),
+   abolish(fpp/1), 
+   assert(fpp(nil)),
+   write_cstructss(Parse, Agrs, Out),
+   assign_f3(Out, Out1),
+   writeseqnl(File, Out1), 
+   !.
+
+disrtn(NFile, File, StrIn):-
+   rtn_parseall(NFile, File, Label, NodeFrom, StrIn, StrOut, Parse),
+%   writeseqnl(File, Parse), 
+   nl,nl,
+   abolish(ibar/1), 
+   assert(ibar(nil)),
+   abolish(fpp/1), 
+   assert(fpp(nil)),
+   write_cstructss(Parse, Agrs, Out),
+   assign_f3(Out, Out1),
+   writeseqnl(File, Out1), 
+   !.
+
+write_cstructss(Parse, Agrs, Out5):-
+   write_cstructs(Parse, Agrs, Out),
+   (Agrs\=[],  
+    abolish(ibar/1), 
+    assert(ibar(nil)),
+    write_cstructss(Agrs, Struc, Out1),
+    search_f2(Out, Out2),
+    search_f2(Out1, Out3),
+    append(Out2, Out3, Out4),
+    Out5=[fc-Out4],
+    !
+    ;
+    Agrs=[], Out5=Out),
+    !.
+
+
+sleaves(Input, Output):-
+   search_leaves(Input, T),
+   searchleaves(T, Output),
+   !.
+
+search_leaves([], []):-!.
+search_leaves([ArcList|Resto], [ArcList2|T]):-
+   ArcList1=..[Arc1,ArcList2],
+   ArcList2=..[Arc2,List],
+   ArcList=..[Arc,ArcList1],
+   search_leaves(Resto, T),!.
+search_leaves([ArcList1|Resto], [ArcList|T]):-
+   ArcList=..[Arc1,List],
+   ArcList1=..[Arc,ArcList],
+   search_leaves(Resto, T),!.
+search_leaves([ArcList|Resto], T2):-
+   ArcList=..[Arc,List],
+   (one(mc(Arc)); 
+    one(comp(Arc)); 
+    one(cps(Arc)); 
+    Arc=coord
+   ), 
+   search_leaves(List, T1),
+   search_leaves(Resto, T),
+   append(T1, T, T2),
+   !.
+search_leaves([ArcList|Resto], [ArcList|T]):-
+   ArcList=..[Arc,List],
+   (Arc=punt; Arc=par; Arc=punto; Arc=dirs
+    ),
+   search_leaves(Resto, T),!.
+search_leaves([ArcList|Resto], [ArcList2|T]):-
+   ArcList1=..[Arc1,ArcList2],
+   ArcList2=..[Arc2,List],
+   ArcList=..[Arc,ArcList1],
+   search_leaves(Resto, T),!.
+search_leaves([ArcList1|Resto], [ArcList|T]):-
+   ArcList=..[Arc1,List],
+   ArcList1=..[Arc,ArcList],
+   search_leaves(Resto, T),!.
+search_leaves([ArcList|Resto], [ArcList|T]):-
+   ArcList=..[Arc,List],
+   search_leaves(Resto, T),!.
+search_leaves([ArcList|Resto], [N1, N2|T]):-
+   ArcList=..[Arc,N1, N2],
+   N2=..[A, B],
+   atomic(B),
+   search_leaves(Resto, T),!.
+search_leaves([ArcList|Resto], [ArcList1|T]):-
+   ArcList=..[Arc,N1, N2],
+   N2=..[A|B],
+   ArcList1=..[Arc,N1],
+   (one(mc(A)); 
+    one(comp(A)); 
+    one(cps(A)); 
+    A=coord
+   ), 
+   search_leaves(B, T1),
+   search_leaves(Resto, T),
+   append(T1, T, T2),
+   !.
+search_leaves([ArcList|Resto], [ArcList1|T]):-
+   ArcList=..[Arc,N1, N2],
+   N2=..[A|B],
+   B=..[Arc1|List],
+   ArcList1=..[Arc,N1],
+   (one(mc(Arc)); 
+    one(comp(Arc)); 
+    one(cps(Arc)); 
+    Arc=coord
+   ), 
+   search_leaves(List, T1),
+   search_leaves(Resto, T),
+   append(T1, T, T2),
+   !.
+search_leaves(ArcList, [N1, N2]):-
+   ArcList=..[Arc,N1, N2],
+   !.
+search_leaves([N|List], T):-
+   search_leaves(List, T),!.
+
+searchleaves([], []):-!.
+searchleaves([], ['.']):-!.
+
+searchleaves([Arc-List|Rest], T):-
+   (one(mc(Arc)); 
+    one(comp(Arc)); 
+    one(cps(Arc)); 
+    Arc=coord
+   ), 
+   append(List, Rest, Resto),
+   searchleaves(Resto, T),!.
+
+searchleaves([L-W|Rest], T):-
+   L=sp,
+   append(W, Rest, Resto),
+   searchleaves(Resto, T),!.
+
+searchleaves([L-W|Resto], [L-W|T]):-
+   searchleaves(Resto, T),!.
+
+searchleaves([[L-W|[]]|Rest], T):-
+   L=sp,
+   append(W, Rest, Resto),
+   searchleaves(Resto, T),!.
+
+searchleaves([[L-W|List]|Rest], T2):-
+   List\=[],
+   \+ atomic(W), nonvar(W),
+   searchleaves(W, T1),
+   append(List, Rest, Resto),
+   searchleaves(Resto, T),
+   append(T1, T, T2),
+   !.
+
+searchleaves([[L-W|List]|Rest], [L-W|T]):-
+   List\=[],
+   atomic(W), nonvar(W),
+   append(List, Rest, Resto),
+   searchleaves(Resto, T),!.
+
+searchleaves([[L-W|List]|Rest], [L-W|T]):-
+   List\=[],
+   var(W),
+%   vars(L-W, Vars),
+   append(List, Rest, Resto),
+   searchleaves(Resto, T),!.
+
+searchleaves([[L-W|List]|Rest], T):-
+   List=[],
+   list(W),
+   append(W, Rest, Resto),
+   searchleaves(Resto, T),!.
+
+searchleaves([[L-W|List]|Rest], T):-
+   List=[],
+   atomic(W),
+   append([L-W], Rest, Resto),
+   searchleaves(Resto, T),!.
+
+
+heads(Net, Node, Cat) :-
+       active_node_set(Cat, Net, Node, AllAn),
+       search_active_node(Node, AllAn, Op-To).
+                 
+active_node_set(Cat, Net, Node, AllAn):-
+       activeOn(Net, Node, _),
+       head_set(Net, Node, AllAn).
+
+search_active_node(Node, AllAns, Op-To):-
+      on(Net-Op-To, AllAns),
+     (
+      Op\=pop, Op\=push, Op=jmp, 
+      heads(Net, To, Cat)
+      ;
+       (Op=pop;Op=push), Node\=To
+      ).
+
+activeN(Net, From, Op, To):-
+       arc(Net, From, Op, Label, To) .
+
+activeOn(Net, Node, Cat):-
+       arc(Net, Node, Op, Cat, To) .
+
+head_set(Net, From, AllAn) :-
+		   findall(Net-Op-To, activeN(Net, From, Op, To), AllAn).
+
+pre_terminal(PT) :-
+		    arc(_, _, cat, PT, _).
+
+connect_pret([Labs], Net, From, Op, To):-
+       on(Label,Labs),
+		   arc(Net, From, Op, Label, To).
+
+connect_pret(Label, Net, From, Op, To):-
+		   arc(Net, From, Op, Label, To).
+
+pre_terminal_set(PTset) :-
+		   findall(PT, pre_terminal(PT), AllPT),
+		   sort(AllPT, PTset).
+
+disamb(NFile, File,  Parse):-
+   seeing(DefaultInFile),
+   read(NFile, StrIn),
+%   get_tokens(NFile, W, Cat),
+   (dis(NFile, File, Label, NodeFrom, StrIn, StrOut, Parse)   
+   ;
+   fail
+   ),
+   seeing(DefaultInFile).
+		
+dis(NFile, File, Net, NodeFrom, tl(W,Cat-_), StrOut, Parses) :- 
+   nonvar(Cat),
+   on(punt, Cat),
+%   writenl(File, Cat-Net-W),
+   read(NFile, StrIn),
+%  get_tokens(NFile, Word, Cats),
+   StrIn=tl(Word,Cats-_),
+   ((W=punt;W=par), PNet=Net
+    ;
+    W=punto
+    ;
+    W\=punt, W\=par),
+   try_cat(PNet, Node, Op, Cats, Label, NodeTo, NNet),
+   dis(NFile, File, NNet, NodeTo, StrIn, StrOut, Parses),
+   !.
+
+dis(NFile, File, Net, NodeFrom, end_of_file, StrOut, []):-!.
+
+dis(NFile, File, Net, NodeFrom, tl(Word,Cats-_), StrOut, Parse) :-
+   (Word=date,
+    Labls=[n], Cats=[Nw];
+    Word=num,
+    Labls=[n], Cats=[Nw];
+    Word=num,
+    Labls=[n], Cats=[Nw];
+    Word=per_cento,
+    Labls=[n], Cats=[Nw];
+    Labls=Cats, Nw=Word),
+   try_cat(Net, NodeFrom, Op, Labls, Label, NodeTo, NNet),
+   fop(NFile, File, Op, Label, NodeTo,  NNet, tl(Nw,Labls-_), StrOut, Parse).
+
+try_cat(Net, NodeFrom, Op, Cats, Label, NodeTo, Net):-
+   on(Label, Cats),
+   comp_arc(Net, NodeFrom, Op, Label, NodeTo).
+
+try_cat(Net, NodeFrom, push, Cats, Label, NodeTo, Net):-
+   comp_arc(Net, NodeFrom, push, Label, NodeTo).
+
+try_cat(Net, NodeFrom, push, Cats, Label, NodeTo, Net):-
+   comp_arc(Net, NodeFrom, jmp, Label, NodeTo).
+
+try_cat(Net, NodeFrom, Op, Cats, Label, NodeTo, NNet):-
+   on(Label, Cats),
+   comp_arc(NNet, Node, Op, Label, NodeTo).
+
+fop(NFile, _, _, _, _, _, end_of_file, Str, []):-!.
+fop(NFile, File, pop, [], [], _, Str, Str, []).
+
+fop(NFile, File,
+   cat, Category, NodeTo, Net, tl(Word,Cats-_), StrOut, [Category-[Word] |Parses])
+   :-
+     (Cats=[NCat],
+      Category=NCat
+      ;
+     on(Category, Cats)
+      ;
+     Category=Cats
+     ),
+   !,
+   writenl(File, Category-Net-Word),
+   read(NFile, StrIn),
+%   get_tokens(NFile, W, Cat),
+   dis(NFile, File, Net, NodeTo, StrIn, StrOut, Parses).
+
+fop(NFile, File,
+   push, RecNet, NodeTo, Net, tl(Word,Cats-_), StrOut, [RecNet-RecParses])
+   :-
+     (Cats=[NCat],
+      Category=NCat
+      ;
+     on(Category, Cats)
+     ),
+   legal_push(Category, RecNet),
+   dis(NFile, File, RecNet, 1, tl(Word,Cats-_), StrOut, RecParses).
+
+
+excep(esse,pron).
+excep(ma,avv).
+excep(in,p).
+excep(anche,in).
+excep('Anche',in).
+excep(quanto,int).
+excep(dai,partd).
+excep(nei,part).
+excep(aria,n).
+excep(un,art).
+excep(un_,art).
+excep('Un',art).
+excep(i,art).
+excep('I',art).
+excep(dei,[partd,q]).
+excep('L',art).
+excep(azione,n).
+excep(attenzione,n).
+excep(maggiore,ag).
+excep(cui,relob).
+excep(impresa,n).
+excep(imprese,n).
+
+rtn_parseall(NFile, File, Label, NodeFrom, StrIn, StrOut, Parse):-
+    rtn_parse(NFile, File, Label, NodeFrom, StrIn, StrOut, Parse).
+
+rtn_parseall(NFile, File, Net, NodeFrom, [Cats-Word|StrIn], StrOut, Parse) :-!.
+%   writenl(user, Net-Cats-Word).
+
+rtn_parse(NFile, File, Net, NodeFrom, [], [], []):-!.
+
+rtn_parse(NFile, File, Net, Node, [Cats-Word|StrIn], StrOut, Parses):-
+   var(StrIn),
+%   readfile(File, Cats-Word),
+   try_cats(PNet, Node, Op, Cats, Label, NodeTo, NNet),
+   rtn_parse(NFile, File, NNet, NodeTo, StrIn, StrOut, Parses).
+
+rtn_parse(NFile, File, Net, NodeFrom, [end_of_file], [], []):-!.
+
+rtn_parse(NFile, File, Net, NodeFrom, [Cats-Word|StrIn], StrOut, Parse) :-
+   var(Net),
+   try_cats(PNet, Node, push, Cats, Label, NodeTo, NNet),
+%   (NNet=cp, RecNet=f;NNet\=cp, RecNet=Label;RecNet=Label),
+   parop(NFile, File, push, RecNet, NodeTo, NNet, [Cats-Word|StrIn], StrOut, Parse).
+
+rtn_parse(NFile, File, Net, NodeTo, [punto-'''.'''|_], [], [punto-'.']).
+
+rtn_parse(NFile, File, Net, NodeTo, [punto-'.'|_], [], [punto-'.']).
+
+rtn_parse(NFile, File, Net, NodeFrom, [Cats-Word|StrIn], StrOut, Parse) :-
+   try_cats(Net, NodeFrom, Op, Cats, Label, NodeTo, NNet),
+   parop(NFile, File, Op, Label, NodeTo, NNet, [Cats-Word|StrIn], StrOut, Parse).
+
+
+/*
+rtn_parse(NFile, File, Net, Node, [tl(Word,Cats-_)], [tl(Word,Cats-_)], Parse)
+   :-
+   nonvar(Net),
+   heads(Net, Node, Cat).
+   writenl(File, Net-Cats-Word).
+*/
+
+parop(NFile, File, Op, RNet, NTo, Net, [punto-'''.'''|_], [], [punto-'.']).
+
+parop(NFile, File, Op, RNet, NTo, Net, [punto-'.'|_], [], [punto-'.']).
+
+parop(NFile, File, pop, RNet, NTo, Net, Str, Str, []).
+
+
+parop(NFile, File,
+   wrd, Word, NodeTo, Net, [Cat-Word|StrIn], StrOut, [Cat-Word|Parses])
+   :-
+   !,
+%   writenl(File, Cat-Net-Word),
+   rtn_parse(NFile, File, Net, NodeTo, StrIn, StrOut, Parses).
+
+parop(NFile, File,
+   cat, Category, NodeTo, Net, [Cats-Word|StrIn], StrOut, [Cats-Word|Parses])
+   :-
+     (Cats=[NCat],
+      Category=NCat
+      ;
+      Category=Cats
+      ;
+     on(Category, Cats)
+     ),
+   !,
+%   writenl(File, Category-Net-Word),
+%   readfile(NFile, Cat-W), 
+   rtn_parse(NFile, File, Net, NodeTo, StrIn, StrOut, Parses).
+
+
+parop(NFile, File,
+   push, RecNet, NodeTo, Net, [Cats-Word|StrIn], StrOut, [RecNet-RecParses|Parses])
+   :-
+     (Cats=[NCat],
+      Category=NCat
+      ;
+     on(Category, Cats)
+      ;
+      Category=Cats
+     ),
+   legal_push1(StrIn, Category, RecNet),
+%   legal_push(Category, RecNet),
+   rtn_parse(NFile, File, RecNet, 1, [Cats-Word|StrIn], StrMid, RecParses),
+   rtn_parse(NFile, File, Net, NodeTo, StrMid, StrOut, Parses),
+   !.
+%   writenl(File, RecNet-RecParses).
+
+parop(NFile, File, 
+   jmp, [], NodeTo, Net, StrIn, StrOut, Parses)
+   :-
+   rtn_parse(NFile, File, Net, NodeTo, StrIn, StrOut, Parses).
+
+
+tp_access(ibar, [ausa, ause, clit, clitabl, clitac, clitdat, cong, congf, expl, neg, vc, vin, vprog, vsupp, vsup, vsf, vt, v, verb]).
+tp_access(ir_infl, [auair, aueir, clit, clitabl, clitac, clitdat, cong, congf, expl, neg, vci, vcir, virin, virt, vprogir, vsupir]).
+tp_access(sq, [in, ind, q, qc, qd]).
+tp_access(sv3, [clitdat, neg, ppas, ppre, vcl, vppc, vppin, vppt, vprin, vprt]).
+tp_access(sa, [ag, aggpp, aggpr, ccom, cong, dim, in, ind, ppas, ppre]).
+tp_access(sn, [abbr, ag, agn, aggpp, art, ccom, date, deit, dim, fw, in, ind, mw, n, nc, nf, nh, nt, np, npro, num, pers, poss,  ppas, ppre, pron, q, qc, qd,vppc, vppin, vppt, vprin, vprt]).
+tp_access(sp, [ccom, in, p, prep, part, php]).
+tp_access(spd, [in, partd, pd]).
+tp_access(spda, [in, partda, pda]).
+tp_access(savv, [avv, avvl, in, neg, p, pda, part, qc, qd]).
+tp_access(sv2, [ausai, ausei, aux, in, neg, p, pd, pt, vcl, vci, viin, vit, vsf, verb, v]).
+tp_access(f2, [art, rel, relin, relob, relq]).
+tp_access(fc, [ccong, congf, cong, conjl, in]).
+tp_access(fint, [escl, exc, int, p, pk, pd, pda]).
+tp_access(fac, [pk]).
+tp_access(sv5, [auag, aueg, neg, vcg, vcl, vgin, vgs, vgt, vgsf]).
+tp_access(fs, [conjl, cosu, cosul, in, neg]).
+tp_access(fp, [dirs, intj, overlap, punt, par, sect]).
+%tp_access(compin, [ag, ausai, ausei, avv, avvl, clit, clitabl, clitdat, in, ind, neg, p, part, php, pk, ppre, ppas, pt, vci, viin, vit, vsf]).
+%tp_access(compt, [ag, agn, art, ausai, ausei, avv, avvl, clit, clitabl, clitac, clitdat, deit, dim, in, ind, int, n, neg, nf, nh, np, npro, num, p, part, partd, partda, pd, pda, pers, php, pk, poss, pron, pt, q, qc, qd, vci, viin, vit, vppt, vsf]).
+%tp_access(comppas, [ag, ausai, ausei, avv, avvl, clit, clitabl, clitdat, in, ind, neg, p, pd, pda, part, partda, partdi, php, pk, pt, viin, vit, vsf]).
+%tp_access(compc, [ag, agn, art, ausai, ausei, avv, avvl, clit, clitabl, clitac, clitdat, deit, dim, in, ind, n, neg, nf, nh, np, npro, num, p, part, partd, partda, pd, pda, pers, php, pk, poss, ppre, ppas, pron, pt, q, vci, viin, vit, vppt, vsf, vsup]).
+tp_access(f, [ag, agn, art, ausa, auair, ause, aueir, ausei, ausai, avvl, clit, clitabl, clitac, clitdat, conjl, da_riempire, date, deit, dim, expl, in, ind, intj, n, noun, neg, nf, nh, np, npro, num, p, par, pers, pk, poss, ppas, ppre, pron, puntint, punto, q, qc, qd, relin, tit, turn, vc, vcir, vin, virin, virt, vppt, vprog, vprogir, vsupir, vsupp, vsup, vt]).
+tp_access(cp, [ag, agn, art, auag, ausa, ausei, ausai, auair, ause, aueir, avv, avvl, clit, clitabl, clitac, clitdat, cong, conjl, cosu, cosul, da_riempire, date, deit, dim, escl, exc, expl, in, ind, int, intj, n, noun, neg, nf, nh, np, npro, num, p, part, partd, partda, pd, pda, pers, php, pk, poss, ppas, ppre, pron, pt, puntint, punto, q, qc, qd, rel, relin, relq, tit, turn, vc, vci, vcir, vcl, vcg, vgin, vgs, vgt, vgsf, vsf, viin, vit, vin, virin, virt, vppc, vppin, vppt, vprog, vprogir, vsupir, vsupp, vsup, vt]).
+/*
+tp_access(ovl, [ag, agn, art, auag, ausa, ausei, ausai, auair, ause, aueir, avv, avvl, clit, clitabl, clitac, clitdat, cong, conjl, cosu, cosul, da_riempire, date, deit, dim, escl, exc, expl, in, ind, int, intj, n, noun, neg, nf, nh, np, npro, num, overlap, p, part, partd, partda, pd, pda, pers, php, pk, poss, ppas, ppre, pron, pt, puntint, punto, q, qc, qd, rel, relin, relq, tit, turn, vc, vci, vcir, vcl, vcg, vgin, vgs, vgt, vgsf, vsf, viin, vit, vin, virin, virt, vppc, vppin, vppt, vprog, vprogir, vsupir, vsupp, vsup, vt]).
+tp_access(topf, [ausai, ausei, ause, art, auair, aueir, clit, clitabl, clitac, clitdat, vcir, virin, virt, vprogir, vsupir]).
+tp_access(f3, [p, part, partd, pd, partda, pda]).
+*/
+
+non_terminal(PT) :-
+		    arc(_, _, push, PT, _).
+		
+non_terminal_set(NTset) :-
+		   findall(NT, non_terminal(NT), AllNT),
+		   sort(AllNT, NTset).
+
+connect(NT, PT) :-
+		   connects(NT, PT, []).
+
+connects(NT, PT, Traversed) :-
+		   left_push(NT, 1, ToNet),
+		   \+ on(ToNet, Traversed),
+		   connects(ToNet, PT, [ToNet | Traversed]).
+
+connects(NT, PT, _) :-
+		   comp_arc(NT, 1, cat, PT, _).
+
+left_push(Net, From, ToNet) :-
+		   comp_arc(Net, From, push, ToNet, _).
+
+left_push(Net, From, ToNet) :-
+		   comp_arc(Net, From, jmp, [], To),
+		   left_push(Net, To, ToNet).
+		
+comp_arc(Net, From, Op, Sym, To) :-
+		   arc(Net, From, Op, Sym, To).
+%		   Call=..[Net, From, Op, Sym, To],
+%		   Call.
+/****************************
+RTN PARSE
+*****************************/
+rtnparse(Net, NodeFrom, [], [], [], []):- !.
+rtnparse(Net, NodeFrom, ['='|StrIn], StrOut, Parse, Tags) :- 
+   comp_arc(parag, _, cat, inizio, NodeTo),
+   parse_op(push, Label, NodeTo,  parag, StrIn, StrOut, Parse, Tags).
+
+rtnparse(Net, NodeFrom, ['='], StrOut, [], []) :- !.
+
+rtnparse(Net, NodeFrom, StrIn, StrOut, Parse, Tags) :-
+   Net\=parag, 
+   Net\=cp,
+   comp_arc(Net, NodeFrom, Op, Label, NodeTo),
+   parse_op(Op, Label, NodeTo,  Net, StrIn, StrOut, Parse, Tags).
+
+rtnparse(Net, NodeFrom, StrIn, StrOut, Parse, Tags) :-
+   Net=parag,
+   parse_op(push, Label, NodeTo, cp, StrIn, StrOut, Parse, Tags).
+
+rtnparse(Net, NodeFrom, StrIn, StrOut, Parse, Tags) :-
+   (Net=parag; Net=cp; Net=f; Net=fac; Net=fs; Net=fc),
+   parse_op(push, Label, NodeTo, f, StrIn, StrOut, Parse, Tags).
+parse_op(pop, [], [], _, Str, Str, [], []).
+
+parse_op(
+   cat, Category, NodeTo, Net, 
+   [Word| StrIn], StrOut, [Category-[Word] | Parses], [Word-Net-Category-Lemma-Feat |Tags])
+   :-
+   word_cats(Pol, File, Word, NCats, Lemma, Freq),
+     (Cats=NWord-NCat,
+      Category=NCat
+      ;
+     on(Category, Cats)
+     ;
+     Cats=Category),
+   !,
+   asser_cat(Category, Word, Lemma-Feat),
+   rtnparse(Net, NodeTo, StrIn, StrOut, Parses, Tags).
+
+parse_op(
+   push, RecNet, NodeTo, Net, 
+   [Word | StrIn], StrOut, [RecNet-RecParses | Parses], NewTags)
+   :-
+   word_cats(Pol, File, Word, NCats, Lemma, Freq),
+     (Cats=NWord-NCat,
+      Category=NCat
+      ;
+     on(Category, Cats)
+     ;
+     Cats=Category),
+   legal_push(Category, RecNet),
+   rtnparse(RecNet, 1, [Word | StrIn], StrMid, RecParses, RecTags),
+   append([mn=Net], RecTags, ModTags),
+   rtnparse(Net, NodeTo, StrMid, StrOut, Parses, Tags),
+   append(ModTags,Tags,NewTags).
+
+parse_op(
+   jmp, [], NodeTo, Net, 
+   StrIn, StrOut, Parses, Tags)
+   :-
+   rtnparse(Net, NodeTo, StrIn, StrOut, Parses, Tags).
+
+
+asser_cat(Cat, Word, Lem-Features) :-
+   lemmas(Word, Lem, Cat, Features).
+
+asser_cat(Cat, Word, Word-[]) :-
+    funct_word(Word, Cat).
+
+
+out_channel(user).
+start_symbol(cp).
+
+
+% f-[ibar-[neg-non, vt-so, svt-[fint-[int-chi, ir_infl-[auair-abbia, vppt-incontrato, svt-[sn-[nh-Maria]]]]]]]
+
+try_cats(Net, NodeFrom, push, punt, N, 2, fp):-
+     Net\=fp.
+
+try_cats(Net, NodeFrom, cat, dots, N, NodeFrom, fp):-
+     !.
+try_cats(Net, NodeFrom, push, dots, N, NodeFrom, fp):-
+     !.
+try_cats(Net, NodeFrom, cat, [dots], N, NodeFrom, fp):-
+     !.
+try_cats(Net, NodeFrom, push, [dots], N, NodeFrom, fp):-
+     !.
+try_cats(Net, NodeFrom, cat, punt, N, NodeFrom, NNet):-
+     !.
+
+try_cats(Net, NodeFrom, cat, puntint, N, NodeFrom, Net):-
+     !.
+
+try_cats(Net, NodeFrom, cat, cong, N, NodeFrom, Net):-
+     !.
+
+try_cats(Net, NodeFrom, cat, per_cent, N, 4, sn):-!.
+
+try_cats(Net, NodeFrom, cat, doll, N, 2, sn):-!.
+
+try_cats(Net, NodeFrom, cat, equal, N, 2, sn):-!.
+
+try_cats(Net, NodeFrom, cat, date, N, 17, sn):-!.
+
+try_cats(Net, NodeFrom, cat, slash, N, 2, sn):-!.
+
+try_cats(Net, NodeFrom, push, sect, N, 1, fp):-
+     Net\=fp,!.
+
+try_cats(Net, NodeFrom, cat, star, N, 2, sn):-!.
+
+try_cats(Net, NodeFrom, push, par, N, 2, fp):-
+     Net\=fp.
+
+try_cats(Net, NodeFrom, cat, par, N, NodeFrom, NNet):-
+     !.
+
+try_cats(Net, NodeFrom, push, dirs, N, 2, fp):-
+     Net\=fp,!.
+
+try_cats(Net, NodeFrom, cat, dirs, N, NodeFrom, NNet):-
+     !.
+
+try_cats(Net, NodeFrom, push, congf, N, 1, fc):-
+     Net\=fc,Net\=ibar,Net\=ir_infl,!.
+
+/*
+try_cats(Net, NodeFrom, push, cong, N, 1, fc):-
+     Net\=fc,!.
+*/
+
+try_cats(Net, NodeFrom, wrd, Cats, Wrd, NodeTo, Net):-
+   nonvar(Wrd),
+   comp_arc(Net, NodeFrom, wrd, Wrd, NodeTo).
+
+try_cats(Net, NodeFrom, Op, Cats, Cats, NodeTo, Net):-
+   atomic(Cats),
+   comp_arc(Net, NodeFrom, Op, Cats, NodeTo).
+
+try_cats(Net, NodeFrom, Op, Cats, Label, NodeTo, Net):-
+   nonvar(Op), Op=push,
+   comp_arc(Net, NodeFrom, push, Label, NodeTo).
+
+try_cats(Net, NodeFrom, Op, Cats, Label, NodeTo, Net):-
+   nonvar(Op), Op=push,
+   comp_arc(Net, NodeFrom, jmp, Lab, NodeTo).
+
+try_cats(Net, NodeFrom, Op, Cats, Label, NodeTo, Net):-
+   nonvar(Op), Op=pop,
+   comp_arc(Net, NodeFrom, pop, Label, NodeTo).
+
+try_cats(Net, NodeFrom, Op, Cats, Cats, NodeTo, Net):-
+   atomic(Cats),
+   comp_arc(Net, Node, Op, Cats, NodeTo).
+
+try_cats(Net, NodeFrom, Op, Cats, Label, NodeTo, NNet):-
+   on(Label, Cats),
+   comp_arc(NNet, Node, Op, Label, NodeTo).
+
+try_cats(Net, NodeFrom, Op, Cats, Label, NodeTo, Net):-
+   on(Label, Cats),
+   comp_arc(Net, NodeFrom, Op, Label, NodeTo).
+
+trycats(Net, NodeFrom, push, Cats, Label, NodTo, NNet):-
+   comp_arc(Net, NodeFrom, jmp, Lab, NodeTo),
+   comp_arc(Net, NodeTo, push, NNet, NodTo).
+
+legal_push1([LH-_|StrIn], in, RecNet):-
+   tp_access(RecNet, Pts),
+   member(in, Pts),
+   tp_access(LNet, Ps),
+   member(LH, Ps), RecNet=LNet.
+
+legal_push1([LH-_|StrIn], p, RecNet):-
+   tp_access(RecNet, Pts),
+   member(p, Pts),
+   tp_access(LNet, Ps),
+   member(LH, Ps), RecNet=LNet.
+
+legal_push1(StrIn, Cat, RecNet):-
+   legal_push(Cat, RecNet).
+
+legal_push(Cat, RecNet) :-
+   tp_access(RecNet, Pts),
+   on(Cat, Pts).
+
+write_cstructs(Parse, Agrs, [f-Out1]):-
+    Parse=[fp-[Cat-P|Parses]],
+    Parses=[First-Pars],
+    one(subj(First)),
+    write_cstruct(Parses, Agrs, Out),
+    append([Cat-P], Out, Out1),!.
+
+write_cstructs(Parse, Agrs, [f-Out1]):-
+    Parse=[star-'*'|Parses],
+    Parses=[First-Pars],
+    one(subj(First)),
+   check_ibar(First, Fail),
+    write_cstruct(Parses, Agrs, Out),
+    append([Cat-P], Out, Out1),!.
+
+write_cstructs(Parse, Agrs, [f-Out]):-
+    Parse=[First-Parses],
+    one(subj(First)),
+   check_ibar(First, Fail),
+    write_cstruct(Parse, Agrs, Out),!.
+
+write_cstructs(Parse, Agrs, [f-Out]):-
+    Parse=[First-Parses|_],
+    one(subj(First)),
+    write_cstruct(Parse, Agrs, Out),!.
+
+write_cstructs([First-Parses], Agrs, [cp_int-Out]):-
+    Parses=[Head|Parse],
+    First=f,
+    Head=puntint-_,
+    write_cstructs(Parse, Agrs, Out),!.
+
+write_cstructs(Parse, Agrs, Out):-
+    Parse=[First-Parses],
+    one(cps(First)),
+    write_cstruct(Parse, Agrs, Out),!.
+
+write_cstructs(Parses, Agrs, [cp-Out]):-
+    write_cstruct(Parses, Agrs, Out),!.
+
+continua(First,f2, Altro, Agr, C1, C2, C4):-
+    !,
+    Const=f2,
+    append(C1, C2, C3), 
+    C=[First-C3],
+    write_cstruct(Altro, Agr, Out),
+    append(C, [f-Out], Cc),
+    C4=[Const-Cc],
+    !.
+
+continua(First,Second, Altro, Agr, C1, C2, C4):-
+    Second\=f2, 
+    Const=First,
+    subcategorize(Second, C2, Comp),
+    Altro=[Third-Rest],
+    (
+    Third=sn,    
+    buildconst(Third, Rest, Resto, C7),
+    write_cstruct(Resto, Agr, Out),
+    append(C2, [Comp-C7], C3),
+    append(C1, C3, C5),
+    C6=[Const-C5],
+    append(C6, Out, C4)
+    ;
+    Third\=sn,    
+    buildmconst(Rest, Res, C7),
+    Res=[Four-Ress],
+    buildconst(Four, Ress, Resto, C8),
+    write_cstruct(Resto, Agr, Out),
+    append(C7, C8, C9),
+    append(C2, [Comp-C9], C3),
+    append(C1, C3, C5),
+    C6=[Const-C5],
+    append(C6, Out, C4)),
+    !.
+
+continua(First,Second, Altro, Agr, C1, C2, C4):-
+    Second=sv2, 
+    Const=First,
+    subcategorize(Second, C2, Comp),
+    Altro=[Third-Rest|Resto],
+    (
+    Third=sn,    
+    buildconst(Third, Rest, [], C7),
+    write_cstruct(Resto, Agr, Out),
+    append(C2, [Comp-C7], C3),
+    append(C1, C3, C5),
+    C6=[Const-C5],
+    append(C6, Out, C4)
+    ;
+    Third\=sn,    
+    buildmconst(Rest, Res, C7),
+    Res=[Four-Ress],
+    buildconst(Four, Ress, Resto, C8),
+    write_cstruct(Resto, Agr, Out),
+    append(C7, C8, C9),
+    append(C2, [Comp-C9], C3),
+    append(C1, C3, C5),
+    C6=[Const-C5],
+    append(C6, Out, C4)),
+    !.
+
+continua(sp,fc, Altro, Agr, C1, C2, C4):-
+    append(C1, C2, C),
+    write_cstruct(Altro, Agr, Out),
+    buildlistOut(Out, sp, C, C4),
+    !.
+
+continua(First,Second, Altro, Agr, C1, C2, C4):-
+    Second\=f2, 
+    Const=First,
+    append(C1, [Second-C2], C),
+    (Second=sa,
+    buildconst(sa, Altro, Resto, C7),
+    write_cstruct(Resto, Agr, Out),
+    append(C, C7, C5),
+    C6=[Const-C5],
+    append(C6, Out, C4)
+    ;
+    Second\=sa,   Second\=sn,  Second\=sp,
+    write_cstruct(Altro, Agr, Out),
+    buildlistOut(Out, Const, C, C4)
+    ),
+    !.
+
+continua(First,Second, Altro, Agr, C1, C2, C4):-
+    Second=sn, 
+     buildconst(sn, Altro, Resto, C),
+    write_cstruct(Resto, Agr, Out),
+   (C=[spd-Cost],
+    append(C2, C, C5),
+    C6=[Second-C5],
+    append(C1, C6, C3),
+    buildlistOut(Out, First, C3, C4)
+    ;
+    append(C2, C, C0),
+    C6=[Second-C0],
+   append(C1, C6, C3),
+   buildlistOut(Out, First, C3, C4)
+   ),
+    !.
+
+buildlistOut([], A, B, Outlist):-
+    Outlist=[A-B],!.
+
+buildlistOut(Out, sp, B, Outlist):-
+    Out\=[],
+    Out=[cp-Rest],
+    append(B, Rest, C),
+    Outlist=[sp-C],
+    !.
+
+buildlistOut(Out, A, B, Outlist):-
+    Out\=[],
+    append([A-B], Out, Outlist),
+    !.
+
+
+subcategorize(sv2, C2, Comp):-
+    (on(vit-_, C2); on(vppt-_, C2)), Comp=compt
+     ; 
+    (on(viin-_, C2); on(vppin-_, C2)), Comp=compin
+     ; 
+    (on(vc-_, C2); on(vppc-_, C2)), Comp=compc,
+    !.
+subcategorize(sv3, C2, comp):-!.
+
+subcategorize(sv5, C2, Comp):-
+    on(vgt-_, C2), Comp=compt
+     ; 
+    on(vgin-_, C2), Comp=compin
+     ; 
+    on(vcg-_, C2), Comp=compc,
+    !.
+
+subcategorize(sv5, C2, Comp):-
+    (on(vgs-_, C2)
+     ; 
+    on(auag-_, C2)
+     ; 
+    on(aueg-_, C2)
+    ),
+    subcategorize(sv2, C2, Comp),!.
+
+continua_cp(Resto, First, C1, Agrs, Out):-
+    Resto=[f-Rest],
+    write_cstruct(Rest, Agrs, C2),
+%    writeseqnl(user, [First-C1]),
+    append(C1, [f-C2], Out),
+   abolish(ibar/1),
+   assert(ibar(on)),
+   !.
+
+continua_cp(Resto, First, C1, Agrs, Out):-
+    Resto=[cp-[f-Rest]],
+    write_cstruct(Rest, Agrs, C2),
+%    writeseqnl(user, [First-C1]),
+    append(C1, [f-C2], Out),
+   abolish(ibar/1),
+   assert(ibar(on)),
+   !.
+
+continua_cp(Resto, First, C1, Agrs, [cong-Cong,Out1]):-
+    Resto=[cong-Cong|Rest],
+    write_cstruct(Rest, Agrs, C2),
+%    writeseqnl(user, [First-C1]),
+    append(C1, [f3-C2], Out1),
+   abolish(ibar/1),
+   assert(ibar(on)),
+   !.
+
+continua_cp(Resto, First, C1, Agrs, [cong-Cong,Out1]):-
+    Resto=[cong-Cong|Rest],
+    write_cstruct([f3-Rest], Agrs, C2),
+%    writeseqnl(user, [First-C1]),
+    append(C1, C2, Out1),
+   abolish(ibar/1),
+   assert(ibar(on)),
+   !.
+
+continua_cp(Resto, First, C1, Agrs, Out):-
+    Resto=[sn-Rest],
+    write_cstruct(Resto, Agrs, C2),
+    append(C1, [f3-C2], Out),
+%    writeseqnl(user, [First-Out]),
+   abolish(ibar/1),
+   assert(ibar(on)),
+   !.
+
+continua_cp([], First, C1, [], C1):-
+   !.
+
+continua_cp(Resto, First, C1, Agrs, Out):-
+    write_cstruct(Resto, Agrs, C2),
+    (First=cp,
+     (C1=[], Out=C2
+      ;
+      C1\=[],
+     append([First-C1], C2, Out))
+     ;
+     First\=cp, 
+    append(C1, C2, Out)
+    ),
+    !.
+
+
+write_cstruct([], Agrs, []):-
+    !.
+
+write_cstruct([First-Parses], Agr, C4):-
+    one(mc(First)),
+    one(fh(First)),
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    Resto=[Second-Rest],
+    buildmconst(Rest, Altro, C2),
+    continua(First, Second, Altro, Agr, C1, C2, C4),
+%    writeseqnl(user, C4),
+    !.
+
+write_cstruct([First-Parses|Altre], Agr, C4):-
+    one(mc(First)),
+    one(fh(First)),
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    (Resto=[],
+     Altre=[Second-Rest],
+    buildmconst(Rest, Altro, C2)
+    ;
+     Resto=[Second-Rest],
+     buildmconst(Rest, Altr, C2),
+    append(Altr, Altre, Altro)
+    ;
+     Resto=[Second-Rest|Spezz],
+     buildmconst(Rest, Altr, C2),
+    append(Altr, Spezz, Spezza),
+    append(Spezza, Altre, Altro)
+    ),
+    continua(First, Second, Altro, Agr, C1, C2, C4),
+%    writeseqnl(user, C4),
+    !.
+
+write_cstruct([cp-Parses], Agrs, Out):-
+    Parses=[F-Parse],
+    (F=f2;F=f),
+    write_cstruct(Parses, Agrs, Out),!.
+
+write_cstruct([First-Parses], Agrs, [First-Out]):-
+    one(cps(First)),
+    check_ibar(First, Fail),
+    Fail=true,
+    First=topf,
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    Resto=[sn-[Head-Cat|Rest]],
+    write_cstruct(Rest, Agrs, C3),
+%    writeseqnl(user, [First-C3]),
+    append([sn-[Head-Cat]], C3, Out1),
+    append([auxtoc-C1], [f-Out1], Out),
+    !.
+
+write_cstruct([First-Parses], Agrs, [First-Out]):-
+    one(cps(First)),
+    check_ibar(First, Fail),
+    Fail=true,
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    continua_cp(Resto, First, C1, Agrs, Out),
+    !.
+
+write_cstruct([compt-Parses], Agrs, Out):-
+    Parses=[fac-Parse],
+    write_cstruct(Parses, Agrs, Out),!.
+
+write_cstruct([First-Parses], Agrs, [First-Out]):-
+    one(sub(First)),
+    check_ibar(First, Fail),
+    Fail=true,
+    write_cstruct(Parses, Agrs, Out),
+%    writeseqnl(user, [First-Out]),
+    !.
+
+write_cstruct([First-Parses], Agrs, Out):-
+    check_ibar(First, Fail),
+    Parses=[Par|Rest], 
+    (First=fc, 
+      Par=cong-Word, 
+      Word\=e,
+       Agrs=[First-Parses], Out=[]
+     ; 
+     First=fp, 
+     Par=Tag-Paren, 
+     (Tag=par, Paren='('; Tag\=par),
+     search_fpp(Rest, T),
+    (T=true,
+    write_cstruct(Rest, Agrs, C),
+    append([Par], C, C1),
+    Out= [First-C1]
+     ;
+     T=false,
+    write_cstruct(Rest, Agrs, C),
+    Out= [Par, C])
+%    append([Par], C, Out))
+      ), 
+     Fail=fail,
+%     abolish(ibar/1), 
+%     assert(ibar(nil)),
+    !.
+
+write_cstruct([fp-Parses], Agr, [Par-Punt|C4]):-
+   Parses=[Par-Punt|Parse],
+    write_cstruct(Parse, Agr, C4),
+%    append([Par-Punt], C4, Out),
+   !.
+
+write_cstruct([cp-Par], [], []):-
+    Par=[tit-_];Par=[punto-_],
+    !.
+/*
+write_cstruct([cp-Parses], Parses, []):-
+    abolish(ibar/1), 
+    assert(ibar(nil)),
+    !.
+*/
+write_cstruct([First-Parses], [First-Parses], []):-
+    one(cps(First)),
+    check_ibar(First, Fail),
+    Fail=true,
+    abolish(ibar/1), 
+    assert(ibar(nil)),
+    !.
+
+write_cstruct([First-Parses], Agr, [First-C6]):-
+    First=f2,
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    Resto=[Par-[Punt|Rest]], Par=fp, 
+    write_cstruct(Rest, Agrs, C2),
+    append([fp-[Punt]], C2, C3),
+    append(C1, [C3], C5),
+    write_cstruct(Agrs, Agr, C4),
+    append(C5, C4, C6),
+    !.
+
+write_cstruct([First-Parses], Agrs, [First-C3]):-
+    First=f2,
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    write_cstruct(Resto, Agrs, C2),
+    append(C1, [f-C2], C3),
+    !.
+
+write_cstruct([First-Parses], Agrs, C):-
+    First=fp,
+    Parses=[Par|Rest], Par=Tag-_, 
+    (Tag=par;Tag=dirs),
+    write_cstruct(Parses, Agrs, C),
+    !.
+
+write_cstruct([First-Parses], Agrs, C):-
+    First=f,
+    Parses=[Tag-_],
+    (Tag=punto;Tag=puntint),
+    write_cstruct(Parses, Agrs, C),
+    !.
+
+write_cstruct([sn-Parses], Agrs, C7):-
+    Parses=[Par|Res], Par=Tag-_, Tag=art,
+    Res=[Second|Rest], Second=F-Cont, F=f2,      
+    buildmconst(Parses, Resto, C1),
+    buildmconst(Cont, Altro, C2),
+    (
+    on(relob-cui, C2),
+    Altro=[Third|Ress], Third=SN-Conta, SN=sn,
+    buildconst(sn, Conta, Agr, C3),
+%    buildmconst(Conta, Agr, C3),
+    append(C1, C2, Cn), 
+    C=[sn-Cn],
+    append(C, [sn-C3], Cc),
+    write_cstruct(Agr, Agrs, C5),
+    append(Cc, [f-C5], C6),
+    C7=[F-C6]
+    ;
+    write_cstruct(Altro, Agrs, C3),
+    append(C2, [f-C3], C6),
+    C7=[F-C6]),
+    !.
+
+write_cstruct([sn-Parses], Agrs, C3):-
+   buildmconst(Parses, Resto, C1),
+   buildconst(sn,Resto, Agr, C),
+   append(C1, C, Cn), 
+   write_cstruct(Agr, Agrs, C2),
+   append([sn-Cn], C2, C3), 
+   !.
+
+write_cstruct([fac-Parses], Agrs, [fac-C3]):-
+   buildmconst(Parses, Resto, C1),
+    Resto=[f-Rest],
+   write_cstruct(Rest, Agrs, C2),
+   append(C1, [f-C2], C3), 
+   !.
+
+write_cstruct([First-Parses], Agrs, [First-C4]):-
+    one(comp(First)),
+    buildmconst(Parses, Resto, C1),
+    subcategorize(First, C1, Comp),
+%    writeseqnl(user, [First-C1]),
+    Resto=[Third-Rest],
+    (
+    Third=sn,    
+    buildconst(Third, Rest, Res, C7),
+    write_cstruct(Res, Agrs, Out),
+    C6=[Third-C7],
+    append(C1, [Comp-C6], C3),
+    append(C3, Out, C4)
+    ;
+    Third\=sn,    
+    buildmconst(Rest, Res, C7),
+    Res=[Four-Ress],
+    buildconst(Four, Ress, Restt, C8),
+    write_cstruct(Restt, Agrs, Out),
+    append(C7, [Four-C8], C9),
+    append(C1, [Comp-[Third-C9]], C3),
+%    append(C1, [Comp-C9], C3),
+    append(C3, Out, C4)),
+%    write_cstruct(Resto, Agrs, C2),
+    !.
+
+write_cstruct([First-Parses|Altre], Agrs, [First-C4]):-
+    one(comp(First)),
+    buildmconst(Parses, Resto, C1),
+    subcategorize(First, C1, Comp),
+%    writeseqnl(user, [First-C1]),
+    Resto=[Third-Rest],
+    (
+    Third=sn,    
+    buildconst(Third, Rest, Res, C7),
+    write_cstruct(Res, Agr, Out),
+    append(C1, [Comp-C7], C3),
+    append(C3, Out, C4)
+    ;
+    Third\=sn,    
+    buildmconst(Rest, Res, C7),
+    Res=[Four-Ress],
+    buildconst(Four, Ress, Restt, C8),
+    write_cstruct(Restt, Agr, Out),
+    append(C7, [Four-C8], C9),
+   append(C1, [Comp-[Third-C9]], C3),
+%    append(C1, [Comp-C9], C3),
+    append(C3, Out, C4)),
+%    write_cstruct(Resto, Agrs, C2),
+    !.
+
+write_cstruct([First-Parses|Altre], Agrs, [First-C1|Out]):-
+    one(mc(First)), 
+    check_ibar(First, Fail),
+    Fail=true,
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    write_cstruct(Resto, Agrs, Out1),
+    write_cstruct(Altre, Agrs, Out2),
+    (Out1\=[],
+    append(Out1, Out2, Out)
+    ;
+    Out1=[],
+    Out=Out2),
+    !.
+
+write_cstruct([First-Parses], Agrs, [First-C1|C2]):-
+    one(mc(First)),
+    \+ cps(First),
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    write_cstruct(Resto, Agrs, C2),
+    !.
+
+write_cstruct([First-Parses|Altre], Agrs, [First-C|C2]):-
+    one(mc(First)),
+%    not cps(First),
+    buildmconst(Parses, Resto, C1),
+%    writeseqnl(user, [First-C1]),
+    (Resto=[], C=C1
+     ;
+     Resto\=[],
+    append(C1, Resto, C)),
+    write_cstruct(Altre, Agrs, C2),
+    !.
+
+write_cstruct([punt-Parse|Altre], Agrs, [punt-Parse|Out]):-
+    write_cstruct(Altre, Agrs, Out),!.
+
+write_cstruct([par-Parse|Altre], Agrs, [par-Parse|Out]):-
+    write_cstruct(Altre, Agrs, Out),!.
+
+write_cstruct([punto-Parse|Altre], Agrs, [punto-Parse|Out]):-
+    write_cstruct(Altre, Agrs, Out),!.
+
+write_cstruct([cong-Parse|Altre], Agrs, [cong-Parse|Out]):-
+    write_cstruct(Altre, Agrs, Out),!.
+
+write_cstruct([puntint-Parse|Altre], Agrs, [puntint-Parse|Out]):-
+    write_cstruct(Altre, Agrs, Out),!.
+
+write_cstruct([dirs-Parse|Altre], Agrs, [dirs-Parse|Out]):-
+    write_cstruct(Altre, Agrs, Out),!.
+
+write_cstruct([cong-o|[intj-no]], Agrs, [fc-[cong-o, f3-[intj-no]]]):-!.
+
+
+check_ibar(ibar, true):-
+   ibar(nil),
+   abolish(ibar/1),
+   assert(ibar(on)),
+   !.
+
+check_ibar(ibar, fail):-
+   !,
+   ibar(on),
+   !.
+
+check_ibar(ir_infl, true):-
+   ibar(nil),
+   abolish(ibar/1),
+   assert(ibar(on)),
+   !.
+
+check_ibar(ir_infl, fail):-
+   !,
+   ibar(on),
+   !.
+
+check_ibar(CP, fail):-
+   cps(CP),
+   ibar(on),
+   !.
+
+check_ibar(fp, fail):-
+   !,
+   ibar(on),
+   !.
+
+check_ibar(Ibar, true).
+
+cps(fc).
+cps(fs).
+cps(cp).
+cps(cp_int).
+cps(fint).
+cps(dirsp).
+cps(topf).
+
+buildmconst([Head-Rest], [Head-Rest], []):-
+    one(mc(Head)),
+    !.
+
+buildmconst([Cat-Head|Parses], [Cat-Head|Parses], []):-
+    one(mc(Cat)),
+    !.
+
+buildmconst([Cat-Head|[]], [], [Cat-Head]):-!.
+
+buildmconst([punt-Head|Parses], [punt-Head|Parses], []):-
+    !.
+buildmconst([par-Head|Parses], [par-Head|Parses], []):-
+    !.
+buildmconst([cong-Head|Parses], [cong-Head|Parses], []):-
+   !.
+
+buildmconst([Cat-Head|Parses], Rest, [Cat-Head|C]):-
+    Cat=num,
+    buildmconst(Parses, Rest, C),
+    !.
+
+buildmconst([Cat-Head|Parses], Rest, [Cat-Head|C]):-
+    atomic(Head),
+    buildmconst(Parses, Rest, C),
+    !.
+
+buildmconst([Cat-Head|Parses], [Cat-Head|Parses], []):-
+    list(Head),
+    !.
+
+buildmconst([Head-Rest], [Head-Rest], []):-
+    one(mc(Head)),
+    !.
+
+buildmconst([Cat-Head|[]], [], [Cat-Head]):-!.
+
+buildmconst([punt-Head|Parses], [punt-Head|Parses], []):-
+    !.
+buildmconst([par-Head|Parses], [par-Head|Parses], []):-
+    !.
+
+buildmconst([Cat-Head|Parses], Rest, [Cat-Head|C]):-
+    atomic(Head),
+    buildmconst(Parses, Rest, C),
+    !.
+
+buildmconst([Cat-Head|Parses], [Cat-Head|Parses], []):-
+    list(Head),
+    !.
+buildconst(Head, [], Rest, []):-!.
+
+buildconst(First, Parses, [First|Parses], []):-
+   one(mc(First)), 
+   one(sub(First)),
+   !.
+
+buildconst(First, [Head|Parses], [Head|Parses], []):-
+   one(mc(Head)), 
+   one(sub(Head)),
+   !.
+
+buildconst(spd, [Head|Parses], Rest, [Head-C1|C]):-
+   one(mc(Head)), 
+   Head\=spd,
+   buildconst(spd, [Head|Parses], Resto, C1),
+   buildconst(spd, Resto, Rest, C),
+   !.
+buildconst(spda, [Head|Parses], Rest, [Head-C1|C]):-
+   one(mc(Head)), 
+   Head\=spda,
+   buildconst(spda, [Head|Parses], Resto, C1),
+   buildconst(spda, Resto, Rest, C),
+   !.
+
+buildconst(First, [cong-Head|Parses], Rest, [cong-Head|C]):-
+  Parses=[First-Res],
+  buildconst(First, Res, Rest, C),
+  !.
+
+buildconst(sn, [Cat-Head|Parses], Rest, [Cat-Head|C]):-
+   (atomic(Head);Cat=num),
+   buildconst(sn, Parses, Rest, C),
+   !.
+
+buildconst(sa, [Cat-Head|Parses], Rest, [Cat-Head|C]):-
+   (atomic(Head);Cat=num),
+   buildconst(sa, Parses, Rest, C),
+   !.
+
+buildconst(sv2, [Cat-Head|Parses], Rest, [Cat-Head|C]):-
+   (atomic(Head);Cat=num),
+   buildconst(sn, Parses, Rest, C),
+   !.
+
+buildconst(spd, [Cat-Head|Parse], Rest, [Cat-Head|C]):-
+   (atomic(Head);Cat=num),
+   buildconst(spd, Parse, Rest, C),
+   !.
+buildconst(spda, [Cat-Head|Parse], Rest, [Cat-Head|C]):-
+   (atomic(Head);Cat=num),
+   buildconst(spda, Parse, Rest, C),
+   !.
+
+buildconst(sa, [Head-Parse|Parses], Rest, [Head-C1]):-
+   one(mc(Head)), 
+   Head=sn,
+   buildconst(Head, Parse, Resto, C1),
+   (Parses=[], Rest=Resto
+    ;
+    Parses\=[], 
+    Rest=Parses),
+   !.
+
+buildconst(sa, [Head-Parses], Agrs, [Head-C2]):-
+   one(mc(Head)), 
+   Head=sn,
+   buildconst(sn,Parses, Resto, C),
+   (Resto=[], C2=C
+%    writeseqnl(user, [Head-C])
+   ;
+   Resto\=[], 
+   Resto=[Second-Rest],
+   one(mc(Second)), 
+   write_cstruct([Second-Rest], Agrs, C1),
+   append(C, C1, C2)),
+%   writeseqnl(user, [Head-C2])),
+   !.
+
+buildconst(First, [Cat-Head|Parses], Rest, C):-
+   one(mc(First)), 
+   (First=sa, Second=sa, 
+     (Cat=sn;Cat=sq)
+    ;
+    First=spd, Second=sn,
+     (Cat=sa;Cat=sn;Cat=sq)
+    ),
+   (Parses=[],
+    Head=[H|Resto], CatH=Cat-H
+    ;
+    Parses\=[], 
+    Resto=Parses, CatH=Cat-Head),
+   buildconst(Second, [Cat-Head|Parses], Rest, C),
+   !.
+
+buildconst(spd, [Head|Parses], [Head|Parses], []):-
+   !.
+buildconst(spda, [Head|Parses], [Head|Parses], []):-
+   !.
+
+buildconst(sn, [Head-Parse|Parses], Rest, [H-C1]):-
+   one(mc(Head)), 
+   (Head=sn;Head=sa;
+    Head=spd,
+    Parse=[A|Altri], 
+    Altri=[Cost-Res], Cost\=f2),
+   buildconst(Head, Parse, Resto, C1),
+   (Head=sa, H=sa;
+     Head=sn, H=sn;
+    Head=spd, H=spd),
+   (Parses=[], Rest=Resto
+    ;
+    Parses\=[], 
+    (Resto=[],
+    Rest=Parses
+     ;
+     Resto\=[],
+     append(Resto, Parses, Rest))),
+   !.
+
+buildconst(sn, [Head-Parses], Agrs, [Head-C2]):-
+   one(mc(Head)), 
+   (Head=sn;Head=sa;
+    Head=spd,
+    Parse=[A|Altri], 
+    Altri=[Cost-Res], Cost\=f2),
+   buildconst(sn,Parses, Resto, C),
+   (Resto=[], C2=C
+%    writeseqnl(user, [Head-C])
+   ;
+   Resto\=[], 
+   Resto=[Second-Rest],
+   one(mc(Second)), 
+   write_cstruct([Second-Rest], Agrs, C1),
+   append(C, C1, C2)),
+%   writeseqnl(user, [Head-C2])),
+   !.
+
+buildconst(sn, [Head|Parses], [Head|Parses], []):-
+   !.
+buildconst(sa, [Head|Parses], [Head|Parses], []):-
+   !.
+
+buildconst(sp, [Head|Parses], Rest, [Head-C1|C]):-
+   one(mc(Head)), 
+   Head\=sp,
+   buildconst(sp, [Head|Parses], Resto, C1),
+   buildconst(sp, Resto, Rest, C),
+   !.
+
+comp(sv2).
+comp(sv3).
+comp(sv5).
+
+mf(subj).
+mf(obj).
+mf(obl).
+mf(vcomp).
+mf(ncomp).
+mf(fcomp).
+mf(ibar).
+fh(spd).
+fh(sp).
+fh(spda).
+subj(sa).
+subj(sn).
+subj(sv2).
+subj(ibar).
+subj(ir_infl).
+mc(sn).
+mc(sp).
+mc(sa).
+mc(sq).
+mc(savv).
+mc(spd).
+mc(spda).
+mc(compc).
+mc(compt).
+mc(compin).
+mc(comppas).
+mc(sv2).
+mc(sv3).
+mc(sv5).
+mc(ibar).
+mc(ir_infl).
+mc(f).
+mc(fc).
+mc(fint).
+mc(topf).
+mc(fs).
+mc(dirsp).
+mc(fp).
+mc(fac).
+mc(f2).
+mc(f3).
+mc(cp).
+mc(ovl).
+sub(compc).
+sub(compt).
+sub(compin).
+sub(comppas).
+sb(sn).
+sb(sa).
+
+retag(File, Tags, FunctsOut,DClauses, [], L-N, [FunctsOut,DClauses]):-
+     !.
+retag(File, Tags, FunctsOut,DClauses, Tensed, N-N, [FunctsOut,DClauses]):-
+     !.
+retag(File, Tags, FunctsOut,DClauses, Tensed, N, [FunctsOut,DClauses]):-
+     atomic(N),!.
+retag(File, Tags, Functs,DC, Tensed, L-N, [FunctsOut,DClauses]):-
+     L\=N,
+     remove(Word-Cat, Tensed, NTense),
+     nth(Tags, Num, Word-_),
+     substitute(Tags, Num, Word-Cat, NTags),
+     initheaps,
+     cursor(up_thumb),
+     shallow_parsing(NTags, FunctsOut, File, Logs),
+     !.
+retag(File, Tags, FunctsOut,DClauses, Tensed, L-N, [FunctsOut,DClauses]):-
+%     integer(N),
+     !.
+retag(File, Tags, FunctsOut,DClauses, Tensed, N, [FunctsOut,DClauses]):-
+%     integer(N),
+     !.
+
+substitute([W-T|Tags], 1, Word-Cat, [Word-[Cat]|Tags]):-!.
+substitute([W-T|Tags], Num, Word-Cat, [W-T|NTags]):-
+     N is Num - 1,
+     substitute(Tags, N, Word-Cat, NTags),
+     !.
+
+write_disambtags(File, []):-!.
+write_disambtags(File, [A|Parse]):-
+   writeqnl(File, A),
+   write_disambtags(File, Parse),
+   !.
+   
+write_css(Parse,Out):-
+   abolish(ibar/1), 
+   assert(ibar(nil)),
+   write_cstructss(Parse, Agrs, Out),
+%   recursivebrack(0, user, Out),
+   closedisambswin(user),
+   !.
+
+write_fss1(Out):-
+   writeqnl(File, Out),
+   !.
+
+write_fss(Out):-
+   writeqnl(File, Out),
+   closedisambswin(user),
+   !.
+write_fss(Out):-
+   recursivebrack(0, user, Out),
+   closedisambswin(user),
+   !.
+
+recursive_brack(N, W, []):-!.
+recursive_brack(N, W, [C-First-[Second-Parse]]):-
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', First, '(', Second, ',' , Parse]),
+   !.
+recursive_brack(N, W, [C-[First-[Second|Parse]]]):-
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', First, '(', Second, ',' ]),
+   N1 is N + 1,
+   recursive_brack(N1, W, Parse),
+   !.
+recursive_brack(N, W, [C-[A-B|Parse]]):-
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', B, '-', A, ',' ]),
+   N1 is N + 1,
+   recursive_brack(N1, W, Parse),
+   !.
+
+recursive_brack(N, W, [C-First|Parse]):-
+   writeseq(W, [First, '-', C, ',' ]),
+%   write(parse1, C 
+%   tab(parse1, N),
+   N1 is N + 1,
+   recursive_brack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, []):-!.
+recursivebrack(N, W, [C-First-[Second-Parse]]):-
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', First, '(', Second, ',' ,Parse]),
+   !.
+recursivebrack(N, W, [C-[First-[Second|Parse]]]):-
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', First, '(', Second, ',' ]),
+   N1 is N + 1,
+   recursivebrack(N1, W, Parse),
+   !.
+recursivebrack(N, W, [C-[A-B-D|Parse]]):-
+   list(B),
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', A, B, '(' ]),
+   writeseq(W, B),
+   write(W, ','),
+   N1 is N + 1,
+   recursivebrack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, [[C-[A-B-[D-Feats]]]|Parse]):-
+   list(Feats),
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', A, B, D,'(' ]),
+   writeseq(W, Feats),
+   write(W, ','),
+   N1 is N + 1,
+   recursivebrack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, [C-B|Parse]):-
+   list(B), Parse\=[],
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(' ]),
+   N1 is N + 1,
+   recursivebrack(N, W, B),
+   recursivebrack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, [[C-B-D]|Parse]):-
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', B, D, ',' ]),
+   N1 is N + 1,
+   recursivebrack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, [[C-B-D|Rest]|Parse]):-
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', D, ',' ]),
+   N1 is N + 1,
+   recursivebrack(N, W, Rest),
+   recursivebrack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, [C-First|Parse]):-
+%   atomic(First),
+   \+ mf(C), \+ mc(C),
+   writeseq(W, [' ', C, '-', First, ',' ]),
+   N1 is N + 1,
+   recursivebrack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, [C-First|Parse]):-
+   (mf(C);mc(C)),
+   Parse=[],
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', '-', First, ','  ]),
+   N1 is N + 1,
+   recursivebrack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, [[C-[A-B-[[D-Feats]]]]|Parse]):-
+   list(Feats),
+   nl(W),
+   tab(W, N),
+   writeseq(W, [C, '(', A, B, D,'(' ]),
+   writeseq(W, Feats),
+   write(W, ','),
+   N1 is N + 1,
+   recursivebrack(N1, W, Parse),
+   !.
+
+recursivebrack(N, W, [Parse]):-
+   recursivebrack(N, W, Parse),
+   !.
+
+/* NP CHUNKING */
+
+newdisamb(Outs,OutFile):-
+   diss(Outs,Disouts),
+   deletezeross(0,Disouts,Diss),
+   modififyforms(Diss,NewOuts),
+   np_chunking(NewOuts, Tokens, OutFile, FunctsOut),
+   !.
+
+modififyforms([],[]):-!.
+modififyforms([W-Distr-Cat-N|Diss],[W-Cat|Outs]):-
+   modififyforms(Diss,Outs),
+   !.
+
+% Frase1	= [londra-[np]-1, '.'-[punto]-1]
+   
+np_chunking(Tags, OutFile, Parse, FunctsOut):-
+   abolish(dism/3),
+   abolish(disnets/7),
+   abolish(amb_str/4),
+   assert(amb_str(nil,nil,nil,nil)),
+   assert(disnets(nil,nil,nil,nil,nil,nil,0)),
+   assert(dism(nil,nil,nil)),
+   npchunks(Tags, OutFile, Parse, FunctsOut),!.
+
+npchunks([], OutFile, Parse, FunctsOut):-!.
+npchunks(Tagged, Tokens, Parse, FunctsOut):-
+    chkqun(Tagged, Tokens),
+    checkuniqq(Tokens, FParse, Parse),
+    !.
+    
+chkqun([], []):-!.
+
+chkqun([Word-Cats|Frase], [Out|Tokens]):-
+    nm(Word,_,_),
+    Out=Word-[num]-1,
+    chkqun(Frase, Tokens),
+    !.
+
+chkqun([Word-Cats|Frase], [Out|Tokens]):-
+    excep(Word, Cat),
+    (atomic(Cat), N=1,
+     Out=Word-[Cat]-N
+     ;
+     is_list(Cat),
+    length(Cat, N),
+    Out=Word-Cat-N),
+    chkqun(Frase, Tokens),
+    !.
+
+chkqun([Word-Cats|Frase], [Out|Tokens]):-
+    cexcep(Cats, NCats),
+    Out=Word-NCats-N,
+    chkqun(Frase, Tokens),
+    !.
+
+/*
+chkqun([Cats-Word|Frase], [Out|Tokens]):-
+    length(Cats, N),
+    N=1,
+    Out=Cats-N-Word,
+    chkqun(Frase, Tokens),
+    !.
+
+chkqun([Cats-Word|Frase], [Out|Tokens]):-
+    not on(ag, Cats),
+    spy_lower(Word,LowW,P),
+    u(LowW,Cat),
+    trans_ucats(Cat, Catns),
+    appiattisci(Catns, Catn),
+    sort(Catn, Catss),
+    length(Catss, N),
+    Out=Catss-N-Word,
+    chkqun(Frase, Tokens),
+    !.
+*/
+
+chkqun([Word-Cats|Frase], [Out|Tokens]):-
+    (is_list(Cats),length(Cats, N);atomic(Cats),N=1),
+    Out=Word-Cats-N,
+    chkqun(Frase, Tokens),
+    !.
+
+trans_ucats([], []):-!.
+trans_ucats([Cat|Cats], [Cn|Catn]):-
+   trans_ucat(Cat, Cn),
+   trans_ucats(Cats, Catn),!.
+trans_ucats(Cat, [Cn]):-
+   atomic(Cat),
+   trans_ucat(Cat, Cn),
+   !.
+trans_ucats([Cat|Cats], [Cn|Catn]):-
+   list(Cat),
+   trans_ucats(Cat, Cn),
+   trans_ucats(Cats, Catn),!.
+
+trans_ucat(n,n).
+trans_ucat(na,n).
+trans_ucat(nc,n).
+trans_ucat(nh,nh).
+trans_ucat(nhf,nh).
+trans_ucat(nhm,nh).
+trans_ucat(nhs,nh).
+trans_ucat(nl,np).
+trans_ucat(nls,np).
+trans_ucat(np,np).
+trans_ucat(nps,np).
+trans_ucat(ns,n).
+trans_ucat(nt,nt).
+trans_ucat(nts,nt).
+trans_ucat(num,num).
+trans_ucat(vb,v).
+trans_ucat(vbd,v).
+trans_ucat(vbg,v).
+trans_ucat(vbi,v).
+trans_ucat(vbn,v).
+trans_ucat(vbp,v).
+trans_ucat(vbt,v).
+trans_ucat(vd,v).
+trans_ucat(vdi,v).
+trans_ucat(vdt,v).
+trans_ucat(vg,v).
+trans_ucat(vgi,v).
+trans_ucat(vgt,v).
+trans_ucat(vpp,v).
+trans_ucat(vppi,v).
+trans_ucat(vppt,v).
+trans_ucat(vs,v).
+trans_ucat(vsi,v).
+trans_ucat(vst,v).
+
+cexcep([ausa, ausai, n, vc, vci], [ausa, ausai, vc, vci]).
+cexcep([ause, n, vc], [ause, vc]).
+cexcep([ausa, n, vc], [ausa, vc]).
+cexcep([n, num], [num]).
+cexcep([ag, intj, n, vbt], [intj, n, vbt]).
+cexcep([n, vgin, vgt, vppt, vprt], [n, vgin, vgt, vprt]).
+cexcep([n,vgin, vprt], [vgin, vprt]).
+cexcep([n, vgc, vgin, vgt, vprt], [vgc, vgin, vgt, vprt]).
+cexcep([v], [vin, vt]).
+cexcep([vppt, vt], [vt,vppt]).
+
+reorgg(Parse, Parse1):-
+    reverse(Parse, [Out|Frase]),
+    (Out=_-dots-_, T=1,!
+    ;
+     Out=_-tit-_,T=1,!
+    ;
+     Out=_-punto-_,T=1,!
+    ;
+     Out=_-puntint-_,T=2,!
+    ;
+     Out\=_-puntint-_,T=1,!
+    ),
+    (T=1, reorg1(Parse, Parse1)
+     ;
+    T=2, reorg2(Parse, Parse1)
+     ),!.
+
+reorg1(Frase, Frase):-!.
+reorg2(Frase, Frase1):-
+   reverse(Frase, [P|RFrase]),
+   reverse(RFrase, NFrase),
+   append([P], NFrase, Frase1),!.
+
+/* search f2  */
+
+search_f2([], []):-!.
+
+search_f2([Arc-[Arc1-[Arc2-List]]|Resto], T):-
+   list(List),
+   search_f2(Arc-[Arc1-[Arc2-List]], T1),
+   search_f2(Resto, T2),
+   append(T1, T2, T),
+   !.
+
+search_f2([Arc-[Arc1-[Arc2-List|Resto]]], [Arc-[Arc1-[Arc2-List|T]]]):-
+   list(List),
+   search_f2(Resto, T),
+%   append([Arc1-[Arc2-List]], T, T1),
+   !.
+
+search_f2([Arc-[sn-C|Resto]], [Arc-[sn-C1]]):-
+   Resto\=[],
+   Resto=[f2-R|Rest],
+   append(C, [f2-R], C1),
+   search_f2(Rest, T),!.
+
+search_f2([Arc-[sn-C|Resto]], [Arc-[sn-C1]]):-
+   Resto\=[],
+   Resto=[punt-',',f2-R|Rest],
+   append(C, [punt-',',f2-R], C1),
+   search_f2(Rest, T),!.
+
+search_f2([f-[Arc1-List|Resto]], [f-[Arc1-List|T]]):-
+   list(List), 
+   Resto\=[],
+   search_f2(Resto, T),
+%   append(T1, T2, T),
+   !.
+
+search_f2([Arc-[Arc1-List|Resto]], T):-
+   list(List), 
+   Resto\=[],
+   search_f2([Arc-[Arc1-List]], T1),
+   search_f2(Resto, T2),
+   append(T1, T2, T),
+   !.
+
+search_f2([cp-[cong-List|Resto]], [fc-[cong-List|T]]):-
+   atomic(List),
+   Resto=[f-_],
+   search_f2(Resto, T),
+%   append([cong-List], T, T1),
+   !.
+
+search_f2([cp-[cong-List|Resto]], [cong-List|T]):-
+   atomic(List),
+   Resto=[C-_|_], C\=f,
+   search_f2(Resto, T),
+%   Out=[cong-List,T],
+%   append([cong-List], T, T1),   
+   !.
+
+search_f2([Arc-[Arc1-List|Resto]], [Arc-[Arc1-List| T]]):-
+   Resto\=[],
+   search_f2(Resto, T),
+%   append([Arc-[Arc1-List]], T, T1),
+   !.
+
+search_f2([sn-C|Resto], [sn-C1]):-
+   Resto\=[],
+   Resto=[f2-R|Rest],
+   append(C, [f2-R], C1),
+   search_f2(Rest, T),!.
+
+search_f2([sn-C|Resto], [sn-C1]):-
+   Resto\=[],
+   Resto=[punt-',', f2-R|Rest],
+   append(C, [punt-',',f2-R], C1),
+   search_f2(Rest, T),!.
+
+search_f2([C-List|Resto], T2):-
+   Resto\=[],
+   search_f2(List, T1),
+   search_f2(Resto, T),
+   append([C-T1], T, T2),
+   !.
+
+search_f2([C-List|Resto], [C-List]):-
+   Resto=[],
+   !.
+
+search_f2([Arc-List|Resto], [Arc-List|T]):-
+   Arc\=punt, Arc\=par, Arc\=punto, Arc\=dirs,
+   Resto\=[],
+   search_f2(Resto, T),!.
+search_f2([Arc-List|Resto], [Arc-List|T]):-
+   Resto\=[],
+   search_f2(Resto, T),!.
+
+search_f2([[punt-P,Resto]], T):-
+   Resto\=[],
+   search_f2([Resto], T1),
+   append([punt-P], T1, T),
+   !.
+
+search_f2([[C-List|Resto]], T):-
+   Resto\=[],
+   search_f2([C-List], T1),
+   search_f2(Resto, T),
+   append([C-T1], T, T2),
+   !.
+
+search_f2([], []):-!.
+search_f2([], ['.']):-!.
+
+
+infl_v([ause, ausa, auair, aueir, vc, 
+        vcir, vt, vin, virt, virin, 
+        vprog, vprogir, vsupp, vsup, vsupir, vsf]).
+
+assign_f3(Structure, Structure):-
+     Structure=[F-Frase],
+     F=fc,!.
+
+assign_f3(Structure, Structure):-
+     Structure=[F-[Frase, fint-Fint|_]],
+     F=cp,!.
+
+assign_f3(Structure, NStructure):-
+    searchleaves(Structure, Leaves),
+    find_infl(Leaves, T),
+    (T=false, 
+     Structure=[F-Frase],
+     NStructure=[f3-Frase]
+    ;
+     NStructure=Structure),
+     !.
+
+find_infl([], false):-!.
+find_infl([First-_|Leaves], true):-
+     infl_v(Infls),
+     on(First, Infls),
+     !.
+find_infl([First-W|Leaves], T):-
+     find_infl(Leaves, T),!.
+
+
+recover_sfeats(File, OutFile):-
+   seeing(DefaultInFile),
+   repeat,
+   read_struttura(File, Frase),
+   (Frase=end_of_file,!
+   ;
+   writeleaves(OutFile, Frase),
+   fail
+   ),
+   seeing(DefaultInFile).
+
+
+read_struttura(File, Out):-
+   read(File, Strn),
+   (Strn=end_of_file, Out=end_of_file,!
+    ;
+    Out=Strn),!.
+
+writeleaves(File, Frase):-
+   Frase=..Frase1,
+   search_leaves(Frase1, Leaves),
+%   writesfeats(File, Leaves),
+   !.
+
+writesfeats(File, []):-!.
+writesfeats(File, [L|Leaves]):-
+   writeq(File, L),
+   dot(File),
+   writesfeats(File, Leaves),
+   !.
+
+dot(File):-
+  writenl(File, '.'),!.
+
+build_allnps(Cats, NP, Mains, Feats, NFeats, Words):-
+     build_nps(Cats, NP, Mains, Words),
+     (Feats\=[],
+      append(Mains, Feats, NFeats)
+      ;
+       NFeats=Mains),
+     !.
+
+build_nps([], VP, [], []):-!.
+build_nps(Cats, NP, AllVP, Allw):-
+   build_np(Cats, NP, M, R, Fword),
+   build_nps(R, NNP, Main, Words),
+   (var(M),  
+    AllVP=[];
+   (M=sn,
+    reverse(NP,[W-nt-_|Rest]),
+    \+ nt(W),
+%    tpl(W,	['n:t:m']),
+    (Rest=[];Rest\=[],on(W-P-_,Rest),P\=poss),
+    append([savv-NP], Main, AllVP)
+    ;
+    M=sv3,
+    reverse(NP,[W-Vpp-_]),
+    verbs_of_saying(W),
+    append([ibar-NP], Main, AllVP)
+    ;
+    append([M-NP], Main, AllVP))
+   ),
+   append(Fword, Words, Allw),
+   !.
+
+try_other_nets([Net-NodeFrom-NodeTo],[N1-No-To],Cats, Rest, Cat, Words, VP):-
+    findall(Nt-Nf-Not,
+    try_vcats(Nt, Nf, O, Cat, Lab, Not, Nt), AllNets),
+    remove(Net-NodeFrom-NodeTo, AllNets, NewNets),
+    on(N1-F1-No, NewNets),
+    continuan(Cat,Cats, N1, No, To, VP, Rest, Words),
+    N1\=Net,
+    !.
+
+build_np([], VP, M, [], []):-!.
+
+build_np([W-Cat-P|Cats], Costs, Nnet, ACats, Www):-
+   try_vcats(Net, NodeFrom, Op, Cat, Label, NodeTo, Net),
+   Op\=pop,
+   continuan(Cat, Cats, Net, NodeTo, To, VP, Rest, Words),
+   (
+     (VP\=[];    VP=[], NodeTo\=1),
+    sequent(Net, To, Rest, Lab, NoTo, Main, ACats, Word),
+    append([W-Label], Words, Ww),
+    append(Ww, Word, Www),     
+    append([W-Label-Net], VP, Vps),
+    append(Vps, Main, Costs) , Nnet=Net
+     ;
+    VP=[], NodeTo=1,
+     try_other_nets([Net-NodeFrom-NodeTo],[Nt-From-NTo],Cats, NRest, Cat, NWords, Vpp),
+    sequent(Nt, From, NRest, Lab, NTo, Main, ACats, Word),
+    append([W-Label], NWords, Ww),
+    append(Ww, Word, Www),     
+    append([W-Label-Nt], Vpp, Vps),
+    append(Vps, Main, Costs), Nnet=Nt
+    ) ,
+   !.
+
+build_np([W-vgin-P, W1-n-P1|Cats], VP, Net, R, Www):-
+    try_vcat(sn, NodeFrom, Op, ag, Label, NodeTo, Net), 
+   continuav(ing,[W1-n-P1|Cats], Net, To, Fr, VP1, R, Words),
+   append([W-ag-Net], VP1, VP),     
+   append([W-ag], Words, Www),     
+    !.
+
+build_np([W-Cat-P, A-pt-P1, W1-V-P1|Cats], VP, Net, R, Www):-
+   (a=a;A=di;A=in_grado_di;A=allo_scopo_di),
+   coplbh(W),
+   comparc(Net, 1, Op, Cat, To),
+   Net\=sn, (Net=ibar;Net=ir_infl),
+   continuav(nil,[W1-V-P1|Cats], Net, To, Fr, VP1, R, Words),
+   append([W-Cat-Net], VP1, VP),     
+   append([W-Cat], Words, Www),     
+   !.
+
+/*
+build_np([W-Cat-P, W1-V-P1|Cats], VP, Net, R, Www):-
+   coplbh(W),
+   V=par,
+   continuav(nil,Cats, Net, To, Fr, VP1, R, Words),
+   append([W-Cat-Net], VP1, VP),     
+   append([W-Cat], Words, Www),     
+   !.
+*/   
+build_np([W-Cat-P|Cats], VP, Net, R, Www):-
+    Cat\=p,
+    stringof([V|_],Cat), V=v,
+    stringof(Gerund1,W),
+    reverse(Gerund1, [o,d,n|_]),
+   comparc(Net, 1, Op, vgin, To),
+   Net\=sn,
+   continuav(nil,Cats, Net, To, Fr, VP1, R, Words),
+   append([W-Cat-Net], VP1, VP),     
+   append([W-Cat], Words, Www),     
+   !.
+
+build_np([W-Cat-P|Cats], VP, sv3, R, Www):-
+   \+ coplbh(W),
+   comparc(Net, 1, Op, Cat, To),
+   Net\=sn, Cat\=v,
+    participio(W,Lem,J,K),
+    Lem\=W,
+    Www=[W-vppt],  VP=[W-vppt-sv3], R=Cats,
+    !.
+
+build_np([W-Cat-P|Cats], VP, Net, R1, Www):-
+   comparc(Net, 1, Op, Cat, To),
+   Net\=sn, Cat\=v,
+   continuav(nil,Cats, Net, To, Fr, VP1, R, Words),
+    Words=[_-ausep],
+    coplbh(W),
+    R=[W1-Cat1-_|R1],
+    participio(W1,Lem,J,K),
+%    continuav(nil,R, Net, Too, Fr, VP2, R1, Words1),
+    append([W-Cat-Net], VP1, VPP),     
+    append([W-Cat], Words1, Www1),
+    append( VPP, [W1-Cat1-Net],VP),     
+    append([W1-Cat1], Www1, Www),
+    !.
+
+build_np([W-Cat-P,W1-Cat1-P1|Catss], VP, Net, R, Www):-
+   (Cat=neg;Cat=av;Cat=avv; Cat=in; Cat=clit; Cat=clitac; Cat=clitdat),
+   (Cat1=av;Cat1=avv; Cat1=clit; Cat1=clitac; Cat1=clitdat;
+      coplbh(W1);Cat1=vsup;Cat1=vsupp;Cat1=vsupir),
+   comparc(Net, 1, Op, Cat, From),
+   comparc(Net, From, Op1, Cat1, To),
+    Catss=[W2-Cat2-_|Cats],
+    check_all_verbs(Cat2),
+   continuav(nil,Cats, Net, To, Fr, VP1, R, Words),
+    append([W-Cat-Net], VP1, VPP),     
+    append([W-Cat], Words, Www1),
+    append(VPP, [W1-Cat1-Net],VP2),     
+    append([W1-Cat1], Www1, Www2),
+    append(VP2, [W2-Cat2-Net],VP),     
+    append([W2-Cat2], Www2, Www),
+    !.
+    
+build_np([W-Cat-P, W1-Cat1-P1|Cats], VP, Net, R1, Www):-
+   comparc(Net, 1, Op, Cat, To),
+   Net\=sn, (Net=ibar;Net=ir_infl),
+   continuav(nil,[W1-Cat1-P1|Cats], Net, To, Fr, VP1, R, Words),
+   spy_lower(W,Low,_),
+   (
+    (
+     (vlm(W, Lem, _);vlm(Low, Lem, _)),
+     supporto(Lem);
+     Cat=neg;Cat=av;Cat=avv; Cat=in; Cat=clit; Cat=clitac; Cat=clitdat;
+     coplbh(W);coplbh(Low);Cat=vsup;Cat=vsupp;Cat=vsupir),
+     check_vcat(Cat1),
+    R=[W1-Cat1-_|R1],
+    append([W-Cat-Net], VP1, VPP),     
+    append([W-Cat], Words, Www1),
+    append(VPP, [W1-Cat1-Net],VP),     
+    append([W1-Cat1], Www1, Www)
+%    ;
+%    Www=[W-Cat], VP=[W-Cat-Net], R1=[W1-Cat1-P1|Cats]
+    ),     
+   !.
+
+build_np([W-Cat-P|Cats], VP, Net, R, Www):-
+   comparc(Net, 1, Op, Cat, To),Cat\=ppre,
+   Net\=sn, Cat\=v,
+   spy_lower(W,Low,_),
+   continuav(nil,Cats, Net, To, Fr, VP1, R, Words),
+   (evalpp(W,VP1, Words,VP11, Words1),
+    append([W-Cat-Net], VP11, VP),     
+    append([W-Cat], Words1, Www)
+    ;
+    (
+     (vlm(W, Lem, _);vlm(Low, Lem, _)),
+     supporto(Lem);
+     Cat=neg;Cat=av;Cat=avv; Cat=in; Cat=clit; Cat=clitac; Cat=clitdat;
+     coplbh(W);coplbh(Low);Cat=vsup;Cat=vsupp;Cat=vsupir),
+    append([W-Cat-Net], VP1, VP),     
+    append([W-Cat], Words, Www)
+    ;
+    check_all_verbs(Cat),
+%    ;Cat=neg;Cat=av;Cat=avv; Cat=clit; Cat=clitac; Cat=clitdat),
+    Www=[W-Cat],  VP=[W-Cat-Net], R=Cats
+    ),     
+   !.
+build_np([W-Cat-P, W1-V-P1|Cats], VP, Net, R, Www):-
+   coplbh(W),
+   comparc(Net, 1, Op, Cat, To),
+   Net\=sn, (Net=ibar;Net=ir_infl),
+   spy_lower(W1,Low,_),
+   (
+    (
+     (vlm(W1, Lem, _);vlm(Low, Lem, _)),
+     supporto(Lem);coplbh(W1);coplbh(Low);V=vsup;V=vsupp;V=vsupir),
+    continuav(nil,[W1-V-P1|Cats], Net, To, Fr, VP1, R, Words),
+    append([W-Cat-Net], VP1, VP),     
+    append([W-Cat], Words, Www)
+    ;
+    Www=[W-Cat], VP=[W-Cat-Net], R=[W1-V-P1|Cats]),     
+   !.
+
+
+build_np([W-Cat-P, W1-V-P1|Cats], [W-Cat-P|VP], Net, R, [W-Cat|Words]):-
+   comparc(Net, 1, Op, Cat, From),
+   comparc(Net, From, Op1, V, To),
+   (Net=ibar;Net=ir_infl),
+   continuav(nil,[W1-V-P1|Cats], Net, From, Fr, VP, R, Words),
+   !.
+/*   
+build_np([W-Cat-P|Cats], VP, Net, R, Words):-
+   Cat=v,
+   comparc(Net, 1, Op, Cat, To),
+   continuav(nil,[W-Cat-P|Cats], Net, To, Fr, VP, R, Words),
+   !.
+*/
+build_np([W-Cat-P|Cats], [], M, Cats, [W-Label]):-
+   try_vcats(Net, NodeFrom, Op, Cat, Label, NodeTo, Net),
+   Op=pop,
+   !.
+   
+build_np([W-vcl-P|Cats], [W-vcl-sv5], sv5, Cats, [W-vcl]):-
+   checkgerund(W),
+   !.
+build_np([W-vcl-P|Cats], [W-vcl-sv2], sv2, Cats, [W-vcl]):-
+   !.
+build_np([W-vppt-P|Cats], [W-vppt-sv3], sv3, Cats, [W-vppt]):-
+   !.
+build_np([W-art-P|Cats], [W-art-sn], sn, Cats, [W-art]):-
+   !.
+build_np([W-aux-P|Cats], [W-aux-ibar], ibar, Cats, [W-aux]):-
+   !.
+build_np([W-pt-P|Cats], [W-pt-sv2], sv2, Cats, [W-pt]):-
+   !.
+build_np([W-ppre-P|Cats], [W-ppre-sv3], sv3, Cats, [W-ppre]):-
+   !.
+build_np([W-ppas-P|Cats], [W-ppas-sv3], sv3, Cats, [W-ppas]):-
+   !.
+build_np([W-cong-P|Cats], [W-cong-fc], fc, Cats, [W-cong]):-
+   !.
+build_np([W-ccong-P|Cats], [W-ccong-fc], fc, Cats, [W-ccong]):-
+   !.
+build_np([W-ccom-P|Cats], [W-ccom-fc], fc, Cats, [W-ccom]):-
+   !.
+build_np([W-cosu-P|Cats], [W-cosu-fs], fs, Cats, [W-cosu]):-
+   !.
+build_np([W-rel-P|Cats], [W-rel-f2], f2, Cats, [W-rel]):-
+   !.
+build_np([W-relq-P|Cats], [W-relq-f2], f2, Cats, [W-relq]):-
+   !.
+build_np([W-pk-P|Cats], [W-pk-fac], fac, Cats, [W-pk]):-
+   !.
+build_np([W-d-P|Cats], [W-num-sn], sn, Cats, [W-num]):-
+   !.
+build_np([W-punto-P|Cats], [W-punto-cp], cp, Cats, [W-punto]):-
+   !.
+build_np([W-punt-P|Cats], [W-punt-fp], fp, Cats, [W-punt]):-
+   !.
+build_np([W-[punt]-P|Cats], [W-punt-fp], fp, Cats, [W-punt]):-
+   !.
+build_np([W-dirs-P|Cats], [W-dirs-dirsp], dirsp, Cats, [W-dirs]):-
+   !.
+build_np([W-dots-P|Cats], [W-dots-fp], fp, Cats, [W-dots]):-
+   !.
+build_np([W-par-P|Cats], [W-par-dirs], dirs, Cats, [W-par]):-
+   !.
+build_np([W-clit-P|Cats], [W-clit-sn], sn, Cats, [W-clit]):-
+   !.
+build_np([W-clitac-P|Cats], [W-clitac-sn], sn, Cats, [W-clitac]):-
+   !.
+build_np([W-clitabl-P|Cats], [W-clitabl-sn], sn, Cats, [W-clitabl]):-
+   !.
+build_np([W-clitdat-P|Cats], [W-clitdat-sn], sn, Cats, [W-clitdat]):-
+   !.
+build_np([W-fw-P|Cats], [W-fw-sn], sn, Cats, [W-fw]):-
+   !.
+build_np([W-nw-P|Cats], [W-fw-sn], sn, Cats, [W-nw]):-
+   !.
+build_np([W-date-P|Cats], [W-num-sn], sn, Cats, [W-num]):-
+   !.
+build_np([W-pron_ind-P|Cats], [W-ind-sn], sn, Cats, [W-ind]):-
+   !.
+build_np([W-per_cent-P|Cats], [W-per_cent-sn], sn, Cats, [W-per_cent]):-
+   !.
+build_np([W-tit-P|Cats], [W-tit-sn], sn, Cats, [W-tit]):-
+   !.
+build_np([W-v-P|Cats], [W-Cat-sn], Cost, Cats, [W-Cat]):-
+   analtoken(W,Feats),
+   modifycatt(Feats,Cat,Cost),
+   !.
+build_np([W-neg-P|Cats], [W-neg-savv], savv, Cats, [W-neg]):-
+   !.
+build_np([W-av-P|Cats], [W-avv-savv], savv, Cats, [W-avv]):-
+   !.
+build_np([W-sub_adj-P|Cats], [W-ccom-fc], fc, Cats, [W-ccom]):-
+   !.
+build_np([W-Cat-P|Cats], [W-Cat-cp], cp, Cats, [W-Cat]):-
+   !.
+/*
+build_np([W-Cat-P|Cats], VP, M, R, Words):-
+   build_np(Cats, VP, M, R, Words),!.
+*/
+
+checkgerund(W):-
+   analtoken(W,List),
+   member(Lem-Feats,List),
+   member(mood=ger,Feats),!.
+   
+modifycatt(Feats,Cat,Cost):-
+   member(Lem-Feat,Feats),
+   on(mood=Mood,Feat),
+   modifycat(Mood,Cat,Cost).
+modifycatt(Feats,Cat,vcomp):-
+   member(Lem-Feat,Feats),
+   on(mood=M,Feat),
+   M=inf,Cat=vit;Cat=v.
+   
+modifycat(indic,v,ibar).
+modifycat(imp,v,ibar).
+
+grw(',').
+grw('.').
+grw('"').
+grw(':').
+grw(';').
+grw('!').
+grw('?').
+grw('<').
+grw('>').
+
+participio(W,V,G,N):-
+   pp_x(W,V,G,N),!.
+
+participio(W,Lem,J,K):-
+    vlm(W,List,Lem),
+    \+ integer(Le),
+     is_list(List),
+     on(V,List),
+     coplb(V),
+    !.
+%i(tratta, vppt, trarre-[sems=tr, mfeats=tsfs]).
+%pp_rom(accaduto, accaduti, accaduta, accadute, accadere).
+
+
+evalpp(W,VP1, Words,VP2, Words1):-
+   coplbh(W),
+   reverse(VP1, [W1-Cat-Cos|Rest]),
+   (
+     (Cat=vppt;Cat=vppin), VP2=VP1, 
+      Words1=Words
+%      ;
+%      Cat\=v, Cat\=vin, Cat\=vt, VP2=VP1, Words1=Words
+      ;
+     (Cat=v; Cat=vin; Cat=vt),
+      (
+        stringof(Gerund1,W1),
+        reverse(Gerund1, [o,d,n|_]),
+        append(Rest,[W1-vgin-Cos],VP2), 
+       reverse(Words, [W1-Cat|Res]), append(Res,[W1-vgin], Words1)
+       ;
+        append(Rest,[W1-vppt-Cos],VP2), 
+       reverse(Words, [W1-Cat|Res]), append(Res,[W1-vppt], Words1))
+     ),
+    !.
+
+continuav(Ing,[W-vgin-P, W1-n-P1|Cats], Net, NodeFrom, To, [W-Label-Net,W1-Label1-Net|VP], Rest, [W-Label,W1-Label1|Words]):-
+    try_vcat(sn, NodeFrom, Op, ag, Label, NodeTo, Net), 
+    try_vcat(sn, NodeTo, Op, n, Label1, NodeTo1, Net), 
+    continuan(n,Cats, Net, NodeTo1, To, VP, Rest, Words).
+
+continuav(Ing,[W-vgt-P, W1-n-P1|Cats], Net, NodeFrom, To, [W-Label-Net,W1-Label1-Net|VP], Rest, [W-Label,W1-Label1|Words]):-
+    try_vcat(sn, NodeFrom, Op, ag, Label, NodeTo, Net), 
+    try_vcat(sn, NodeTo, Op, n, Label1, NodeTo1, Net), 
+    continuan(n,Cats, Net, NodeTo1, To, VP, Rest, Words).
+
+continuav(Ing,[A-Vsup-1,W-Cat-P|Cats], Net, NodeFrom, To, [A-Vsup-Ibar,W-Label-Net|VP], Rest, [A-Vsup,W-Label|Words]):-
+%    (A=stare;A=intendere),
+    (Vsup=vsup,Ibar=ibar;Vsup=vsupir,Ibar=ir_infl),
+    trycat(Net, 14, Op, Cat, Label, NodeTo, Net), 
+    continuav(nil,Cats, Net, NodeTo, To, VP, Rest, Words).
+
+continuav(Ing,[W-Cat-P|Cats], Net, NodeFrom, To, [W-Label-Net|VP], Rest, [W-Label|Words]):-
+    Ing\=ing,
+    (check_auxcat(Cat);coplbh(W);Cat=neg;Cat=av;Cat=avv; Cat=clit; Cat=clitac; Cat=clitdat),
+    trycat(Net, Node, Op, Cat, Label, NodeTo, Net), 
+    continuav(nil,Cats, Net, NodeTo, To, VP, Rest, Words).
+
+continuav(Ing,[W-par-P|Cats], Net, NodeTo, To, [W-par-Net|VP], Rest, [W-par|Words]):-
+    continuav(nil,Cats, Net, NodeTo, To, VP, Rest, Words).
+
+continuav(Ing,[W-Cat-P|Cats], NNet, NodeFrom, To, VP, Rest, Words):-
+    trycat(Net, NodeFrom, Op, Cat, Label, NodeTo, Net),
+    NNet\=ibar, Net\=ibar, Net\=ir_infl, NNet\=ir_infl, 
+    Cat\=par, Cat\=punt,
+    \+ mainfunc(NNet),
+    continuan(Cat,[W-Cat-P|Cats], Net, NodeTo, To, VP, Rest, Words).
+
+continuav(Ing,Cats, Net, To, To, [], Cats, []):-
+    !.
+
+mainfunc(f).
+mainfunc(fc).
+mainfunc(fs).
+mainfunc(fint).
+mainfunc(fp).
+mainfunc(f3).
+mainfunc(f2).
+mainfunc(dirsp).
+mainfunc(fac).
+mainfunc(cp).
+
+allprepda(Di):-         
+   Di=da; Di=dall_; Di=dall; Di=dal; Di=dallo; Di=dai; Di=dalla; Di=dalle; 
+   Di=dagli,
+   !.
+allprepda(Di):-
+   allprepda(Da),Da\=Di,
+   alltoupper(Da,K),
+   K=Di,
+   !.
+allprepdi(Di):-
+   Di=di; Di=d_; Di=dell_; Di=d; Di=dell; Di=del; Di=dello; 
+   Di=dei; Di=della; Di=delle; Di=degli,
+   !.
+allprepdi(Di):-
+   selectdi(Di),
+   !.
+allprepin(Di):-
+   Di=in; Di=nell_; Di=nell; Di=nel; Di=nello; 
+   Di=nei; Di=nella; Di=nelle; Di=negli,
+   !.
+allprepin(Di):-
+   allprepin(Di),In\=Di,
+   alltoupper(In,K),
+   K=Di,
+   !.
+/*
+sequent(Net, NodeFrom, [W-Cat-P|Cats], Label, NodeTo, [mod-Mod], Rest, [W-Label|Words]):-
+    (W=di;W=a;W=da),
+    trycat(NNet, NodeF, Op, Cat, Label, NodeTo, NNet),
+    (NNet=spd; NNet=sp;NNet=spda),
+    continuan(Cats, Net, 1, Too, VP, Rest, Words),
+    VP\=[],
+     append([W-Label-P], VP, Mod),
+    !. 
+*/
+sequent(Net, NodeFrom, [W-Cat-P|Cats], Label, NodeTo, [], [W-Cat-P|Cats], [W-Label]):-
+    \+ allprepdi(W),
+    trycat(Net, NodeFrom, Op, Cat, Label, NodeTo, NNet),
+    !. 
+  
+sequent(Net, NodeFrom, [W-Cat-P|Cats], Label, NodeTo, [], [W-Cat-P|Cats], [W-Label]):-
+    nonvar(W),
+    trycat(NNet, NodeF, Op, Cat, Label, NodeTo, NNet),
+    NNet\=spd, NNet\=sp,
+    NNet\=spda, 
+%    NNet\=ibar, NNet\=ir_infl, 
+    NNet\=sv2,NNet\=sv3,
+    !. 
+
+sequent(Net, NodeFrom, Cats, Label, NodeTo, [], Cats, []).
+
+trycostv(Net, NodeFrom, push, Cats):-
+   findall(Label-NodeTo, arc(Net, NodeFrom, push, Label, NodeTo), Cats).
+
+try_vcats(Net, NodeFrom, Op, Cats, Cats, NodeTo, Net):-
+   legalnpush(Cats, Net),
+   trycat(Net, NodeFrom, Op, Cats, Cats, NodeTo, Net).
+
+trycatsv(Net, NodeFrom, Op, Cats, Cats, NodeTo, Net):-
+   legal_push(Cats, Net).
+
+try_vcat(Net, NodeFrom, Op, Cats, Cats, NodeTo, Net):-
+   comp_varc(Net, NodeFrom, Op, Cats, NodeTo).
+
+trycat(Net, NodeFrom, Op, Cats, Cats, NodeTo, NNet):-
+   comp_varc(Net, NodeFrom, Op, Cats, NodeTo),
+   trycatsv(WNet, 1, cat, Cats, Cats, To, NNet),
+   !.
+
+trycat(Net, NodeFrom, Op, Cats, Cats, NodeTo, NNet):-
+   comp_arc(NNet, NodeFrom, Op, Cats, NodeTo),
+   !.
+
+detss(art).
+detss(ag).
+detss(neg).
+detss(in).
+detss(ind).
+detss(grad).
+detss(poss).
+detss(num).
+detss(ng).
+detss(agn).
+detss(q).
+
+%dets(neg).
+dets(art).
+%dets(ag).
+dets(in).
+dets(ind).
+%dets(avv).
+dets(grad).
+dets(abbr).
+dets(qc).
+dets(q).
+dets(qd).
+dets(qp).
+%dets(poss).
+dets(num).
+dets(dim).
+dets(deit).
+dets(ng).
+%dets(agn).
+
+headn(q).
+headn(pers).
+headn(pron).
+headn(dim).
+headn(poss).
+headn(deit).
+headn(n).
+headn(nc).
+headn(nh).
+headn(np).
+headn(npro).
+headn(nf).
+headn(ng).
+headn(nt).
+headn(num).
+headn(abbr).
+
+
+continuan(Cat,[], Net, NodeFrom, NodeTo, [], Rest, []):-!.
+continuan(Cat,['"'-par-P|Cats], Net, NodeFrom, NodeTo, ['"'-par-P|VP], Rest, ['"'-par|Words]):-
+    Cat=sn,
+    continuan(Cat,Cats, Net, NodeFrom, NodeTo, VP, Rest, Words).
+
+continuan(Cat,[W-ag-P, W1-V-P1|Cats], Net, NodeFrom, NodeTo, [W-n-P], [W1-V-P1|Cats], [W-n]):-
+    check_all_verbs(V),
+    \+ nouncats(Cat),
+    try_vcat(Net, NodeFrom, Op, n, Label, NodeTo, Net), 
+    !.
+continuan(Cat,[W-nt-P, fa-avv-P1|Cats], Net, NodeFrom, NodeTo, [W-nt-P,fa-avv-P1|VP], Rest, [W-nt,fa-avv|Words]):-
+    continuan(Cat1,Cats, Net, NodeTo, To, VP, Rest, Words).
+continuan(Cat,[W-ag-P, W11-V-P11, W1-Cat1-P1|Cats], Net, NodeFrom, To, [W-Label-Net,W1-Label1-Net|VP], Rest, [W-Label,W1-Label1|Words]):-
+    (dets(Cat);
+    Cat1\=ntt),
+    grw(W11),
+    try_vcat(Net, NodeFrom, Op, ag, Label, NodeTo, Net), 
+    try_vcat(Net, NodeTo, Op, Cat1, Label1, NodeTo1, Net), 
+    continuan(Cat1,Cats, Net, NodeTo1, To, VP, Rest, Words).
+
+continuan(Cat,[W-ag-P, W1-V-P1|Cats], Net, NodeFrom, NodeTo, [W-ag-P], [W1-V-P1|Cats], [W-n]):-
+    grw(W1),
+    V=punt,
+    try_vcat(Net, NodeFrom, Op, ag, Label, NodeTo, Net), 
+    !.
+
+continuan(Cat,[W-ag-P, W1-Cat1-P1|Cats], Net, NodeFrom, To, [W-Label-Net,W1-Label1-Net|VP], Rest, [W-Label,W1-Label1|Words]):-
+     dets(Cat),
+    Cat1\=ntt,
+    try_vcat(Net, NodeFrom, Op, ag, Label, NodeTo, Net), 
+    try_vcat(Net, NodeTo, Op, Cat1, Label1, NodeTo1, Net), 
+    continuan(Cat1,Cats, Net, NodeTo1, To, VP, Rest, Words).
+
+continuan(Cat,[W-ag-P, W1-ccom-P1|Cats], sa, NodeFrom, To, [W-Label-sa|VP], Rest, [W-Label|Words]):-
+    Cat\=ntt,
+    try_vcat(sa, NodeFrom, Op, ag, Label, NodeTo, sa), 
+    continuan(Cat,[W1-ccom-P1|Cats], sa, NodeTo1, To, VP, Rest, Words).
+
+continuan(Cat,[W-ag-P, W1-Cat1-P1|Cats], sa, NodeFrom, To, [W-Label-sa|VP], Rest, [W-Label|Words]):-
+    dets(Cat),Cat\=ag,
+    try_vcat(sa, NodeFrom, Op, ag, Label, NodeTo, sa), 
+    continuan(ag,[W1-Cat1-P1|Cats], sa, NodeTo1, To, VP, Rest, Words).
+
+continuan(Cat,[W-Cong-P, W1-Cat1-P1, W2-Cat2-P2|Cats], Net, NodeFrom, To, [W-Label-Net,W1-Label1-Net|VP], Rest, [W-Label,W1-Label1|Words]):-
+    (Cong=cong;Cong=ccom),
+    (W=o;W=e;W=oppure;W=ma),
+    (Cat=Cat1, \+nouncats(Cat2);
+      nouncats(Cat),nouncats(Cat1), \+nouncats(Cat2);
+      Cat=ag,nouncats(Cat1), nouncats(Cat2)),
+    try_vcat(Net, NodeFrom, Op, cong, Label, NodeTo, Net), 
+    try_vcat(Net, NodeTo, Op, Cat1, Label1, NodeTo1, Net), 
+    continuan(Cat1,[W2-Cat2-P2|Cats], Net, NodeTo1, To, VP, Rest, Words).
+
+continuan(Cat,[W-Cong-P, W1-Cat1-P1, W2-Cat2-P2|Cats], Net, NodeFrom, To, [W-Label-Net,W1-Label1-Net], [W2-Cat2-P2|Cats], [W-Label,W1-Label1]):-
+    (Cong=cong;Cong=ccom),
+    (W=o;W=e;W=oppure;W=ma),
+    (Cat=Cat1, nouncats(Cat2);
+      nouncats(Cat),nouncats(Cat1), \+nouncats(Cat2);
+      Cat=ag,nouncats(Cat1), nouncats(Cat2)),
+    try_vcat(Net, NodeFrom, Op, cong, Label, NodeTo, Net), 
+    try_vcat(Net, NodeTo, Op, Cat1, Label1, NodeTo1, Net).
+
+continuan(n,[W-nt-P, W1-num-P1|Cats], Net, To, To, [], [W-nt-P, W1-num-P1|Cats], []):-
+    heads(Net, To, Cats),!.
+
+continuan(Cat0,[W-Cat-P, W1-punt-P1|Cats], Net, NodeFrom, To, [W-Label-Net|VP], Rest, [W-Label|Words]):-
+      try_vcat(Net, NodeFrom, Op, Cat, Label, NodeTo, Net), 
+      continuan(Cat,[W1-punt-P1|Cats], Net, NodeTo, To, VP, Rest, Words),!.
+
+continuan(Cat0,[W-Cat-P, W1-Cat1-P1|Cats], Net, NodeFrom, To, [W-Label-Net|VP], Rest, [W-Label|Words]):-
+    Cat\=ag,Cat\=cong, Net\=sv2, Net\=sv3, Net\=savv,
+    \+ check_all_verbs(Cat),
+    (nouncats(Cat1); proncat(Cat1); qcats(Cat); 
+     \+ nouncats(Cat1), dets(Cat0), Cat0\=num;
+     \+ nouncats(Cat1), dets(Cat0), Cat0=num, check_vcat(Cat1), (Cat=num;Cat=nt;Cat=q);
+       Cat0=num, Cat=n,\+check_vcat(Cat1);
+      \+dets(Cat),   nouncats(Cat),nouncats(Cat0),\+check_vcat(Cat1)
+     ),
+    (
+     Cats=[A-B-_|_], 
+     (Cat0\=num, Cat\=ntt, Cat0\=ntt,
+      (proncat(Cat0), \+ proncat(Cat); \+ proncat(Cat0), (Cat=mw,Cat0=mw;Cat\=mw)),
+      try_vcat(Net, NodeFrom, Op, Cat, Label, NodeTo, Net), 
+      continuan(Cat,[W1-Cat1-P1|Cats], Net, NodeTo, To, VP, Rest, Words)
+      ;
+      Cat0=num, Cat\=ntt, spy_lower(W,Low,Pol), Pol=0,
+      try_vcat(Net, NodeFrom, Op, Cat, Label, NodeTo, Net),
+      Rest=[W1-Cat1-Net|Cats], VP=[], Words=[]
+      ;
+      Cat1=num, B=ng,
+      try_vcat(Net, NodeFrom, Op, Cat, Label, NodeTo, Net),
+      Rest=[W1-Cat1-Net|Cats], VP=[], Words=[]
+      ;
+      Cat0=art, Cat=avv, announcats(Cat1), Label=Cat,
+      continuan(Cat,[W1-Cat1-P1|Cats], Net, NodeTo, To, VP, Rest, Words))
+%      Rest=Cats, VP=[W1-Cat1-Net], Words=[W1-Cat1])
+     ;
+     (Cat1=p; Cats=[]), 
+     (grw(W1),Rest=[W1-Cat1-P1], Label=Cat, VP=[], Words=[]
+      ;
+      nouncats(Cat0), nouncats(Cat1), \+dets(Cat), Label=Cat, VP=[W1-Cat1-Net], Words=[W1-Cat1], Rest=[]
+      ;
+      Cat1\=p,\+dets(Cat), 
+      continuan(Cat,[W1-Cat1-P1|Cats], Net, NodeTo, To, VP, Rest, Words), Label=Cat
+     )).
+
+continuan(Cat0,[W-Cat-P, W1-Cat1-P1, W2-Cat2-P2|Cats], Net, NodeFrom, To, [W-Label-Net|VP], Rest, [W-Label|Words]):-
+      Cat\=ag,Cat\=cong, Net\=sv2, Net\=sv3,Net\=savv,
+      nouncats(Cat),
+      (nouncats(Cat0);dets(Cat0)),Cat0\=num, 
+      (check_all_verbs(Cat1),
+       checksubcatv(W1)
+       ;
+       Cat1=p),
+      (nouncats(Cat2); proncat(Cat2); dets(Cat2)),
+      Label=Cat, 
+      continuan(Cat,[W1-Cat1-P1, W2-Cat2-P2|Cats], Net, NodeTo, To, VP, Rest, Words).
+
+continuan(Cat0,[W-Cat-P, W1-Cat1-P1|Cats], Net, NodeFrom, To, [W-Cat-Net|VP], Rest, [W-Cat|Words]):-
+        nouncats(Cat),nouncats(Cat0),Cat0\=num,Cat\=num,
+        (Cat=mw,Cat0=mw;Cat\=mw),
+%       findall_poss(Si),
+%       on(1-[Cat-W],Si),Label=Cat, 
+      \+ check_vcat(Cat1), Cat1\=clit,
+      (Cat0=n,Cat\=nh;Cat0\=n;Cat\=nh),
+      continuan(Cat,[W1-Cat1-P1|Cats], Net, NodeTo, To, VP, Rest, Words).
+
+continuan(Cat0,[W-Cat-P|[]], Net, NodeFrom, NodeTo, [W-Label-Net], [], [W-Label]):-
+    dets(Cat0),
+    try_vcat(Net, NodeFrom, Op, Cat, Label, NodeTo, Net).
+
+
+continuan(Cat,Cats, Net, To, To, [], Cats, []):-
+    Cats=[W-Cat0-P|_],
+    (Net\=sv2,Net\=sv3,Net\=sv5
+       ; 
+       Net=sv2, 
+        (Cat=ausei;Cat=ausai),
+         \+ check_vcat(Cat0)),
+    heads(Net, To, Cats),!.
+continuan(Cat,Cats, Net, To, To, [], Cats, []):-
+    Net\=sv2,Net\=sv3,Net\=sv5,Net\=ibar,
+    heads(Net, To, Cats),!.
+
+ntt(gennaio).
+ntt(febbraio).
+ntt(marzo).
+ntt(aprile).
+ntt(maggio).
+ntt(giugno).
+ntt(luglio).
+ntt(agosto).
+ntt(settembre).
+ntt(ottobre).
+ntt(novembre).
+ntt(dicembre).
+ntt(lunedì).
+ntt(martedì).
+ntt(mercoledì).
+ntt(giovedì).
+ntt(venerdì).
+ntt(sabato).
+ntt(domenica).
+ntt(autunno).
+ntt(primavera).
+ntt(estate).
+ntt(inverno).
+ntt(giorno).
+ntt(notte).
+ntt(mattina).
+ntt(mattino).
+ntt(sera).
+
+checksubcatv(Verb):-
+    extract_subcat(Verb,Lem,SubCat),
+    \+ on(tr,SubCat), \+ on(ditr,SubCat),
+    (on(intr,Subs);on(erg,Subs);on(inerg_mov,Subs);
+     on(rifl_in,Subs);on(rifl_rec,Subs);
+     on(intr_pron,Subs);on(erg_rifl,Subs);
+     on(inerg,Subs);on(inac,Subs);
+     on(inac_inerg,Subs)),
+    !.
+checksubcatvtr(Verb):-
+    extract_subcat(Verb,Lem,SubCat),
+    (on(tr,SubCat);on(ditr,SubCat)),
+    !.
+checksubcatvin(Verb):-
+    extract_subcat(Verb,Lem,Subs),
+    (on(ditr,Subs),
+     on(intr,Subs);on(erg,Subs);on(inerg_mov,Subs);
+     on(rifl_in,Subs);on(rifl_rec,Subs);
+     on(intr_pron,Subs);on(erg_rifl,Subs);
+     on(inerg,Subs);on(inac,Subs);
+     on(inac_inerg,Subs)),
+    !.
+
+prendi_lemma(Verb,Argss,Lem,[]):-
+    extract_subcat(Verb,Lem,Subs),
+    getroot(Lem,Root,Cong),
+    findall(Lem-S-A-C-Args, pv(Root,_,S,A,C,Args), LForm),
+    (LForm=[],
+     on(Sub,Subs),
+     corr(Sub, S, Argss)
+     ;
+     LForm\=[], Argss=LForm).
+%    !.
+
+prendi_lemmas(Verb,Argss,Lem,[]):-
+    extract_subcat(Verb,Lem,Subs),
+    (LForm=[],
+     on(Sub,Subs),
+     corr(Sub, S, Argss)
+     ;
+     LForm\=[], Argss=LForm),    
+    !.
+     
+extract_subcat(Verb,Lem,SubCat):-
+      (vlm(Verb,Lem,I), integer(I)
+        ;
+        vlm(Verb,Aux,Lem), is_list(Aux)
+        ;
+        lemmroot(Verb,Root-Cat), on(v,Cat)
+        ;
+        lemmroot1(Verb,Lem-Cat), on(v,Cat)
+          ),
+       getroot(Lem,Root,Cong),
+       (Cong=3, (Con=3;Con='3a');Cong\=3, Con=Cong),
+       findall(Sub,
+                  v(Root,_,Con,Sub),
+                   Subs),
+        sort(Subs,SubCat),SubCat\=[],!.
+
+  
+getroot(Lem,Root,Cong):-
+     nonvar(Lem),
+     stringof(List,Lem),
+     reverse(List,RevList),
+     getrootcong(RevList,Root,Cong).
+getroot(Lem,Root,2):-
+     nonvar(Lem),
+   stringof(List,Lem),
+   reverse(List,[e,r,r|Rest]),
+   reverse(Rest,VerbL),
+   stringof(VerbL,Verb),
+   mcon(Verb,r,Root),
+   !.
+getroot(Lem,Root,Cong):-
+     var(Lem),
+     nonvar(Root),
+     v(Root,_,Cong,Sub),
+     !.
+getroot(Verb,Root,Cong):-
+     nonvar(Verb),
+     (vlm(Verb,Lem,_),atomic(Lem);
+       vlm(Verb,_,Lem),atomic(Lem)),
+     stringof(List,Lem),
+     reverse(List,RevList),
+     getrootcong(RevList,Root,Cong),
+     !.
+
+lemmroot(W,Lem-[v]):-
+    lemmatize_dic_v(W,Lem,C),
+     !.
+/* non trova la forma, quindi chiama l'analizzatore morfologico e
+cerca nelle radici */
+
+lemmroot1(W,Lem-Cat):-
+    stringof(List,W),
+    length(List,L),
+    search_suffix(L,List,Tag),
+    Tag=Root-Cat,
+    getroot(Lem,Root,Cong),
+    genrootcong(Root,Lem,Cong),
+      !.
+
+congsuff(1,are).
+congsuff(2,ere).
+congsuff(3,ire).
+congsuff(2,rre).
+congsuff(2,rsi).
+
+genrootcong(Root,Lem,Con):-
+    congsuff(Con,Suff),
+    concat(Root,Suff,Lem),
+    (den(Lem);vlm(Lem,_,_)),
+    !.
+     
+getrootcong([e,r,a|List],Root,1):-
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getrootcong([e,r,e|List],Root,2):-
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getrootcong([e,r,i|List],Root,3):-
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getrootcong([e,r,r|List],Root,2):-
+     reverse(List,Rev),
+     stringof(Rev,Root).
+getrootcong([i,s,r,a|List],Root,2):-
+     reverse(List,Rev),
+     stringof(Rev,Root).
+getrootcong([i,s,r,e|List],Root,2):-
+     reverse(List,Rev),
+     stringof(Rev,Root).
+getrootcong([i,s,r,i|List],Root,2):-
+     reverse(List,Rev),
+     stringof(Rev,Root).
+getrootcong([i,s,r|List],Root,2):-
+     reverse(List,Rev),
+     stringof(Rev,Root).
+
+
+getpastpart([a,t,C|List],Root):-
+     (C=a;C=e;C=i;C=o;C=u),
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getpastpart([e,t,C|List],Root):-
+     (C=a;C=e;C=i;C=o;C=u),
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getpastpart([o,t,C|List],Root):-
+     (C=a;C=e;C=i;C=o;C=u),
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getpastpart([i,t,C|List],Root):-
+     (C=a;C=e;C=i;C=o;C=u),
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getpastpart([a,t,C|List],Root):-
+     (C=s;C=r;C=t;C=l;C=n),
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getpastpart([e,t,C|List],Root):-
+     (C=s;C=r;C=t;C=l;C=n),
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getpastpart([o,t,C|List],Root):-
+     (C=s;C=r;C=t;C=l;C=n),
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+getpastpart([i,t,C|List],Root):-
+     (C=s;C=r;C=t;C=l;C=n),
+     reverse(List,Rev),
+     stringof(Rev,Root),
+     !.
+    
+     
+legalnpush(Cat, RecNet) :-
+   tpnaccess(RecNet, Pts),
+   on(Cat, Pts).
+
+tpnaccess(sa, [a, adj, ag, agn, ccom, dim, grad, in, ind, neg]).
+tpnaccess(sn, [abbr, a, adj, ag, agn, art, date, deit, dim, ext, in, ind, mw, n, noun, neg, nf, nh, ng, np, nt, num, npro, pers, poss, pron, qc, qp, q]).
+/*, vgin, vgt, vppin, vppt*/
+tpnaccess(sq, [neg, in, ind, q, qc, qd, qo, qp]).
+tpnaccess(savv, [neg, adv, avv, av, avvl, in]).
+tpnaccess(sp, [neg, in, p, php, part]).
+tpnaccess(spd, [neg, in, pd, partd]).
+tpnaccess(spda, [neg, in, pda, partda]).
+tpnaccess(sv2, [ausai, ausei, neg, p, pt, viin, vit, vbt, vbin]).
+tpnaccess(sv3, [neg, vppin, vppt, vprin, vprt, avv, ppre, ppas]).
+tpnaccess(sv5, [neg, auag, aueg, vgin, vgs, vgt, vsfa]).
+tpnaccess(fint, [int,puntint]).
+tpnaccess(fc, [cong,ccong,congf,ccom]).
+tpnaccess(fs, [cosu,cosul,conjl]).
+tpnaccess(fp, [punt]).
+tpnaccess(f2, [rel, relin, relob]).
+   
+/*   
+comp_varc(sn, From, Op, par, From) :-
+     !.
+*/
+comp_varc(Net, From, Op, Sym, To) :-
+    narc(Net, From, Op, Sym, To),
+     !.
+
+comparc(Net, From, Op, Sym, To) :-
+    arc(Net, From, Op, Sym, To).
+
+/* EVALUATE AMBIGUITIES */
+
+evaluate_ambiguities(Tags, Parse, Ambs):-
+   eval_ambiguous(Tags, Atags),
+   tp_access(ibar, Ibars),
+   eval_vambiguous(Atags, Ibars, Vtags),
+   estimate_ambiguous(Vtags, Parse, Ambs),
+   !.
+
+estimate_ambiguous([], Parse, []):-!.
+/*
+estimate_ambiguous([Cats-N-Word|Atags], [Word-C-Score|Parse], Ambs):-
+    1=Score,
+    estimate_ambiguous(Atags, Parse, Ambs),
+    !.
+*/
+estimate_ambiguous([Cats-N-Word|Atags], [Word-C-Score|Parse], [Word-C-Cats-Score|Ambs]):-
+    Score<1000,
+    estimate_ambiguous(Atags, Parse, Ambs),
+    !.
+estimate_ambiguous([Cats-N-Word|Atags], [Word-C-Score|Parse], Ambs):-
+    1000=<Score,
+    estimate_ambiguous(Atags, Parse, Ambs),
+    !.
+estimate_ambiguous(Atags, [Word-C-Score|Parse], Ambs):-
+    estimate_ambiguous(Atags, Parse, Ambs),
+    !.
+
+eval_vambiguous([], Ibars, []):-!.
+eval_vambiguous([Cats-N-Word|Atags], Ibars, [Cats-N-Word|Vtags]):-
+    on(C, Cats),
+    on(C, Ibars),
+    eval_vambiguous(Atags, Ibars, Vtags),
+    !.
+eval_vambiguous([Cats-N-Word|Frase], Ibars, Tokens):-
+    eval_vambiguous(Frase, Ibars, Tokens),
+    !.
+
+eval_ambiguous([], []):-!.
+eval_ambiguous([Cats-N-Word|Frase], [Out|Tokens]):-
+    nonvar(N),
+    1<N,
+    Out=Cats-N-Word,    
+    eval_ambiguous(Frase, Tokens),
+    !.
+eval_ambiguous([Cats-N-Word|Frase], [Out|Tokens]):-
+    length(Cats, N),
+    1<N,
+    Out=Cats-N-Word,    
+    eval_ambiguous(Frase, Tokens),
+    !.
+eval_ambiguous([Cats-N-Word|Frase], Tokens):-
+    eval_ambiguous(Frase, Tokens),
+    !.
+
+/* DIVIDEUP CLAUSES */
+
+divideup_clauses(FunctsOut, Ambs, DClauses, IBars, []):-
+     reffuncs(Args),
+     buildallclauses(1, Args, DClauses, IBars, Cl),
+     appiattisci(DClauses, Db),
+     getallibars(IBar),
+     length(IBar,I),
+     length(Db,C),
+     I=C,
+     !.
+divideup_clauses(FunctsOut, Ambs, DClauses, IBars, Tensed):-
+     extract_functions(FunctsOut, Sints, FunctsOu),
+     choose_tensed(Ambs, Tensed),
+     (list(FunctsOu),
+      length(FunctsOu,NoCl)
+       ;
+       FunctsOu=f-FF,
+       on(F-_, FF),
+       mainfunc(F),       
+       list(FF),
+       length(FF,NoCl)
+       ;
+       NoCl=1),
+     getallibars(IBars),
+     length(IBars,NoIb),
+     refargs(FunctsOu,Rest,Ibar),
+     checkcreate_dclauses(0, NoCl-NoIb, Tensed, IBars, Rest, DClauses),
+     !.
+
+buildallclauses(N, [], [], [], N):-!.
+buildallclauses(N, Args, [NClause|DClauses], [IBar|IBars], H):-
+     buildclauses(N, Args, FunctsOut, DClause, IBar),
+     (DClause\=[],
+      appiattisci(DClause, ADClause),
+      refsems(Sems),
+      (Sems=[], SDIClause=ADClause;
+       Sems\=[],
+       ( on(N-Cl-Sem, Sems),
+         Sem\=(fac-_), 
+         append([Sem], ADClause, SDIClause)
+         ;
+         on(Cl-N-Sem, Sems),
+         Sem\=(fac-_), 
+         append([Sem], ADClause, SDIClause)
+         ;
+         on(Cl-N2-Sem, Sems),
+         Sem=(dirsp-_), 
+         append([Sem], ADClause, SDIClause)
+         ;
+         on(Cl-N2-Sem, Sems),
+         Sem=(fac-_), 
+         append([Sem], ADClause, SDIClause)
+         ;
+         SDIClause=ADClause)),
+       append(IBar, SDIClause, Clause), 
+       NClause=[N-Clause]
+      ;
+      DClause=[],NClause=[]),
+     N1 is N + 1,
+     buildallclauses(N1, FunctsOut, DClauses, IBars, H),
+     !.
+     
+buildallclauses(N, Args, DClauses, IBars, H):-
+     N1 is N + 1,
+     buildallclauses(N1, Args, DClauses, IBars, H),
+     !.
+
+buildclauses(N, [], [], [], []):-!.
+buildclauses(N, [N-(ibar-Fun)|FunctsOut], Out, DClauses, [Fun|IBars]):-
+     buildclauses(N, FunctsOut, Out, DClauses, IBars),
+     !.
+buildclauses(N, [N-(passive-Fun)|FunctsOut], Out, DClauses, IBars):-
+     buildclauses(N, FunctsOut, Out, DClauses, IBars),
+     !.
+buildclauses(N, [N-[Func]|FunctsOut], Out, [Func|DClauses], IBars):-
+     buildclauses(N, FunctsOut, Out, DClauses, IBars),
+     !.
+buildclauses(N, [N1-Func|FunctsOut], FunctsOut,[], []):-
+     !.
+
+choose_tensed([], []):-
+     !.
+choose_tensed([W-Old-Ca-Score|Ambs], [W-C|Tensed]):-
+     on(C, Ca),
+     check_tensed(C),
+     choose_tensed(Ambs, Tensed),
+     !.
+choose_tensed([W-Old-Ca-Score|Ambs], Tensed):-
+     choose_tensed(Ambs, Tensed),
+     !.
+
+getallibars(RIBars):-
+    findall(First, funcs(ibar, K, Head, ibar-First),
+       IBars),
+    IBars\=[],
+    reverse(IBars,RIBars),!.
+
+getallibars(IBars):-
+    findall(First, funcs(vcomp, K, Head, [vcomp-First]),
+       IBars),
+     !.
+
+reffuncs(Args):-
+   findall(K-All, (funcs(Func, K, Head, All), 
+                    Func\=sem, Func\=voice), Heads), 
+      reverse(Heads, Args),
+      !.
+refsems(Args):-
+   findall(K-All, (funcs(Func, K, Head, All), 
+                    Func=sem, All\=fp-_), Heads),
+      sort(Heads, Args),
+      !.
+
+extract_functions([], Sints, []):-
+   !.
+
+extract_functions([First|NFeats], Sints, fc-Functs):-
+   First=fc-Avv,
+   Avv=[f-Sec],
+   NFeats=[],
+   extract_functions(Sec, Sints, Functs),
+   !.
+extract_functions([First|NFeats], Sints, [fc-Functs]):-
+   First=fc-Rest,
+   Rest=[f-Sec],
+   extract_functions(NFeats, Sints, FunctsO),
+   append(Sec, [FunctsO],Functs),
+   !.
+
+extract_functions([First|NFeats], Sints, [fs-Rest]):-
+   First=fs-Rest,
+   NFeats=[],
+   !.
+
+extract_functions([First|NFeats], Sints, [fs-Rest|FunctsOut]):-
+   First=fs-Rest,
+   NFeats\=[],
+   extract_functions(NFeats, Sints, FunctsOut),
+   !.
+
+extract_functions([First|NFeats], Sints, f3-Rest):-
+   First=f3-Rest,
+   NFeats=[],
+   !.
+
+extract_functions([First|NFeats], Sints, Functs):-
+   First=f3-Rest,
+   NFeats\=[],
+   extract_functions(NFeats, Sints, FunctsOut),
+   append(Rest, [FunctsOut],Functs),
+   !.
+
+extract_functions([First|NFeats], Sints, [fac-Rest]):-
+   First=fac-Rest,
+   NFeats=[],
+   !.
+
+extract_functions([First|NFeats], Sints, [fac-Rest|FunctsOut]):-
+   First=fac-Rest,
+   extract_functions(NFeats, Sints, FunctsOut),
+   !.
+
+extract_functions([First|NFeats], Sints, [dirsp-Rest|FunctsOut]):-
+   First=dirsp-Rest,
+   extract_functions(NFeats, Sints, FunctsOut),
+   !.
+
+extract_functions([First|NFeats], Sints, cp-Rest):-
+   First=cp-Rest,
+   NFeats=[],
+   !.
+
+extract_functions([First|NFeats], Sints, [fint-Functs]):-
+   First=fint-Rest,
+   Rest=[fint-Sec|Res],
+   NFeats\=[f-Se|Re],
+   extract_functions(Res, Sints, FunctsO),
+   extract_functions(NFeats, Sints, FunctsOut),
+   append(Sec, [FunctsO],Functs1),
+   ( NFeats=[], Functs=[fint-Functs1]
+    ;
+    NFeats\=[], 
+   append([Functs1], [FunctsOut],Functs)),
+   !.
+
+extract_functions([First|NFeats], Sints, [fint-Rest|[FunctsO]]):-
+   First=fint-Rest,
+   Rest=[fint-Sec|Res],
+   extract_functions(NFeats, Sints, FunctsO),
+   !.
+
+extract_functions([First|NFeats], Sints, f2-Rest):-
+   First=f2-Rest,
+   NFeats=[],
+   !.
+
+extract_functions([First|NFeats], Sints, [f2-Functs]):-
+   First=f2-Rest,
+   extract_functions(Res, Sints, FunctsO),
+   extract_functions(NFeats, Sints, FunctsOut),
+   append(Functs0, FunctsOut,Functs),
+   !.
+
+extract_functions([First|NFeats], Sints, fp-FunctsOut):-
+   First=fp-Rest,
+   NFeats=[Sec|Rest],
+   Sec\=fp-Cong,
+   extract_functions(NFeats, Sints, FunctsOut),
+   !.
+
+extract_functions([First|NFeats], Sints, f-Rest):-
+   First=f-Rest,
+   NFeats=[],
+   extract_functions(NFeats, Sints, FunctsOut),
+   !.
+
+extract_functions([First|NFeats], Sints, f-Functs1):-
+   First=f-Rest,
+   NFeats\=[],
+   NFeats=[Sec|Res],
+   Sec=fint-Se,
+   append(Rest, Res,FunctsOut),
+   append([fint-Se],[f-FunctsOut], Functs1),
+   !.
+
+extract_functions([First|NFeats], Sints, f-Functs):-
+   First=f-Rest,
+   Rest=[Fu-Sec|Res],
+   reverse(Sec, ['''-'''-par-sn|_]),
+   NFeats\=[],
+   NFeats=[[f-AFuncts|NFeat]],
+   AFuncts=[Fun-AFunc|Ffuncts],
+   reverse(AFunc, ['''-'''-par-sn|_]),
+   append(Rest, [Fun-AFunc|Ffuncts], PFuncts),
+   extract_functions(NFeat, Sints, FunctsOut),
+   append([f-PFuncts], [FunctsOut],Functs),
+   !.
+
+extract_functions([First|NFeats], Sints, f-Functs):-
+   First=f-Rest,
+   NFeats\=[],
+   extract_functions(NFeats, Sints, FunctsOut),
+   append([f-Rest], [FunctsOut],Functs),
+   !.
+
+extract_functions([First|NFeats], Sints, f-Functs):-
+   First=f-Rest,
+   NFeats\=[],
+   NFeats=[Sec|[]],
+   append(Rest, Sec,Functs),
+   !.
+
+extract_functions([First|NFeats], Sints, [ibar-Rest|FunctsOut]):-
+   First=ibar-Rest,
+   extract_functions(NFeats, Sints, FunctsOut),
+   !.
+
+extract_functions([First|NFeats], Sints, Functs):-
+   First=[F-Rest],
+   extract_functions(Rest, Sints, FunctsOut),
+   extract_functions(NFeats, Sints, FunctsO),
+   append([FunctsOut], [FunctsO],Functs),
+   !.
+
+extract_functions([First|NFeats], Sints, [First|FunctsOut]):-
+   extract_functions(NFeats, Sints, FunctsOut),
+   !.
+   
+refargs([], [],Ibar):-!.
+refargs([F-[ibar-Func|FunctsOut]], Rest, [Ibar|Ibars]):-
+      refargs(FunctsOut,Rest,Ibars),!.
+refargs([ibar-Ibar|FunctsOut], Rest, [Ibar|Ibars]):-
+      refargs(FunctsOut,Rest,Ibars),
+      !.
+refargs([F-[f-Functs]|[]], Rest,Ibar):-
+      mainfunc(F),
+      refargs(Functs,Rest,Ibar),
+      !.
+refargs([F-[F-Functs]|[]], Rest,Ibar):-
+      mainfunc(F),
+      refargs(Functs,Rest,Ibar),
+      !.
+refargs([F-[f-Functs]|FunctsOut], AllFuncts,Ibar):-
+      mainfunc(F),
+      refargs(Functs,Rest,Ibars),
+      refargs(FunctsOut,Rest0,Ibar),
+      append(Rest,Rest0,AllFuncts),
+      !.
+refargs([F-[Functs|FunctsOut]], [Functs|Rest],Ibar):-
+      mainfunc(F),
+      refargs(FunctsOut,Rest,Ibar),
+      !.
+refargs([F-[F-Funct|Functss]|FunctsOut], [Ress|Rest],Ibar):-
+      mainfunc(F),
+      refargs(Functss,Res,Ibars),
+      append([F-Funct],Res, Ress),
+      refargs(FunctsOut,Rest,Ibar),
+      !.
+refargs(f-[F-[F-Funct|Functss]|FunctsOut], [Ress|Rest],Ibar):-
+      mainfunc(F),
+      refargs(Functss,Res,Ibars),
+      append([F-Funct],Res, Ress),
+      refargs(FunctsOut,Rest,Ibar),
+      !.
+refargs(f-[F-[Funct|Functss]|FunctsOut], [Ress|Rest],Ibar):-
+      mainfunc(F),
+      refargs(Functss,Res,Ibars),
+      append([F-[Funct]],Res, Ress),
+      refargs(FunctsOut,Rest,Ibar),
+      !.
+refargs(F-[Functs|FunctsOut], [Functs|Rest],Ibar):-
+      mainfunc(F),
+      refargs(FunctsOut,Rest,Ibar),
+      !.
+refargs([FunctsOut], Rest,Ibar):-
+      refargs(FunctsOut,Rest,Ibar),
+      !.
+refargs([Functs|FunctsOut], [Functs|Rest],Ibar):-
+      refargs(FunctsOut,Rest,Ibar),
+      !.
+      
+/* EXTRACT IBARS */
+
+extract_ibars(Args):-
+   findall(K-ibar-All, funcs(ibar, K, Head, ibar-All), 
+                    Args),
+      !.
+      
+
+
+search_fpp(In, Out):-
+   fpp(nil),
+   abolish(fpp/1),
+   assert(fpp(on)),
+   search_fp(In, Out),!.
+search_fpp(In, Out):-
+   fpp(on),
+   fail,!.
+search_fpp(In, Out):-
+   search_fp(In, Out),
+   !.
+   
+search_fpp(In, In):-!.
+
+search_fp([], []):-!.
+
+search_fp([punt-_|Resto], T):-
+   search_fp(Resto, T),!.
+search_fp([fp-[punt-_|Resto]], true):-!.
+search_fp([puntint-_], []):-!.
+search_fp([dirs-_], []):-!.
+search_fp([punto-_], []):-!.
+search_fp([par-_], []):-!.
+search_fp([par-_|Resto], T):-
+   search_fp(Resto, T),!.
+search_fp([fp-[par-_|Resto]], []):-!.
+
+search_fp([Arc-[Leaf-C|Resto]], T):-
+    one(sub(Arc)),
+   Resto\=[],
+   search_fp([Leaf-C|Resto], T),!.
+
+search_fp([Arc-[Leaf-_|Resto]], T):-
+   Resto\=[],
+   search_fp(Resto, T),!.
+
+search_fp([Leaf-_|Resto], T):-
+    Resto\=[],
+  search_fp(Resto, T),!.
+
+search_fp([Leaf-Resto], T):-
+   search_fp(Resto, T),!.
+
+search_fp([fp-Resto|All], [f3-Resto]):-
+   Resto\=[],
+   Resto=[f-AllR|Rest],
+   All=[cp-[]],
+   !.
+
+search_fp([fp-Resto|All], [Alls|T1]):-
+   Resto\=[],
+   All=[fp-AllR|Rest],
+   append([fp-Resto],AllR, Alls),
+   search_fp(Rest, T1),
+   !.
+
+search_fp([fp-Resto|All], [Resto|T1]):-
+   Resto\=[],
+   All=[AllR],
+   search_fp(AllR, T1),
+   !.
+
+search_fp([fp-Resto|All], [f3-Alls|T1]):-
+   Resto\=[],
+   Resto=[C-AllR|Rest],
+   search_fp(Rest, T),
+   search_fp(All, T1),
+   append([C-AllR],T,Alls),
+   !.
+
+search_fp([Arc-[Leaf-Struct|Resto]], [Arc-[Leaf-Struct|T]]):-
+   Resto\=[],
+   search_fp(Resto, T),!.
+
+search_fp([cp-Resto], []):-!.
+
+search_fp([Leaf-Struct|Resto], [Leaf-Struct|T]):-
+  search_fp(Resto, T),!.
+
+search_fp(cp-Resto, []):-!.
+
+search_fp([[dirsp-Strct]|Resto], [dirsp-T]):-
+   Strct=[f-[subj-Subj]],
+   append([subj-Subj],Resto, Alls),
+   appiattisci(Alls, Alll),
+   search_fp([f-Alll], T),
+   !.
+
+search_fp([[fs-Strct]|Resto], [fs-[fs-FS|T]]):-
+   Strct=[fs-FS, f-[subj-Subj]],
+   append([subj-Subj],Resto, Alls),
+   appiattisci(Alls, Alll),
+   search_fp([f-Alls], T),
+   !.
+
+search_fp([[fint-Strct]|Resto], [fint-[fint-FS|T]]):-
+   Strct=[fint-FS, f-[subj-Subj]],
+   append([subj-Subj],Resto, Alls),
+   appiattisci(Alls, Alll),
+   search_fp([f-Alls], T),
+   !.
+
+search_fp([[Leaf-Strct]|Resto], [Leaf-StrctT]):-
+   Resto=[f2-_|_],
+   reverse(Strct,[Fun-Cos|_]),
+   (Fun=subj;Fun=obj),
+   remove(Fun-Cos, Strct, NStrct),
+   search_fp(Resto, T),
+   append(Cos, T, F2),
+   append(NStrct, [Fun-F2], StrctT),
+   !.
+
+search_fp([[Leaf-Strct]|Resto], [Leaf-Strct|T]):-
+   search_fp(Resto, T),!.
+
+search_fp([[vcomp-Strct|Res]|Resto], [vcomp-All|Alls]):-
+   search_fp(Res, T),
+   search_fp(Resto, Alls),
+   append(Strct,T, All),
+   !.
+
+search_fp([[Leaf-Strct|Res]|Resto], [Leaf-Strct|Alls]):-
+   search_fp(Res, T),
+   search_fp(Resto, T1),
+   append(T,T1, Alls),
+   !.
+
+checkcreate_dclauses(N, No-No, Tensed, IBars, FunctsOu, DClauses):-
+     createdclauses(N, IBars, FunctsOu, DClauses),!.
+
+checkcreate_dclauses(N, NoC-NoI, Tensed, IBars, FunctsOu, DClauses):-
+     NoI < NoC,
+     findall(First, funcs(vcomp, K, Head, [vcomp-First]),
+               VBars),
+     (VBars=[], IBarss=Ibars
+      ;
+      VBars\=[], 
+     on(V-Cat, Tensed), 
+     on([V-_-_], VBars),
+     on([V1-_-_], IBars), V1\=V, 
+     append(IBars,[V-Cat-ibar],IBarss)),
+     createdclauses(N, IBarss, FunctsOu, DClauses),!.
+
+checkcreate_dclauses(N, NoC-NoI, Tensed, IBars, FunctsOu, DClauses):-
+     NoI < NoC,
+     on(V-Cat, Tensed),
+     (on([V-_-_], IBars), remove([V-_-_], IBars, Ibar); Ibar=IBars),
+     append(Ibar,[V-Cat-ibar],IBarss),
+     createdclauses(N, IBarss, FunctsOu, DClauses),!.
+checkcreate_dclauses(N, NoC-NoI, Tensed, IBars, FunctsOu, DClauses):-
+     createdclauses(N, IBars, FunctsOu, DClauses),!.
+
+createdclauses(N, [], [], []):-!.
+createdclauses(N, [Ibar|[]], [Functs|[]], [N-[Ibar, Functs]|[]]):-!.
+createdclauses(N, [Ibar|[]], F-[Functs|[[ibar-Fun|FunctsOu]]], [N-[Ibar, Functs]]):-
+           !.
+createdclauses(N, [Ibar|[]], [ibar-Ibar|Functs], [N-[Ibar, Functs]]):-
+           !.
+createdclauses(N, [Ibar|[]], F-[Functs|FunctsOu], [N-[Ibar, Functs]]):-
+           FunctsOu=[[ibar-Fun|Rest]],!.
+createdclauses(N, [Ibar|[]], F-[Functs|FunctsOu], [N-AllFuncts]):-
+     FunctsOu=[ibar-Fun|Rest],
+     append([Functs], Rest, Functs0),
+     append([Ibar], Functs0, AllFuncts),
+     !.
+createdclauses(N, [Ibar|IBars], F-[Functs|FunctsOu], [N1-[Ibar, Functs]|DClauses]):-
+     N1 is N + 1,
+     createdclauses(N1, IBars, FunctsOu, DClauses),!.
+createdclauses(N, [Ibar|IBars], [Functs|FunctsOu], [N1-[Ibar, Functs]|DClauses]):-
+       on(F-_, FunctsOu),
+     mainfunc(F),
+  %; F=subj; F=obj),       
+     N1 is N + 1,
+     createdclauses(N1, IBars, FunctsOu, DClauses),!.
+createdclauses(N, [Ibar|IBars], [F1-Functs|FunctsOu], [DClause|DClauses]):-
+      IBars\=[],
+       on(F-F2, Functs),
+     (mainfunc(F); F=subj),       
+     remove(F-F2, Functs, Resto),
+     (FunctsOu=[]; on([],FunctsOu)),
+     N1 is N + 1,
+     createdclauses(N1, [Ibar], F2, DClause),
+     N2 is N1 + 1,
+     createdclauses(N2, IBars, Resto, DClauses),!.
+createdclauses(N, [Ibar|IBars], [F1-Functs|FunctsOu], [DClause|DClauses]):-
+      IBars\=[],
+       on(F-F2, Functs),
+     (mainfunc(F); F=subj),       
+     remove(F-F2, Functs, Resto),
+     N1 is N + 1,
+     createdclauses(N1, [Ibar], F2, DClause),
+     N2 is N1 + 1,
+     createdclauses(N2, IBars, Resto, DClauses),!.
+createdclauses(N, [Ibar|IBars], [[Functs|Rest]|FunctsOu], [N1-[Ibar, [Functs|Rest]]|DClauses]):-
+     N1 is N + 1,
+     createdclauses(N1, IBars, FunctsOu, DClauses),!.
+createdclauses(N, [Ibar|IBars], [[Functs|FunctsOu]|[]], [N1-[Ibar, Functs]|DClauses]):-
+     N1 is N + 1,
+     createdclauses(N1, IBars, FunctsOu, DClauses),!.
+createdclauses(N, [Ibar|IBars], [Functs|FunctsOu], [N1-[Ibar, Functs|DClauses]]):-
+     N1 is N + 1,
+     createdclauses(N1, IBars, FunctsOu, DClauses),!.
+createdclauses(N1, [], Functs, Functs):-
+      on(F-_, Functs),
+      \+ mainfunc(F),
+      !.
+createdclauses(N, [], [Functs|[]], [N-[Functs]|[]]):-!.
+
+createdclauses(N1, [], Functs, [1-[[], Functs]]):-!.
+
+disassertnets(W,Anet,Bnet,Net,A,B,N):-
+    disnets(_,_,_,_,_,Ba,N0),
+    abolish(disnets/7),
+    (atomic(B),list(Ba),append(Ba,[B],Bb)
+     ;
+     atomic(B),atomic(Ba),append([Ba],[B],Bb)
+     ;
+     atomic(Ba),Bb=[Ba-B]
+     ;
+     atomic(B),Bb=[Ba-B]
+     ;
+     Bb=B),
+    N1 is N + N0,
+    assert(disnets(W,Anet,Bnet,Net,A,Bb,N1)),!.
+   
+checkuniqq([], [], []):-!.
+checkuniqq([Word-Cat-N0|Rest], [Word-NBnets-ONet-Cat|List], [Word-Labb-ACs|Parse]):-   
+    atomic(Cat),
+    findall(Net, 
+            try_vcats(Net, 1, Ope, Cat, Lab, NoTo, Net), BNets),
+    disnets(W,Oldnets,ANets,ANet,A,B,N),
+    togli_doppi(BNets, NBnets),
+    defaultcont(Nf, W, Word, ANets, NBnets, A, [Cat], Labs, ONet, ACs),
+    (Labs=L-La, Labb=La; Labb=Labs),
+    disassertnets(Word,ANets,BNets,Net,Cat,Labb, ACs),
+   (
+    Rest=[], List=[], Parse=[],
+    !
+    ;
+    checkuniqq( Rest, List, Parse)),
+    !.
+
+checkuniqq([Word-Cats-Nn|Rest], [Word-NBnets-ONet-Cats, W-NBnets-CNet-Cs|List], [Word-C1-11, W-C3-11|Parse]):-   
+     Rest=[Cs-N0-W|Resto],
+     tramb(Cs),
+     on(AC, Cs),
+     filterB(AC),
+     \+ filtv(Cs),
+     Resto=[Css-N1-Wr|Res],
+     findall(Net, (on(Cat, Cats), 
+            try_cats(Net, 1, Ope, [Cat], Lab, NoTo, Net)), BNets),
+     disnets(PW,Oldnets,ANets,ANet,A,B,N),
+     togli_doppi(BNets, NBnets),
+     tripless(A, Css-Wr, Word, Cats, W, AC, C1, C3, ONet),
+     try_cats(AnyNet, 1, Op, [C3], Lb, NTo, CNet),
+   (
+    Res=[], List=[], Parse=[],
+    !
+    ;
+    checkuniqq(Resto, List, Parse)),
+     !.
+
+checkuniqq([Word-Cats-Nn|Rest], [Word-NBnets-ONet-Cats, W-NBnets-CNet-Cs|List], [Word-C1-11, W-C3-11|Parse]):-   
+     Rest=[Cs-N0-W|Resto],
+     tramb(Cats),
+     on(AC, Cats),
+     filterB(AC),
+     \+ filtv(Cats),
+     Resto=[Css-N1-Wr|Res],
+     findall(Net, (on(Cat, Cats), 
+            try_cats(Net, 1, Ope, [Cat], Lab, NoTo, Net)), BNets),
+     disnets(PW,Oldnets,ANets,ANet,A,B,N),
+     togli_doppi(BNets, NBnets),
+     tripless(A, Css-Wr, Word, Cats, W, Cs, C1, C3, ONet),
+     try_cats(AnyNet, 1, Op, [C3], Lb, NTo, CNet),
+   (
+    Res=[], List=[], Parse=[],
+    !
+    ;
+    checkuniqq(Resto, List, Parse)),
+     !.
+
+checkuniqq([Word-Cats-N0|Rest], [Word-NBnets-ONet-Cats, Wr-NBnets-CNet-Cs|List], [Word-Out1-11, Wr-Out2-11|Parse]):-   
+    findall(Net, (on(Cat, Cats), 
+            try_cats(Net, 1, Ope, [Cat], Lab, NoTo, Net)), BNets),
+    disnets(W,Oldnets,ANets,ANet,A,B,N),
+    togli_doppi(BNets, NBnets),
+    Rest=[Cs-N1-Wr|Res],
+    biasess(A, Word, Cats, Cs, Out1, Out2, CNet, ONet),
+    disassertnets(Word,ANets,BNets,ONet,Out2,Cs, 11),
+   (
+    Res=[], List=[], Parse=[],
+    !
+    ;
+    checkuniqq(Res, List, Parse)),
+    !.
+
+
+checkuniqq([Word-Cat-N0|Rest], [Word-NBnets-ONet-Cats|List], [Word-Labb-ACs|Parse]):-
+    atomic(Cat),
+    disnets(W,Oldnets,ANets,ANet,A,B,N),
+    W=nil, 
+    try_vcats(Net, 1, Ope, Cat, Lab, NoTo, BNets),
+    togli_doppi(BNets, NBnets),
+    defaultcont(Nf, W, Word, ANets, NBnets, A, Cats, Labs, ONet, ACs),
+    (Labs=L-La, Labb=La; Labb=Labs),
+    disassertnets(Word,ANets,BNets,ONet,Cats,Labb, ACs),
+   (
+    Rest=[], List=[], Parse=[],
+    !
+    ;
+    checkuniqq(Rest, List, Parse)),
+    !.
+
+checkuniqq([Word-Cats-N0|Rest], [Word-NBnets-ONet-Cats|List], [Word-Labb-ACs|Parse]):-
+    is_list(Cats),
+    findall(Net, (on(Cat, Cats), 
+            try_vcats(Net, 1, Ope, Cat, Lab, NoTo, Net)), BNets),
+    disnets(W,Oldnets,ANets,ANet,A,B,N),
+    togli_doppi(BNets, NBnets),
+    defaultcont(Nf, W, Word, ANets, NBnets, A, Cats, Labs, ONet, ACs),
+    (Labs=L-La, Labb=La; Labb=Labs),
+    disassertnets(Word,ANets,BNets,ONet,Cats,Labb, ACs),
+   (
+    Rest=[], List=[], Parse=[],
+    !
+    ;
+    checkuniqq(Rest, List, Parse)),
+    !.
+
+defaultcont(Nfrase, W, end_of_file, PNets, end_of_file, A, C, Lab, ONet, 0):-
+   on(PNet, PNets),
+   on(Lab, C),
+   legal_push(Lab, PNet),
+   !.
+
+defaultcont(Nfrase, nil, W, nil, PNets, nil, C, Lab, PNet, 0):-
+   on(PNet, PNets),
+   on(Lab, C),
+   legal_push(Lab, PNet),
+   !.
+
+defaultcont(Nfrase, W1, W2, Cs, PNets, A, C, L-Lab, Net, 1):-
+   biases(W2, A, C, L, Lab, Net),
+   !.
+
+defaultcont(Nfrase, W1, W2, Cs, PNets, A, C, L-Lab, Net, 1):-
+   on(Net, Cs),
+   on(Net, PNets),
+   (list(A), Aa=A; Aa=[A]),
+   try_cats(Net, 1, Ope, Aa, L, NoTo, Net),
+   on(B, C),
+   try_cats(Net, NoTo, Ope, [B], Lab, NTo, Net),
+   !.
+
+defaultcont(Nfrase, W1, W2, Cs, PNets, A, C, Lab, NNet, N):-
+   dependent(C, Lab, NNet, PNets,N),
+     !.
+
+defaultcont(Nfrase, W1, W2, Cs, PNet, A, C, Lab, ONet, 1):-
+    dsequent(SNet, NoFro, C, Lab, NoTo, ONet, ACs),
+    !.
+
+dsequent(WNet, NodeFrom, Cats, Label, NodeTo, NNet, ACats):-
+     try_cats(WNet, NodeFrom, Op, Cats, Label, NodeTo, NNet),
+     trycost(NNet, NodeTo, cat, ACats),
+     !.
+
+xbar(Label, [C], Net, Net):-
+    comp_arc(Net, NodeFrom, Op, Label, NodeTo),
+    comp_arc(Net, HNode, Op, C, NodeFrom),
+    !.
+
+xbar(Label, [C], RecNet, Net):-
+    comp_arc(Net, NodeFrom, Op, Label, NodeTo),
+    !.
+
+/*
+xbar(Label, C, RecNet, Net):-
+    Net\=RecNet,
+    !.
+*/
+
+dependent(Css, Cs, RecNet, PNets,N):-
+   PNets\=[],
+   on(Net, PNets),
+   on(Label, Css),
+   legpu(Css, Ca, RecNet),
+   on(Cs, Css),
+   xbar(Label, [Cs], RecNet, Net),
+   (
+    legalp([Net-_], RecNet,N)
+    ;
+    legaldp(Net, RecNet, DNet, Node),
+   heads(Net, Node, Label), N=1
+   ),
+   !.
+
+dependent(Css, Cs, RecNet, PNets,N):-
+   PNets\=[],
+   on(Net, PNets),
+   on(Label, Css),
+   legpu(Css, Ca, RecNet),
+   (
+    legalp([Net-_], RecNet,N)
+    ;
+    legaldp(Net, RecNet, DNet, Node),
+   heads(Net, Node, Label), N=1
+   ),
+   !.
+
+union_dependent(Css, Label, RecNet, Net):-
+   on(Label, Css),
+   legpu(Css, Ca, RecNet),
+   on(Cs, Css),
+   xbar(Label, [Cs], RecNet, Net),
+   legalp([Net-_], RecNet),
+   !.
+
+union_dependent(Css, Label, RecNet, Net):-
+   on(Label, Css),
+   legpu(Css, Ca, RecNet),
+   on(Cs, Css),
+   xbar(Label, [Cs], RecNet, Net),
+   legaldp(Net, RecNet, DNet, Node),
+   heads(Net, Node, Label),
+   !.
+
+legalp(PCats, RecNet,10):-
+   (RecNet=sn, RN=sn1;
+    RecNet=sa, RN=sa1;
+    RecNet=sa, RN=saa;
+    RecNet=sp, RN=sp1;
+    RecNet=spd, RN=spd1),
+   !,
+   (on(Net-_, PCats),
+    trycost(Net, NoTo, push, PCs),
+    on(RN-_, PCs)
+    ;
+   on(Net-_, PCats),
+   trycost(Net, NoTo, push, PCs),
+   on(NNet-_, PCs),
+   trycost(NNet, NoTo, push, PhCs),
+   on(RN-_, PhCs)
+   ).
+   
+
+legalp(PCats, RecNet,100):-
+   on(Net-_, PCats),
+   trycost(Net, NoTo, push, PCs),
+   on(RecNet-_, PCs).
+
+legalp(PCats, RecNet,1000):-
+   on(Net-_, PCats),
+   trycost(Net, NoTo, push, PCs),
+   on(NNet-_, PCs),
+   trycost(NNet, NoTo, push, PhCs),
+   on(RecNet-_, PhCs).
+
+legaldp(Net, RNet, DNet, Node):-
+   trycos(push, PCs, DNet),
+   on(RNet-_, PCs),
+   on(Net-Node, PCs).
+
+legpu(Cats, Category, RecNet):-
+     (Cats=[NCat],
+      Category=NCat
+      ;
+     on(Category, Cats)
+     ),
+   legal_push(Category, RecNet).
+
+
+chk([], L2, C1):-!.
+chk(L1, [], C1):-!.
+
+chk([C|L1], L2, C1):-
+    (remove(C-_, L2, L3),
+     chk(L1, L3, C1)
+     ;
+     C1=C),!.
+asf(Label, W, Cs, ACats, C1):-
+    asf1(Label, W, C1),
+    !.
+
+asf(Label, W, Cs, ACats, C1):-
+    member(C1, Cs),
+    asf3(W, C1),!.
+
+asfa(Label, Net, Cs, ACats, C):-
+    member(C, Cs),
+    asf2(Label, C),
+    (dsequent(WNet, NodeFrom, [C], L, NodeTo, Net, NCats),
+    on(C1-_, ACats),
+    (NCats=[];
+    on(C1-_, NCats))
+     ;
+     dependent([C], Label, RecNet, Net, 1)
+    ),
+    !.
+trycost(Net, NodeFrom, cat, Cats):-
+   findall(Label-NodeTo, arc(Net, NodeFrom, cat, Label, NodeTo), Cats).
+
+trycost(Net, NodeFrom, push, Cats):-
+   findall(Label-NodeTo, arc(Net, NodeFrom, push, Label, NodeTo), Cats).
+
+trycos(push, Cats, Net):-
+   tp_access(Net, Pts),
+   findall(Label-NodeFrom, arc(Net, NodeFrom, push, Label, NodeTo), Cats).
+
+check_cat(Cats, Cat):-
+     (Cats=[NCat],
+      Cat=NCat
+      ;
+     on(Cat, Cats)
+     ),!.
+
+
+% [agn, vppin, vppt]
+
+hoist_cat(Cats, Label):-
+   remove(virt, Cats, Ncats),
+   (Ncats\=[],
+    remove(virin, Ncats, NCats),
+    (NCats\=[],
+     on(Label, NCats)
+     ;
+     on(Label, Ncats))
+    ;
+    on(Label, Cats)),
+   !.
+
+%     asf1(Cs,Word,Cat),
+%     sequent(WNet, NodeFrom, [Cat], Label, NodeTo, NNet, ACats)
+% here Cs is a recorded cat and Cat is simply inherited
+
+/*where A contains tags belonging to Tleft and B to Tagcurrent*/
+
+biases(Word, A, C1, art, C, sn):-
+      on(C, C1),
+      (C=n;C=nf;C=nt;C=np;C=nh;C=npro),
+      A=[art, clitac],!.
+
+biases(Word, A, B, A1, C1, NNet):-
+    nonvar(A), nonvar(B),
+    (
+     nogen_member(A1, A),
+     asf1(A1,Word,C1),
+     nogen_member(C1, B),
+     ( 
+      try_cats(WNet, 1, Op, [A1], Lab, NoTo, NNet),
+      dsequent(NNet, Node, [C1], Label, NodeTo, NNet, ACats)
+      ;
+      dsequent(WNet, Node, [C1], Label, NodeTo, NNet, ACats))
+     ;
+     nogen_member(A1, A),
+     nogen_member(C1, B),
+     asf2(A1,C1),
+     try_cats(WNet, 1, Op, [C1], Label, NodeTo, NNet)
+     ), !.
+
+/* where A contains TagLeft, C contains TagRight and B current Tag
+   B1 is the chosen tag for B and SCats-->C1 is the chosen tag for C*/
+
+filterB(in).
+filterB(avv).
+filterB(cong).
+filterB(congf).
+
+collnets([], [], []):-!.
+collnets([Cat|Cats], [Rnet|RecNets], [Label-NodeTo|Bs]):-
+     try_cats(Net, NodeFrom, Op, [Cat], Label, NodeTo, Net),
+     Op1=cat,
+     trycost(Net, NodeTo, Op1, Catss),
+     Op2=push,
+     trycost(Net, NodeTo, Op2, Pushs),
+     append([Label-cat-Catss], [Label-push-Pushs], Rnet),
+     collnets(Cats, RecNets, Bs),!.
+  
+checknets(Bs, [Cnets|Nets], RecNet, Cats, A, B):-
+     Cnets\=[],
+     on(A-NodeTo, Bs),
+     on(B, Cats),
+     on(A-cat-Nts, Cnets),
+     on(B-Node, Nts),
+     \+ filterB(B),
+     collnets([B], RecNets, Bss),
+     RecNets=[PNets],
+     PNets\=[],
+     on(B-push-Net, PNets),
+     on(RecNet-Nod, Net),
+     !.
+   
+checknets(Bs, [Cnets|Nets], RecNet, Cats, A, B):-
+     Cnets\=[],
+     on(A-NodeTo, Bs),
+     on(B, Cats),
+     on(A-cat-Nts, Cnets),
+     on(B-Node, Nts),
+     \+ filterB(B),
+     Nets=[PNets],
+     PNets\=[],
+     on(B-push-Net, PNets),
+     on(RecNet-Nod, Net),
+     !.
+     
+checknets(Bs, [_|Pnets], RecNet, Cats, A, B):-
+     Pnets=[PNets],
+     PNets\=[],
+     on(A-NodeTo, Bs),
+     on(A-push-Nets, PNets),
+     legpu(Cats, B, RecNet),
+     on(RecNet-Node, Nets),
+     !.
+
+crea_fines(N, Pos) :-
+  !,
+  wkill(N),
+  wcreate(N, 0, 40, Pos, 400, 500, 1),
+  wfont(N, 'Monaco', 0, 12).
+
+crea_fin(N) :-
+  !,
+  wkill(N),
+  wcreate(N, 0, 40, 10, 400, 500, 1),
+  wfont(N, 'Monaco', 0, 12).
+
+
+write_title(4, Window):-
+   write(Window, '   DISAMBIGUATED TOKENS   ').
+
+write_title(3, Window):-
+write(Window, '   BRACKETED PARSE   ').
+
+write_title(2, Window):-
+write(Window, '   FUNCTIONAL STRUCTURES   ').
+
+write_title(1, Window):-
+write(Window, '   DISAMBIGUATED TOKENS   ').
+
+creadisambswin(Window, N):-
+   (N=1, Pos=10; N=2, Pos=60; N=3, Pos=100; N=4, Pos=150),
+   crea_fines(Window, Pos),
+   wfront(Window),
+   wscroll(Window),
+   write(Window, '##########################'),
+   write_title(N, Window),
+   writenl(Window, '############################'),
+   !.
+
+closedisambswin(Window):-!.
+closedisambswin(Window):-
+   nl(Window),
+   writenl(Window, '##################################################################################'),
+   !.
+
+nm(cento,5,100).
+nm(cent,4,100).
+nm(cinque,6,5).
+nm(cinqu,5,5).
+nm(cinquanta,9,50).
+nm(quattrocento,12,400).
+nm(trecento,8,300).
+nm(duecento,8,200).
+nm(seicento,8,600).
+nm(settecento,10,700).
+nm(ottocento,9,800).
+nm(novecento,9,900).
+nm(cinquecento,11,500).
+nm(cinquant,8,50).
+nm(diciotto,8,18).
+nm(dician,6,10).
+nm(dicias,6,10).
+%nm(dici,4,10).
+nm(dieci,5,10).
+nm(diciotto,8,18).
+nm(diciott,7,18).
+nm(dodici,6,12).
+nm(dodic,5,12).
+nm(due,3,2).
+nm(du,2,2).
+nm(enne,4,s).
+nm(enni,4,p).
+nm(esimo,5,ord).
+nm(esima,5,ord).
+nm(esimi,5,ord).
+nm(esime,5,ord).
+nm(mila,4,1000).
+nm(miliardi,8,1000000000).
+nm(miliardo,8,1000000000).
+nm(miliard,7,1000000000).
+nm(milione,7,1000000).
+nm(milion,6,1000000).
+nm(milioni,7,1000000).
+nm(mille,5,1000).
+nm(mill,4,1000).
+nm(novanta,7,90).
+nm(novant,6,90).
+nm(nove,4,9).
+nm(nov,3,9).
+nm(ottanta,7,80).
+nm(ottant,6,80).
+nm(otto,4,8).
+nm(ott,3,8).
+nm(quaranta,8,40).
+nm(quarant,7,40).
+nm(quattor,7,4).
+nm(quattordici,11,14).
+nm(quattordic,10,14).
+nm(quattro,7,4).
+nm(quattr,6,4).
+nm(quindici,8,15).
+nm(quindic,7,15).
+nm(sedici,6,16).
+nm(sedic,6,16).
+nm(sei,3,6).
+nm(sessanta,8,60).
+nm(sessant,7,60).
+nm(sette,5,7).
+nm(sett,4,7).
+nm(settanta,8,70).
+nm(settant,7,70).
+nm(tre,3,3).
+nm(tredici,7,13).
+nm(tredic,6,13).
+nm(trenta,6,30).
+nm(trent,5,30).
+nm(uno,3,1).
+nm(un,2,1).
+nm(undici,6,11).
+nm(undic,5,11).
+nm(venti,5,20).
+nm(vent,4,20).
+
+/* Cats contiene le cat di Tag1 e NNet la rete assegnata 
+ viene calcolata Net sulla base di C e di NNet*/
+
+/*
+[ag, vcl]
+[ag, n, vcl, vppt, agn]
+[ag, n, vcl]
+[n, vc, vcl, vppin]
+[n, vcl]
+[n, vcl, vppt, agn]
+[n, vcl, vppin, vppt]
+[vcl, vppt]
+[vcl, vppt, agn]
+[ag, intj, n, vbt]
+*/
+
+
+tramb([ausa, vc]).
+tramb([ause, vc]).
+tramb([ag, vppt, vt]).
+tramb([vin, vppin, vppt, vt]).
+tramb([vin, vppin, vppt, vq, vt]).
+tramb([pk, rel]).
+tramb([pk, avv, cong, deit, dim, rel]).
+tramb([avv, cong, deit, dim, rel]).
+tramb([cong, pk, pron, q, rel]).
+/*[n, vt], C, FC*/
+
+namb([ag, n]).
+
+vamb([cong, pk, pron, q, rel]).
+vamb([ag, pron]).
+vamb([ausd, v]).
+vamb([avv, in]).
+vamb([ccom, cong]).
+vamb([ccom, p]).
+vamb([cosu, p]).
+vamb([expl, avv]).
+vamb([avv, nt]).
+vamb([ausd, v]).
+vamb([ausei, vci]).
+vamb([ag, pk, pron]).
+vamb([pk, rel]).
+vamb([in, q]).
+vamb([int, rel]).
+vamb([int, rel, relin]).
+vamb([inta, intj, intn, q]).
+vamb([n, vc]).
+vamb([n, vt]).
+vamb([n, vin]).
+vamb([n, vbt, vt]).
+vamb([n, vin, vbin]).
+vamb([vbin, vbt, vin, vt]).
+vamb([vbin, vin]).
+vamb([n, vt, vbt]).
+vamb([vbt, vt]).
+vamb([vppt, vt]).
+vamb([vppt, vq, vt]).
+vamb([v, vppt, vt]).
+vamb([v, vppin, vin]).
+vamb([vppin, vin]).
+vamb([vppin, vppt]).
+vamb([virt, vppt]).
+vamb([virin, virt, vt]).
+vamb([vin, vt]).
+vamb([avv, p]).
+vamb([vin, vsup]).
+vamb([vin, vprog]).
+vamb([vin, vprog, vt]).
+vamb([v, vgin, vgt, vprt]).
+vamb([vgin, vgt, vprt]).
+vamb([v, vprt]).
+vamb([v, vgt, vprt]).
+vamb([vbt, vppt, vt]).
+vamb([vbt, vbin]).
+vamb([n, vc, vin, vt]).
+vamb([np, vin, vt]).
+vamb([n, vbin, vbt]).
+vamb([n, vbt]).
+vamb([n, vgt, vprt]).
+vamb([ag, avv, n, p, vbt]).
+vamb([avv, cong, deit, dim, rel]).
+vamb([p, pt]).
+vamb([ag, n]).
+vamb([ag, n, p, vgt]).
+vamb([ag, n, vbt]).
+vamb([n, vgc, vgin, vgt]).
+vamb([n, vgs, vsup]).
+vamb([n, vppt, agn]).
+vamb([n, vppin, agn]).
+vamb([n, vin, vt]).
+vamb([n, vbin]).
+vamb([ag, avv, p]).
+vamb([vin, vppin, vppt, vt]).
+vamb([vin, vppin, vppt, vq, vt]).
+vamb([n, vin, vppin, vppt, vt]).
+vamb([n, vppt, vt]).
+vamb([in, poss, pron]).
+vamb([n, vsup]).
+vamb([ag, vppt, vt]).
+vamb([pron, qp]).
+vamb([avv, qc]).
+vamb([avv, n, pron]).
+vamb([p, in]).
+vamb([avv, p]).
+vamb([avv, p, grad]).
+vamb([avv, ccom, int]).
+vamb([avv, int, intj, rel]).
+vamb([ausei, n, vc]).
+vamb([ause, vc]).
+vamb([ause, vc, vci]).
+vamb([ause, vc, vppt]).
+vamb([ause, vc, vin, vt]).
+vamb([ausa, vc]).
+vamb([ausa, vc, vci]).
+vamb([nf, vgs, vsup]).
+vamb([art, clitac]).
+vamb([agn, vppin, vppt]).
+vamb([ag, n|_]).
+vamb([ag, avv, cong, n, p, vbt]).
+vamb([ag, avv, p, phl, vbin, vbt]).
+vamb([ag, vin, vppin, vppt, vt]).
+vamb([ag, avv, n, vbin, vbt]).
+vamb([ag, n, vbin, vbt]).
+vamb([ag, n, vbt, vt]).
+vamb([ag, vgin, vgt, vprt]).
+vamb([n, vbin, vbt, vppin, vppt|_]).
+vamb([n, vbt, vin, vppin, vppt, vt]).
+vamb([vbin, vbt, vin, vppc, vppin, vppt, vt]).
+vamb([vbin, vin, vppin, vppt]).
+vamb([vbin, vbt, vin, vppin, vppt, vt]).
+vamb([v, vin, vppt, vt]).
+vamb([n, vgin, vgt, vprt]).
+vamb([n, vbt, vppt]).
+vamb([n, vbt, vppt, vt]).
+vamb([vppt,vt]).
+vamb([vin, vppc, vppin, vppt, vt]).
+vamb([avv, cong, ext, intj]).
+
+asff(Label, W, Cs, C1):-
+    member(C1, Cs),
+    asf3(Label, C1),!.
+
+asf1(_, spesso, avv).
+asf1(cong, chi, relin).
+asf1(pd, chi, relin).
+asf1(pda, chi, relin).
+asf1(p, chi, relin).
+asf1(pd, cui, relob).
+asf1(pda, cui, relob).
+asf1(p, cui, relob).
+asf1(n, di,pd).
+asf1(n, dei,partd).
+asf1(n, dagli,partda).
+asf1(n, e,cong).
+asf1(art, di,pd).
+asf1(art, dei,partd).
+asf1(num, di,pd).
+asf1(num, dei,partd).
+asf1(punt, dei,partd).
+asf1(punt, dai,partda).
+asf1(ag, di,pd).
+asf1(p, la,art).
+asf1(pd, tipo,n).
+asf1(cong, di,pd).
+asf1(cong, dei,partd).
+asf1(_, e, cong).
+asf1(_, i, art).
+asf1(_, un, art).
+asf1(n, la,clit).
+asf1(n, lo,clit).
+asf1(n, le,clit).
+asf1(part, quale,rel).
+asf1(partd, quale,rel).
+asf1(n, sia, cong).
+asf1(n, che, rel).
+
+asf2(relob,art).
+asf2(relob,n).
+asf2(relin,vt).
+asf2(ag,n).
+asf2(ausa, vppt).
+asf2(ausei, vppt).
+asf2(n,ag).
+asf2(n,punt).
+asf2(php,partd).
+asf2(partd,n).
+asf2(partda,n).
+asf2(qd,n).
+asf2(ccom,art).
+asf2(cosu,art).
+asf2(cosu,clitac).
+%asf2(clitdat,clitac).
+asf2(dim,ag).
+asf2(dim,n).
+asf2(vt, art).
+asf2(vit, art).
+asf2(vt, vit).
+asf2(vc, art).
+asf2(vc, ag).
+asf2(vc, in).
+asf2(n, rel).
+asf2(n, vppt).
+asf2(vppin,part).
+asf2(vppin,p).
+asf2(vppt,partda).
+asf2(vppt,p).
+asf2(vppt,n).
+asf2(vppt,art).
+asf2(vppt,agn).
+asf2(nt, avvl).
+asf2(n, vt).
+asf2(clit, vt).
+asf2(un, art).
+asf2(dalla, partda).
+asf2(vsupp, vit).
+asf2(vsupp, viin).
+asf2(pt, vit).
+asf2(pt, viin).
+asf2(pt, vc).
+asf2(p, vit).
+asf2(p, viin).
+
+asf3(art, n).
+asf3(p,n).
+asf3(p, art).
+%asf3(clit, vc).
+asf3(un, art).
+asf3(dalla, partda).
+asf3(e, cong).
+
+pmf(ibar).
+pmf(ir_infl).
+
+prf([vppin, vppt|_], [vppt]).
+prf([virin, virt, vt], [vt]).
+prf([viin, vit|_], [vit]).
+prf([vin, vt|_], [vt]).
+prf(Cats, [C]):-
+   on(vppt, Cats), C=vppt; on(vt, Cats), C=vt; on(vit, Cats), C=vit.
+prf(C, C).
+
+filtv(Cs):-
+    on(vit, Cs);on(vt, Cs);on(vppt, Cs);
+    on(viin, Cs);on(vin, Cs);on(vppin, Cs),!.
+
+tripless(A, C3-W3, W1, C1, W2, C2, Out1, Out2, RecNet):- 
+    C1=[avv, cong, deit, dim, rel],
+    select_that(A, W2, C2, Out1, Out2),
+    try_cats(WNet, N, Op, [Out1], Label, NodTo, RecNet),
+    !.
+
+tripless(A, C3-W3, W1, C1, W2, C2, Out1, Out3, RecNet):- 
+    biasesss(W3, C1, C3, Out1, Out3, RecNet, RecNet),
+    !.
+
+biasesss(Word, B, Cats, B1, C1, RecNet, RecNet):-
+    tramb(B),
+    collnets(B, RecNets, Bs),
+    prf(Cats, C),
+    checknets(Bs, RecNets, RecNet, C, B1, C1),
+    !.
+
+biasess(A, Word, B, C, B1, C1, CNet, NNet):-
+    excep(Word, Cn),
+    vamb(B),
+    (
+     (list(A), Aa=A; atomic(A), Aa=[A]),
+     vinc(Word, B, Aa, C, B1, SCats),
+     (
+     try_cats(WNet, N, Op, [B1], Label, NodTo, NNet),
+     (list(SCats), on(C1, SCats),
+      QNet=NNet, NodeTo=NodTo
+      ;
+      atomic(SCats), C1=SCats,
+      (QNet=NNet, NodeTo=NodTo; true)),
+      ( 
+       try_cats(QNet, NodeTo, Opc, [C1], CLabel, NoTo, CNet)
+        ;
+       try_cats(Net, NodeT, Opc, [C1], CLabel, NoTo, CNet))
+       ;
+      (atomic(SCats), Cc=[SCats]
+       ;
+       list(SCats), Cc=SCats),
+      try_cats(ONet, NoFro, Op, Cc, C1, NodTo, CNet),
+      dependent([B1], Lab, NNet, CNet, 1)
+      )
+      ),
+     !.
+
+biasess(A, Word, B, C, B1, C1, CNet, NNet):-
+     C\=[p,pt],
+     C\=[avv, cong, deit, dim, rel],
+     vamb(B),
+     vamb(C),
+     (list(A), Aa=A; atomic(A), Aa=[A]),
+     vinc(Word, B, Aa, C, B1, SCats),
+     try_cats(WNet, N, Op, [B1], Label, NodTo, NNet),
+     (atomic(SCats), C1=SCats,
+      QNet=NNet, NodeTo=NodTo,
+      (try_cats(QNet, NodeTo, Opc, [C1], CLabel, NoTo, CNet)
+        ;
+        dependent([C1], Lab, QNet, [CNet], 1)
+        )
+      ;
+      vinc(Word, C, [B1], [], Cc, []),
+      (atomic(Cc), C2=[Cc]
+       ;
+       list(Cc), C2=Cc),
+      try_cats(ONet, NoFro, Opp, C2, C1, NodT, CNet),
+      legalp([NNet-_], CNet, Nval)
+      ),
+     !.
+
+biasess(A, Word, B, C, B1, C1, CNet, NNet):-
+    vamb(B),
+    (
+     (list(A), Aa=A; atomic(A), Aa=[A]),
+     vinc(Word, B, Aa, C, B1, SCats),
+     (
+     try_cats(WNet, N, Op, [B1], Label, NodTo, NNet),
+     (list(SCats), on(C1, SCats),
+      QNet=NNet, NodeTo=NodTo
+      ;
+      atomic(SCats), C1=SCats,
+      (QNet=NNet, NodeTo=NodTo; true)),
+      try_cats(QNet, NodeTo, Opc, [C1], CLabel, NoTo, CNet)
+       ;
+      (atomic(SCats), Cc=[SCats]
+       ;
+       list(SCats), Cc=SCats),
+      try_cats(ONet, NoFro, Op, Cc, C1, NodTo, CNet),
+      dependent([B1], Lab, NNet, [CNet], 1)
+       ;
+      (atomic(SCats), Cc=[SCats]
+       ;
+       list(SCats), Cc=SCats),
+      try_cats(WNet, N, Op, [B1], Label, NodTo, NNet),
+      try_cats(ONet, NoFro, Opp, Cc, C1, NodT, CNet),
+      legalp([NNet-_], CNet, Nval)
+      )
+      ),
+     !.
+
+triples(NFile, File, Word, B, W, A, LW, C1, RecNet):- 
+    read(NFile, Strn),
+    (Strn=end_of_file,
+     !
+     ;
+     Strn=tl(LW,Cats,NLems),
+    biases2(NFile, Word, B, Cats, B1, C1, RecNet, RecNet),
+    writelemcats(File, B1-RecNet-Word, Lems),
+    writelemcats(File, A-RecNet-W, Lems)),
+    !.
+ 
+biases2(NFile, Word, B, Cats, B1, C1, RecNet, RecNet):-
+    tramb(B),
+    collnets(B, RecNets, Bs),
+    prf(Cats, C),
+    checknets(Bs, RecNets, RecNet, C, B1, C1),
+    !.
+
+biases2(NFile, Word, B, Cats, B1, C1, RecNet, RecNet):-
+    tramb(B),
+    collnets(B, RecNets, Bs),
+    prf(Cats, C),
+    checknets(Bs, RecNets, RecNet, C, B1, C1),
+    !.
+
+biases2(NFile, Word, B, C, B1, C1, CNet, NNet):-
+    vamb(B),
+    (
+     vinc(Word, B, A, C, B1, SCats),
+     (
+      (D=[]; D=nil; on(B1-N, D)),
+     (N=1;true),
+     try_cats(WNet, N, Op, [B1], Label, NodTo, NNet),
+     (list(SCats), on(C1, SCats);atomic(SCats), C1=SCats),
+      (QNet=NNet, NodeTo=NodTo; true),
+      try_cats(QNet, NodeTo, Opc, [C1], CLabel, NoTo, CNet)
+       ;
+      (atomic(SCats), Cc=[SCats];list(SCats), Cc=SCats),
+      try_cats(ONet, NoFro, Op, Cc, C1, NodTo, CNet),
+      dependent([B1], Lab, NNet, CNet, 1)
+      )
+      ),
+     !.

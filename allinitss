@@ -1,0 +1,3871 @@
+:- style_check(-singleton).
+
+/* developing set for sentipolc */
+sentreadinput(File,Statt):-
+    consult(File),
+    allsentsent(All,Evals),
+    mcon(File,'_',Ou),
+    mcon(Ou,out,Out),
+    tell(Out),
+    dialogcalls(File,All,Sents,Data,NewDats,NoFrs),
+    checkeval(Evals,Sents,Data,NewDats,Output,Outs),
+%    newcheckeval(Evals,Sents,Data,NewDats,Output,Outs),
+    sommatstats(NoFrs,Output,Statt),
+    nl,nl,
+    writeouts(Outs),nl,nl,
+%    newwriteouts(Outs),nl,nl,
+    write(Statt),nl,nl,
+    told,
+    !.
+/* testset  for sentipolc */
+newsentreadinput(File,Outs):-
+    consult(File),
+    allsentsent(All,Evals),
+    mcon(File,'_',Ou),
+    mcon(Ou,out,Out),
+    tell(Out),
+    dialogcalls(File,All,Sents,Data,NewDats,NoFrs),
+    newcheckeval(Evals,Sents,Data,NewDats,Output,Outs),
+    told,
+    tell(data),
+    newwriteouts(Outs),nl,nl,
+    told,
+    !.
+
+newcheckeval([],[],[],[],[],[]):-!.
+newcheckeval([Ind-Inds|Evals],[Id-Sent|All],[Data|RestData],[RefPas|NewDats],[Eval|Rest],[Ind-Output|Outs]):-
+    newevalsubjneg(Inds,Id-Sent,Data,RefPas,Eval,Output),
+    newcheckeval(Evals,All,RestData,NewDats,Rest,Outs),
+    !.
+newevalsubjneg(Inds,Id-Sent,Data,[Ref|Pas],Eval,Ind):-
+    Pas\=[],
+    checkpassems(Pas,Sent,Index),
+    concentrateindexes(Data,Index,Inds,Indd),
+    insertironic(Sent,Indd,Ind),
+    !.
+newevalsubjneg(Inds,Id-Sent,Data,Refs,Eval,Ind):-
+    (Data=..[sempro,Pol,POV,DAct,Diat,Args],
+     Args=[Verbs,SemsAll]
+     ;
+      Data=..[sempro,Pol,POV,DAct,Diat,Verbs,SemsAll]),
+    member(N-Sems,SemsAll),
+    (member(polsem=negative,Sems),Neg=1;Neg=0),
+      absolutepositives(Sent,PosW),
+      (PosW\=[],Pos=1;PosW=[],Pos=0),
+    (member(factive=Factive,Sems),
+     (Factive=nonfactive,Iron=1;Factive=factive,Iron=0)
+     ;
+     Factive=nonfactive,Iron=1),
+    member(view=View,Sems),
+    (member(change=Change,Sems),
+     View=external,Change=null,Factive=nonfactive,Subj=1
+     ;
+     View=external,Change=gradual,Factive=nonfactive,Subj=1
+     ;
+     exaggerationone(Sent),Subj=1
+     ;
+     View=external,Subj=0
+     ;
+     View\=external,Subj=1),
+    Inds=[_,_,_,_,Top],
+    Index=[Id-[Subj,Pos,Neg,Iron,Top]],
+    insertironic(Sent,Index,Ind),
+    !.
+newevalsubjneg(Inds,Id-Sent,Data,Pas,[N-[0, 0, 0, 1, 0]-1],[N-[0, 0, 0, 0, 0]]):-
+    !.
+
+writeouts([]):-!.
+writeouts([Out|Outs]):-
+    write(Out),nl,
+    writeouts(Outs),
+    !.
+newwriteouts([]):-!.
+newwriteouts([Ind-Eval|Outs]):-
+    write('"'),write(Ind),write('"'),write(','),
+    Eval=[N-Ev],
+    Ev=[Sub,Pos,Neg,Iro,Top],
+    write('"'),write(Sub),write('"'),write(','),
+    write('"'),write(Pos),write('"'),write(','),
+    write('"'),write(Neg),write('"'),write(','),
+    write('"'),write(Iro),write('"'),write(','),
+    write('"'),write(Top),write('"'),
+    nl,
+    newwriteouts(Outs),
+    !.
+    
+sommatstats(NoFrs,Output,Percents):-
+    countallops(Output,S,P,N,I,Tot),
+    sommatoria(S,TotS),
+    sommatoria(P,TotP),
+    sommatoria(N,TotN),
+    sommatoria(I,TotI),
+    sommatoria(Tot,Tots),
+    PerS is TotS / NoFrs,
+    PerP is TotP / NoFrs,
+    PerN is TotN / NoFrs,
+    PerI is TotI / NoFrs,
+    TotVal is NoFrs * 4,
+    Perc is Tots / TotVal,
+    Percent is Perc * 100,
+    Percents=[PerS,PerP,PerN,PerI,Percent],
+    !.
+
+countallops([],[],[],[],[],[]):-!.
+countallops([[N-[Subj,Pos,Neg,Iron,Top]-Tot]|Output],[Subj|Sbs],[Pos|Pss],[Neg|Ngs],[Iron|Irs],[Tot|Rest]):-
+    countallops(Output,Sbs,Pss,Ngs,Irs,Rest),
+    !.
+
+checkeval([],[],[],[],[],[]):-!.
+checkeval([Ind-Inds|Evals],[Id-Sent|All],[Data|RestData],[RefPas|NewDats],[Eval|Rest],[Ind-Output|Outs]):-
+    evalsubjneg(Inds,Id-Sent,Data,RefPas,Eval,Output),
+    checkeval(Evals,All,RestData,NewDats,Rest,Outs),
+    !.
+evalsubjneg(Inds,Id-Sent,Data,[Ref|Pas],Eval,Ind):-
+    Pas\=[],
+    checkpassems(Pas,Sent,Index),
+    concentrateindexes(Data,Index,Inds,Indd),
+    insertironic(Sent,Indd,Ind),
+    evalindex(Inds,Ind,Eval),
+    !.
+evalsubjneg(Inds,Id-Sent,Data,Refs,Eval,Ind):-
+    (Data=..[sempro,Pol,POV,DAct,Diat,Args],
+     Args=[Verbs,SemsAll]
+     ;
+      Data=..[sempro,Pol,POV,DAct,Diat,Verbs,SemsAll]),
+    member(N-Sems,SemsAll),
+    (member(polsem=negative,Sems),Neg=1;Neg=0),
+      absolutepositives(Sent,PosW),
+      (PosW\=[],Pos=1;PosW=[],Pos=0),
+    (member(factive=Factive,Sems),
+    (Factive=nonfactive,Iron=1;Factive=factive,Iron=0)
+     ;
+     Factive=nonfactive,Iron=1),
+    member(view=View,Sems),
+    (member(change=Change,Sems),
+     View=external,Change=null,Factive=nonfactive,Subj=1
+     ;
+     View=external,Change=gradual,Factive=nonfactive,Subj=1
+     ;
+     exaggerationone(Sent),Subj=1
+     ;
+     View=external,Subj=0
+     ;
+     View\=external,Subj=1),
+    Index=[Id-[Subj,Pos,Neg,Iron,Top]],
+    Inds=[_,_,_,_,Top],
+    insertironic(Sent,Index,Ind),
+    evalindex(Inds,Ind,Eval),
+    !.
+evalsubjneg(Inds,Id-Sent,Data,Pas,[N-[0, 0, 0, 1, 0]-1],[0, 0, 0, 1, 0]):-
+    !.
+
+absolutepositives([],[]):-!.
+absolutepositives([I|Lemmed],[Pos|Rest]):-
+    (I=..[i,Ind,W,Cat,Lem-F|_],atomic(Lem);
+    I=..[i,Ind,W,Cat,Lem|_],atomic(Lem)),
+    (
+    accept(W);
+    evids(W);
+    positivecomment(Poss),member(W,Poss);
+    certainavv(Avvs),member(W,Avvs);
+    nsww(Postv),member(W,Postv),Pol=pos),
+%    pos_creare(Creare),member(Lem,Creare);
+%    check_itallex(Lem,Pol),Pol=pos),
+    absolutepositives(Lemmed,Rest),
+    !.
+absolutepositives([I|Lemmed],Rest):-
+    absolutepositives(Lemmed,Rest),
+    !.
+
+absolutenegatives([],[]):-!.
+absolutenegatives([I|Lemmed],[Pol|Rest]):-
+    (I=..[i,Ind,W,Cat,Lem-F|_],atomic(Lem);
+    I=..[i,Ind,W,Cat,Lem|_],atomic(Lem)),
+    (negazione(Lem),Pol=neg;
+      (nclp(Lem,Pol,Fea);check_itallex(Lem,Pol)),
+       Pol=neg;
+       swr(SW),(member(W,SW);member(Lem,SW));
+       swrw(SW),(member(W,SW);member(Lem,SW))
+       ),
+    absolutenegatives(Lemmed,Rest),
+    !.
+absolutenegatives([I|Lemmed],Rest):-
+    absolutenegatives(Lemmed,Rest),
+    !.
+
+serchswrw([],[]):-!.
+serchswrw([I|Lemmed],[Pol|Rest]):-
+       (swr(SW),(member(W,SW);member(Lem,SW));
+       swrw(SW),(member(W,SW);member(Lem,SW))
+       ),
+    serchswrw(Lemmed,Rest),
+    !.
+serchswrw([I|Lemmed],Rest):-
+    serchswrw(Lemmed,Rest),
+    !.
+           
+concentrateindexes(Data,Index,Inds,Ind):-
+    (Data=..[sempro,Pol,POV,DAct,Diat,Args],
+     Args=[Verbs,SemsAll]
+     ;
+      Data=..[sempro,Pol,POV,DAct,Diat,Verbs,SemsAll]),
+    member(N-Sems,SemsAll),
+    (member(polsem=negative,Sems),Pol1=neg;Pol1=Pol),
+    length(Index,L),
+    createindex(L,Pol1,Index,Inds,Ind),
+    !.
+
+createindex(1,Pol,Index,Inds,Ind):-
+    Inds=[_,_,_,_,E],
+    (Pol=neg,
+     (Index=[N-[A,B,1,D,E]],
+       Ind=[N-[A,B,1,D,E]]
+      ;
+      Index=[N-[A,B,C,D,E]],
+       Ind=[N-[A,0,1,D,E]])
+      ;
+      Pol=pos,
+      Index=[N-[A,B,C,D,E]],
+      Ind=Index),
+    !.
+createindex(L,Pol,Index,Inds,Ind):-
+    1 < L,
+    Inds=[_,_,_,_,E],
+    findall(Neg,member(_-[A,B,1,C,D],Index),Negs),
+    findall(Sub,member(_-[1,B,E,C,D],Index),Subs),
+     Index=[N-[A,B,C,D,E]|_],
+     length(Negs,L1),
+     length(Subs,L2),
+    (Negs=[],Subs=[],Pol=pos,
+     Ind=[N-[A,B,0,D,E]]
+     ;
+     Negs=[],Subs=[],Pol=neg,
+     Ind=[N-[A,B,1,D,E]]
+     ;
+     Negs=[],Subs\=[],Pol=pos,
+     Ind=[N-[1,B,0,D,E]]
+     ;
+     Negs=[],Subs\=[],Pol=neg,
+     Ind=[N-[1,B,1,D,E]]
+     ;
+     Negs\=[],Subs\=[],
+     L1=1,2<L2,C=0,
+     Index=[_,_-[1,_,1,_,_]|_],
+     Ind=[N-[1,B,0,D,E]]
+     ;
+     Negs\=[],Subs\=[],
+     Ind=[N-[1,B,1,D,E]]
+     ;
+     Negs\=[],Subs=[],
+     Ind=[N-[0,B,1,D,E]]
+     ;
+     Negs=[],Subs\=[],
+     Ind=[N-[1,B,C,D,E]]
+     ;
+     Ind=[N-[A,B,C,D,E]]),
+     !.    
+
+exaggerationone(Sent):-
+   (reverse(Sent,[Last|Rev]);
+   reverse(Sent,[_,Last|Rev]);
+    member(Last,Sent)),
+   Last=..[i,Id,W,Cat|_],
+   (Cat=intj;select_punct(W,_)),
+   stringof(List,W),
+   (member(h,List),(member(a,List);member(e,List))
+             ;
+      is_list(Cat),(Cat=[intj];Cat=[dots])
+      ;
+      atomic(Cat),(Cat=intj;Cat=dots)
+     ),
+   !.
+exaggeration(Sent):-
+   (reverse(Sent,[Last|Rev]);
+   reverse(Sent,[_,Last|Rev]);
+    member(Last,Sent)),
+   Last=..[i,Id,W,Cat|_],
+   Cat=intj,
+   stringof(List,W),
+   (member(h,List),
+    (member(a,List);member(e,List))
+      ;
+      is_list(Cat),(Cat=[intj];Cat=[dots])
+      ;
+      atomic(Cat),(Cat=intj;Cat=dots)
+      ),
+      !.
+exaggeration(Sent):-
+    serchswrw(Sent,Rest),
+    Rest\=[],
+      !.
+checkverifysems([],[]):-!.
+checkverifysems([I|Lemmed],Rest):-
+   I=..[i,Id,W,Cat,Lem-Fea],
+   fct(W),
+    checkverifysems(Lemmed,Rest),
+    !.
+checkverifysems([I|Lemmed],[A|Rest]):-
+   I=..[i,Id,W,Cat,Lem-Fea],
+       checksemwn(W,Lem,Sems),
+       Sems=[A,B],
+       is_list(A),
+     (member(person,A);
+      matchfeatspolt(A)),
+    checkverifysems(Lemmed,Rest),
+    !.
+checkverifysems([I|Lemmed],Rest):-
+    checkverifysems(Lemmed,Rest),
+    !.
+
+matchfeatspolt(A):-
+     A=[agnt,cmm,cse,mnt,nbde,odrn,prpt,purp,soc]
+     ;
+     A=[_,_,agnt,cmm,cse,mnt,nbde,odrn,prpt,purp,soc]
+     ;
+     A=[_,_,_,agnt,cmm,cse,mnt,nbde,odrn,prpt,purp,soc],
+     !.
+     
+% nclp(politica,neu,[agnt,cmm,cse,mnt,nbde,odrn,prpt,purp,soc]).
+% nclp(imposta_ipotecaria,neg,[ecnm]).
+
+
+% try to look for alterations: diminutives majoratives etc.
+% search for opposites
+% search for frozen phrases (secondo me, secondo voi; non si preoccupi... bombe nduja; genio geniale; nano nanico; Pensa se...; Vero...?; bicicletta...pedalare; nevica; Messia)
+% search for ingressives (mi sono accorto che) + negatives
+% spero negativo + opaque, ma + positivo - paura + amore nonfactives sia
+
+% insertironic([N-[1,Pos,Neg,1,Top]],[N-[1,Pos,Neg,1,Top]]):-!.
+% insertironic([N-[0,Pos,Neg,1,Top]],[N-[0,Pos,Neg,0,Top]]):-!.
+% insertironic([N-[1,Pos,1,1,Top]],[N-[1,Pos,Neg,1,Top]]):-!.
+% insertironic([N-[0,1,Neg,1,Top]],[N-[0,Pos,Neg,0,Top]]):-!.
+% insertironic([N-[Sub,Pos,Neg,Iro,Top]],[N-[Sub,Pos,Neg,Iro,Top]]):-!.
+
+/*
+insertironic(Sent,[N-[1,Pos,1,1,Top]],[N-[1,Pos,1,1,Top]]):-
+   verifypositives(Sent,Poss),
+   Poss\=[],
+   exaggeration(Sent),
+   !.
+
+insertironic(Sent,[N-[1,1,0,0,Top]],[N-[1,1,0,1,Top]]):-
+   verifypositives(Sent,Poss),
+   Poss\=[],
+   !.
+insertironic(Sent,[N-[0,0,1,0,Top]],[N-[0,0,1,1,Top]]):-
+    absolutenegatives(Sent,Rest),
+   Rest\=[],
+    !.
+insertironic(Sent,[N-[1,0,1,0,Top]],[N-[1,0,1,1,Top]]):-
+    absolutenegatives(Sent,Rest),
+   Rest\=[],
+    !.
+insertironic(Sent,[N-[0,0,0,0,Top]],[N-[0,1,0,1,Top]]):-
+    absolutepositives(Sent,Rest),
+    Rest\=[],
+   !.
+insertironic(Sent,[N-[Sub,Pos,Neg,Iro,Top]],[N-[Sub,Pos,Neg,1,Top]]):-
+     searchalterations(Sent,Poss),
+   Poss\=[],
+   !.
+*/
+
+/*
+insertironic(Sent,[N-[1,0,0,0,Top]],[N-[1,0,1,1,Top]]):-
+    serchswrw(Lemmed,Rest),
+    Rest\=[],
+   !.
+
+insertironic(Sent,[N-[1,0,0,0,Top]],[N-[1,0,0,1,Top]]):-
+   exaggerationone(Sent),
+   !.
+
+insertironic(Sent,[N-[0,1,0,0,Top]],[N-[1,1,0,1,Top]]):-
+   verifypositives(Sent,Poss),
+%    absolutepositives(Sent,Rest),
+   Poss\=[],
+   !.
+insertironic(Sent,[N-[1,Pos,1,1,Top]],[N-[1,Pos,1,1,Top]]):-
+   verifypositives(Sent,Poss),
+%    absolutepositives(Sent,Rest),
+   Poss\=[],
+%   exaggeration(Sent),
+   !.
+insertironic(Sent,[N-[1,Pos,Neg,Iro,Top]],[N-[1,1,Neg,1,Top]]):-
+   verifypositives(Sent,Poss),
+%    absolutepositives(Sent,Rest),
+   Poss\=[],
+%   exaggeration(Sent),
+   !.
+ irony when a public person is commented with swearwords or laughs
+insertironic(Sent,[N-[Sub,0,0,0,Top]],[N-[1,0,1,1,Top]]):-
+   exaggeration(Sent),
+   checkverifysems(Sent,Rest),
+    Rest\=[],
+   !.
+
+ irony when strongly positive/negative words are used together with swearwords or laughs
+insertironic(Sent,[N-[Sub,Pos,Neg,Iron,Top]],[N-[1,Pos,1,1,Top]]):-
+   (absolutepositives(Sent,Rest);
+     absolutenegatives(Sent,Rest)),
+%   verifypositives(Sent,Poss),
+   Rest\=[],
+   exaggeration(Sent),
+   !.
+insertironic(Sent,[N-[1,0,Neg,0,Top]],[N-[1,0,1,1,Top]]):-
+    serchswrw(Sent,Rest),
+    Rest\=[],
+   !.
+insertironic(Sent,[N-[0,Pos,1,Iro,Top]],[N-[1,0,1,1,Top]]):-
+   absolutepositives(Sent,Rest), Rest\=[],
+   absolutenegatives(Sent,Rest1), Rest1\=[],
+   searchalterations(Sent,Poss),
+   Poss\=[],
+   !.
+ 
+% irony when negation and the use of alterations like IDEONA 
+% irony when strongly positive/negative words are used together with swearwords or laughs
+insertironic(Sent,[N-[1,Pos,Neg,Iron,Top]],[N-[1,0,1,1,Top]]):-
+   absolutepositives(Sent,Rest), Rest\=[],
+   absolutenegatives(Sent,Rest1), Rest1\=[],
+   (searchalterations(Sent,Rests);
+    serchswrw(Sent,Rests)),
+    Rests\=[],
+%   verifypositives(Sent,Poss),
+%   exaggeration(Sent),
+   !.
+insertironic(Sent,[N-[1,0,Neg,0,Top]],[N-[1,0,1,1,Top]]):-
+   (reverse(Sent,[Last|Rev]);
+   reverse(Sent,[_,Last|Rev])),
+%    member(Last,Sent)),
+   Last=..[i,Id,W,Cat|_],
+   Cat=intj,
+   stringof(List,W),
+   member(h,List),(member(a,List);member(e,List)),
+    member(Last1,Sent),Last1\=Last,
+    Last1=..[i,Id1,W1,Cat1|_],
+    (W1='...'
+      ;
+      W1='....'
+      ;
+      W1='?'
+      ;
+      W1='!'
+     ),
+    !.    
+insertironic(Sent,[N-[Sub,Pos,Neg,Iro,Top]],[N-[1,0,1,1,Top]]):-
+   exaggeration(Sent),
+   checkverifysems(Sent,Rest),
+    Rest\=[],
+   !.
+insertironic(Sent,[N-[Sub,0,Neg,Iron,Top]],[N-[1,1,Neg,Iron,Top]]):-
+   (reverse(Sent,[Last|Rev]);
+   reverse(Sent,[_,Last|Rev])),
+%    member(Last,Sent)),
+   Last=..[i,Id,W,Cat|_],
+   Cat=intj,
+   stringof(List,W),
+   member(h,List),(member(a,List);member(e,List)),
+    member(Last1,Rev),Last1\=Last,
+    Last1=..[i,Id1,W1,Cat1|_],
+    (W1='?'
+      ;
+      W1='!'
+     ),
+   !.
+% irony when a public person is commented with swearwords or laughs
+insertironic(Sent,[N-[1,Pos,Neg,Iron,Top]],[N-[1,0,1,1,Top]]):-
+    serchswrw(Sent,Rest),
+    Rest\=[],
+   checkverifysems(Sent,Rests),
+    Rests\=[],
+   !.
+*/
+insertironic(Sent,[N-[Sub,Pos,Neg,Iro,Top]],[N-[Sub1,Pos1,Neg1,Iro1,Top]]):-
+   checkpossiblecomb([Sub,Pos,Neg,Iro],[Sub1,Pos1,Neg1,Iro1]),
+   !.
+% insertironic(Sent,[N-[Sub,Pos,Neg,Iro,Top]],[N-[Sub,Pos,Neg,Iro,Top]]):-!.
+
+/* allowable combinations
+0,0,0,0
+1,0,0,0
+1,1,0,0
+1,0,1,0
+1,1,1,0
+1,1,0,1
+1,0,1,1
+*/
+
+checkpossiblecomb([0,1,1,1],[0,0,0,0]):-!.
+checkpossiblecomb([0,1,0,1],[0,0,0,0]):-!.
+checkpossiblecomb([1,1,1,1],[1,0,0,0]):-!.
+checkpossiblecomb([0,0,0,1],[0,0,0,0]):-!.
+checkpossiblecomb([0,0,1,1],[0,0,0,0]):-!.
+checkpossiblecomb([1,0,0,1],[1,0,0,0]):-!.
+checkpossiblecomb([Sub,Pos,Neg,Iro],[Sub,Pos,Neg,Iro]):-!.
+
+% impossible combinations: 0,1,1,1 - 1,1,1,1 - 0,0,1,1 - 0,0,0,1 - 1,0,0,1 - 0,1,0,1
+
+searchalterations([],[]):-!.
+searchalterations([I|Sent],[Pos|Poss]):-
+    I=..[i,Ind,W,Cat,Lem-F|_],atomic(Lem),
+    (member(suff=Suff,F)
+      ;
+      member(deg=Suff,F)
+      ;
+      analtoken(W,F),
+      (member(suff=Suff,F);
+      member(deg=Suff,F))
+      ),
+      \+nogen_member(cat=verb,F),
+      \+upgetlem(W,Cat,Lem),
+      Pol=pos,
+     searchalterations(Sent,Poss),
+     !.
+searchalterations([I|Sent],Poss):-
+     searchalterations(Sent,Poss),
+     !.
+
+verifypositives([],[]):-!.
+verifypositives([I|Sent],[Pos|Poss]):-
+    (I=..[i,Ind,W,Cat,Lem-F|_],atomic(Lem);
+    I=..[i,Ind,W,Cat,Lem|_],atomic(Lem)),
+    (pos_creare(Creare),member(Lem,Creare),Pol=pos;
+     check_itallex(Lem,Pol),Pol=pos),
+     verifypositives(Sent,Poss),
+     !.
+verifypositives([I|Sent],Poss):-
+     verifypositives(Sent,Poss),
+     !.
+
+evalindex(Index,[N-Inds|Rest],[N-[Subj,Pos,Neg,Iro,Top]-Tot]):-
+    Index=[A,B,C,D,E],
+    evalspn(A,B,C,D,E,Inds,[Subj,Pos,Neg,Iro,Top],Tot),
+    !.
+evalspn(A,B,C,D,E,[A,B,C,D|_],[1,1,1,1,E],4).
+evalspn(A,B,C,D,E,[A,B,C,_|_],[1,1,1,0,E],3).
+evalspn(A,B,C,D,E,[A,B,_,D|_],[1,1,0,1,E],3).
+evalspn(A,B,C,D,E,[A,_,C,D|_],[1,0,1,1,E],3).
+evalspn(A,B,C,D,E,[_,B,C,D|_],[0,1,1,1,E],3).
+evalspn(A,B,C,D,E,[A,B,_,_|_],[1,1,0,0,E],2).
+evalspn(A,B,C,D,E,[A,_,C,_|_],[1,0,1,0,E],2).
+evalspn(A,B,C,D,E,[A,_,_,D|_],[1,0,0,1,E],2).
+evalspn(A,B,C,D,E,[_,B,C,_|_],[0,1,1,0,E],2).
+evalspn(A,B,C,D,E,[_,B,_,D|_],[0,1,0,1,E],2).
+evalspn(A,B,C,D,E,[_,_,C,D|_],[0,0,1,1,E],2).
+evalspn(A,B,C,D,E,[A,_,_,_|_],[1,0,0,0,E],1).
+evalspn(A,B,C,D,E,[_,B,_,_|_],[0,1,0,0,E],1).
+evalspn(A,B,C,D,E,[_,_,C,_|_],[0,0,1,0,E],1).
+evalspn(A,B,C,D,E,[_,_,_,D|_],[0,0,0,1,E],1).
+evalspn(A,B,C,D,E,[X,_,_,_|_],[0,0,0,0,E],0).
+
+%  subj	pos	neg	iro	top
+
+checkpassems([],Lemmed,[]):-!.
+checkpassems([Pas|Rest],Lemmed,[Id-[Subj,Pos,Neg,Iron,Top]|Index]):-
+    Pas=..[pas,Id,VerbRefs,_-Sems],
+    (member(polsem=negative,Sems),Neg=1;Neg=0),
+      absolutepositives(Lemmed,PosW),
+      (PosW\=[],Pos=1;PosW=[],Pos=0),
+      member(factive=Factive,Sems),
+    (Factive=nonfactive,Iron=1;Factive=factive,Iron=0),
+    member(view=View,Sems),
+    (member(change=Change,Sems),
+     View=external,Change=null,Factive=nonfactive,Subj=1
+     ;
+     View=external,Change=gradual,Factive=nonfactive,Subj=1
+     ;
+     exaggerationone(Lemmed),Subj=1
+     ;
+     View=external,Subj=0
+     ;
+     View\=external,Subj=1),
+    checkpassems(Rest,Lemmed,Index),
+    !.
+
+sentnewtager(N,[],[],[]):-!.
+sentnewtager(Id,[Ind-Tokens|Sents],[Ind-Id|Inds],[Id-Sent|Fps]):-
+   init,
+   concat_atom(Words,' ',Tokens),
+   itmults(Words,Sent,Mults),
+   Id1 is Id + 1,
+   sentnewtager(Id1,Sents,Inds,Fps),
+   !.
+sentnewtagers(SentData,Sents,Inds):-
+   sentnewtager(1,SentData,Inds,Sents),
+   sentmemorize(Sents),
+   !.   
+
+sentmemorize([]):-!.
+sentmemorize([Id-Outs|Sents]):-
+   asserta(fp(Id,Outs)),
+   sentmemorize(Sents),
+   !.
+
+allsentsent(All,Evals):-
+    findall(Ind-Sent, twt(Ind,Eval,Sent), All),
+    findall(Ind-Eval, twt(Ind,Eval,Sent), Evals),
+    !.
+
+dialogcalls(Input,SentData,Files,Data,EntsPass,NoFrs):-
+   inittagnew,
+   abolish(speaker/2),
+   asserta(speaker(nil,nil)),
+   sentnewtagers(SentData,Sents,Inds),
+   length(Inds,NoFrs),
+%   lengthtexttoks(LenToks),
+   dialtagg(Inds,Outs,File,Logs,Funcs),
+   appiattisci(File,Files),
+   diacreaterefexss(Outs,Logs,Files,Funcs,RefList,Data,NVerbs,EntsPass,Deps),
+%   computeandcount(Input,NoFrs,LenToks,Files,RefList,Data,NVerbs,NewDats),
+   !.
+
+dialtagg([],[],[],[],[]):-!.
+dialtagg([_-Ind|Inds],[Ind-ToLog|Outalls],[Ind-Tagged|File],[Ind-Fras|Logs],[Ind-Funcs|Funs]):-
+   initchunks,
+   write(Ind),nl,
+   taggerparse(Ind,ToLog,Tagged,Fras),
+   collectfuncsems(Funcs),
+   dialtagg(Inds,Outalls,File,Logs,Funs),
+   !.
+dialtagg([Ind|Inds],Outalls,File, Logs,Funs):-
+   dialtagg(Inds,Outalls,File,Logs,Funs),
+   !.
+
+taggerparse(Ind,ToLog,Tagged,Fras):-
+   fp(Ind,Frase),
+   dialttagtext(Ind,1,Frase,Outs),
+   disambs(Outs,Frase1),
+   cleantags1(Outs,Frase1,Fras),
+   convlemm1(1,Fras,Tagged),
+   assertfrasecorr2(Frase,Ind),
+   shallowparsing(Fras,Out,ToLog),
+   !.
+
+/*
+writetelllogs(Input,Logs,File,Files):-
+   mcon(Input,'_',Ou),
+   mcon(Ou,out,Out),
+   tell(Out),
+   writeouttagged(Logs),
+   told,
+   getffilename(Input,Sent),
+   tell(Sent),
+   appiattisci(File,Files),
+   write_banneropxml,nl,
+   !.
+*/
+
+multsreadinputisdt(File):-
+    consult(File),
+%    allsents(All),
+    turnallsents(All),
+    turnparsisdtsents(All,Outs,Multt),
+%    testparsisdtsents(All,Outs,Multt),
+    appiattisci(Multt,Mults),
+    writemults(Mults),
+    !.
+writemults(Mults):-
+    tell(mults),
+    writeallmults(Mults),
+    told,
+    !.
+
+writeallmults([]):-!.
+writeallmults([Mult-L-Ws|Mults]):-
+    write(mult(Mult,L,Ws)),dot,
+    writeallmults(Mults),
+    !.
+writeallmults([Mult|Mults]):-
+    writeallmults(Mults),
+    !.
+
+
+/* calls for dpie */  
+readinputisdt(File,Statt):-
+    consult(File),
+%    allsents(All),
+    turnallsents(All),
+    parseallisdt(All,Lemmed,Tagged,CostPars,ParseFuncs,Funcs,Words,Stats,Mults),
+    assert(speaker(0,nil)),
+    mcon(File,'_',Fil),
+    mcon(Fil,out,FileOut),
+    tell(FileOut),
+   inittagnew,
+   abolish(speaker/2),
+   asserta(speaker(nil,nil)),
+    evalitacreatedeps(CostPars,Tagged,Lemmed,ParseFuncs,Deps),
+    told,
+    statcheckdepsfuncss(Mults,Words,Funcs,Deps,Stat),
+    append(Stats,Stat,Statt),
+    !.
+
+testreadinputisdt(File,Out):-
+    consult(File),
+    testallsents(All),
+    testparseallisdt(All,Lemmed,Tagged,CostPars,ParseFuncs,Words,Stats,Mults),
+    assert(speaker(0,nil)),
+    mcon(File,'_',Fil),
+    mcon(Fil,out,FileOut),
+    tell(FileOut),
+   inittagnew,
+   abolish(speaker/2),
+   asserta(speaker(nil,nil)),
+    evalitacreatedeps(CostPars,Tagged,Lemmed,ParseFuncs,Deps),
+    told,
+    convertdepsfuncss(Mults,Words,Deps,Out),
+    tell(final),
+    writefinalout(Out),
+    told,
+    !.
+
+writefinalout([]):-!.
+writefinalout([Sent|Out]):-
+    writefinout(Sent),nl,nl,
+    writefinalout(Out),
+    !.
+
+writefinout([]):-!.
+writefinout([A-B-C-D|Sent]):-
+   write(C),write(','),write(D),nl,
+   writefinout(Sent),
+   !.
+
+convertdepsfuncss(Mults,Words,Deps,Out):-
+    recoverrestruct(Mults,Words,NewWords),
+    convdepsfun(NewWords,Deps,Outs),
+    finalconvmults(Mults,Outs,Outt),
+    insertmultsdep(Outt,Out1),
+    verifyoutput(Out1,Out),
+    !.
+
+verifyoutput(Out1,Anomal):-
+    extractallnomalies(Out1,Out1,Anomal),
+    !.
+
+extractallnomalies([],[],[]):-!.
+extractallnomalies([Sent|Out1],[Sent|Out1],[Anomal|Anomalies]):-
+    extractanomalies(Sent,Sent,Anomal),
+    extractallnomalies(Out1,Out1,Anomalies),
+    !.
+    
+searchback(Out1,I,pobj,Ind):-
+    (Ind is I - 1;Ind is I - 2;Ind is I - 3),
+    member(Ind-W-D-F,Out1),
+    F=prep,
+    !.
+searchback(Out1,I,conj,Ind):-
+    (Ind is I - 1;Ind is I - 2;Ind is I - 3),
+    member(Ind-W-D-F,Out1),
+    F=cc,
+    !.
+searchback(Out1,I,attr,Ind):-
+    Ind is I - 1,
+    !.
+extractanomalies(Out1,[],[]):-!.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-F|Anomal]):-
+    var(D),F=amod,
+    De is I + 1,
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-F|Anomal]):-
+    (var(D);D=nil),
+    (F=appos;F=attr),
+    searchback(Out1,I,Fu,De),
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-F|Anomal]):-
+    D=nil,F=vmod,
+    De is I - 1,
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-F|Anomal]):-
+    D=nil,F=nil,
+    integer(W),
+    De is I + 1,
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-poss|Anomal]):-
+    D=nil,F=nil,
+    uneag(W, adj_pos),
+    member(De-W1-Dep-Fu,Rest),
+    (Fu=appos;Fu=nsubj;Fu=dobj;Fu=pobj),
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-F|Anomal]):-
+    var(D), De is I - 1,
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-F|Anomal]):-
+    atomic(D), \+integer(D),
+    De is I - 1,
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-F|Anomal]):-
+    is_list(D), F=aux,
+    De is I + 1,
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-De-F|Anomal]):-
+    is_list(D), F=vmod,
+    De is I - 2,
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+extractanomalies(Out1,[I-W-D-F|Rest],[I-W-D-F|Anomal]):-
+    extractanomalies(Out1,Rest,Anomal),
+    !.
+
+
+insertmultsdep([],[]):-!.
+insertmultsdep([Sent|Outt],[NewSent|Out]):-
+    checksentmultdep(Sent,NewSent),
+    insertmultsdep(Outt,Out),
+    !.
+
+checksentmultdep([],[]):-!.
+checksentmultdep([List-D-F|Sent],NewSents):-
+    computemultdep(List,D,F,Out),
+    checksentmultdep(Sent,NewSent),
+    append(Out,NewSent,NewSents),
+    !.
+checksentmultdep([N-W-D-F|Sent],[N-W-D-F|NewSent]):-
+    checksentmultdep(Sent,NewSent),
+    !.
+
+computemultdep([N-W-Le-Ca-Fe|List],D,F,[N-W-De-F|Out]):-
+    nouncats(Ca),atomic(W),integer(N),
+    (D=nil,De is N - 1;D\=nil,De=D),
+    computelistmults(N,List,Out),
+    !.
+computemultdep([N-W-Le-Ca-Fe|List],D,F,[N-W-De-Fe|Out]):-
+    (allpreps(Ca);preposcats(W,Ca)),
+    (D=nil,De is N - 1;D\=nil,De=D),
+    computelistmults(N,List,Out),
+    !.
+computemultdep([N-W-Le-Ca-Fe|List],D,F,[N-W-De-Fe|Out]):-
+    (Ca=av;Ca=avv;Ca=avvl),
+    (D=nil,De is N - 1;D\=nil,De=D),
+    computelistmults(N,List,Out),
+    !.
+computemultdep([N-W-Le-Ca-Fe|List],D,F,[N-W-D-F|Out]):-
+    computelistmults(N,List,Out),
+    !.
+
+computelistmults(N,[],[]):-!.
+computelistmults(N,[N1-W-Le-Cat-Fe|List],[N1-W-N-prep|Out]):-
+    (allpreps(Cat);preposcats(W,Cat)),
+    computelistmults(N1,List,Out),
+    !.
+computelistmults(N,[N1-W-Le-Cat-Fe|List],[N1-W-N2-nnp|Out]):-
+    (Cat=nh;Cat=np),
+    if_first_name(W),
+    N2 is N + 1,
+    computelistmults(N1,List,Out),
+    !.
+computelistmults(N,[N1-W-Le-Cat-Fe|List],[N1-W-N-nnp|Out]):-
+    (Cat=nh;Cat=np),    
+    computelistmults(N1,List,Out),
+    !.
+computelistmults(N,[N1-W-Le-Cat-Fe|List],[N1-W-N-pobj|Out]):-
+    nouncats(Cat),
+    computelistmults(N1,List,Out),
+    !.
+computelistmults(N,[N1-W-Le-Cat-Fe|List],[N1-W-N-amod|Out]):-
+    Cat=ag,
+    computelistmults(N1,List,Out),
+    !.
+computelistmults(N,[N1-W-Le-Cat-Fe|List],[N1-W-N-poss|Out]):-
+    Cat=poss,
+    computelistmults(N1,List,Out),
+    !.
+computelistmults(N,[N1-W-Le-Cat-Fe|List],[N1-W-N-vmod|Out]):-
+    Cat=v,
+    computelistmults(N1,List,Out),
+    !.
+computelistmults(N,[N1-W-Le-Cat-Fe|List],[N1-W-N-Fun|Out]):-
+    matchfundep(W,[Cat|[]],Fun),
+    computelistmults(N1,List,Out),
+    !.
+
+
+finalconvmults([],[],[]):-!.
+finalconvmults([[]|Mults],[Word|Words],[Word|NewWords]):-
+    finalconvmults(Mults,Words,NewWords),
+    !.
+finalconvmults([Mult|Mults],[Word|Words],[NewW|NewWords]):-
+    fselectmultword(Mult,Word,NewW),
+    finalconvmults(Mults,Words,NewWords),
+    !.
+
+fselectmultword([],[],[]):-!.
+fselectmultword([W-N-Deps|Mult],[N1-W-Dep-Fu|Word],NewWs):-
+    fselectwordsm(N,Deps,Words),
+    fselectmultword(Mult,Word,NewW),
+    append([Words-Dep-Fu],NewW,NewWs),
+    !.
+fselectmultword([W1-Deps|Mult],[N1-W-Dep-Fu|Word],[N1-W-Dep-Fu|NewW]):-
+    fselectmultword([W1-Deps|Mult],Word,NewW),
+    !.
+fselectmultword([],[N1-W-Dep-Fu|Word],[N1-W-Dep-Fu|NewW]):-
+    fselectmultword([],Word,NewW),
+    !.
+
+fselectwordsm(0,[],[]):-!.
+fselectwordsm(N,[Nn-W-L-C-F|Deps],[Nn-W-L-C-F|Words]):-
+    N1 is N - 1,
+    fselectwordsm(N1,Deps,Words),
+    !.
+
+
+convdepsfun(Words,[],[]):-!.
+convdepsfun(Words,[Deps|Sents],[NewDeps|Diffuns]):-
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    convdepsfun(Words,Sents,Diffuns),
+    !.
+convdepsfun(Words,Sents,Diffuns):-
+    Sents=[First,Sec|_],
+    write(First),write(Sec),nl,nl,
+    convdepsfun(Words,Sents,Diffuns),
+    !.
+
+
+statcheckdepsfuncss(Mults,Words,Funcs,Deps,Stats):-
+    recoverrestruct(Mults,Words,NewWords),
+    checkdepsfuncss(NewWords,Funcs,Deps,Diffs,DifInds,Deffuns),
+    getstatsfinal(NewWords,Diffs,DifInds,Deffuns,Stats),
+    !.
+
+recoverrestruct([],[],[]):-!.
+recoverrestruct([[]|Mults],[Ind-Word|Words],[Ind-Word|NewWords]):-
+    recoverrestruct(Mults,Words,NewWords),
+    !.
+recoverrestruct([Mult|Mults],[Ind-Word|Words],[Ind-NewW|NewWords]):-
+    selectmultword(Mult,Word,NewW),
+    recoverrestruct(Mults,Words,NewWords),
+    !.
+recoverrestruct([Mult|Mults],[Ind-Word|Words],[Ind-Word|NewWords]):-
+    recoverrestruct(Mults,Words,NewWords),
+    !.
+
+selectmultword([],[],[]):-!.
+selectmultword([W-N-Deps|Mult],[W|Word],NewWs):-
+    selectwordsm(N,Deps,Words),
+    selectmultword(Mult,Word,NewW),
+    append(Words,NewW,NewWs),
+    !.
+selectmultword([W1-Deps|Mult],[W|Word],[W|NewW]):-
+    selectmultword([W1-Deps|Mult],Word,NewW),
+    !.
+selectmultword([],[W|Word],[W|NewW]):-
+    selectmultword([],Word,NewW),
+    !.
+
+selectwordsm(0,[],[]):-!.
+selectwordsm(N,[Nn-W-L-C-E-D-Cde|Deps],[W|Words]):-
+    N1 is N - 1,
+    selectwordsm(N1,Deps,Words),
+    !.
+selectwordsm(N,[Nn-W-L-C-F|Deps],[W|Words]):-
+    N1 is N - 1,
+    selectwordsm(N1,Deps,Words),
+    !.
+
+     
+getstatsfinal(Words,Diffs,DifInds,Deffuns,[Stat1,Stat2,Stat3]):-
+    appiattisci(Diffs,Diff1),
+    cutpuncts(Diff1,Diff),
+    length(Diff,L),
+    findall(Sent,(member(N-Sent,Words),
+                  asserta(fp(N,Sent))
+                   ),Sents),
+    appiattisci(Sents,SentsC),length(SentsC,Lw),
+    Stat is L / Lw, Stat1 is Stat * 100,
+    write(Stat1),nl,nl,
+    appiattisci(DifInds,Difind1),
+    cutpuncts(Difind1,Difind),
+    length(Difind,L1),
+    Stats is L1 / Lw, Stat2 is Stats * 100,
+    write(Stat2),nl,nl,
+    appiattisci(Deffuns,Deffun1),
+    cutpuncts(Deffun1,Deffun),
+    length(Deffun,L2),
+    Statss is L2 / Lw, Stat3 is Statss * 100,
+    write(Stat3),nl,nl,
+    !.
+
+cutpuncts([],[]):-!.
+cutpuncts([_-Punct-_-_-_-_|Diff1],Diff):-
+    select_punct(Punct,_),
+    cutpuncts(Diff1,Diff),
+    !.
+cutpuncts([A|Diff1],[A|Diff]):-
+    cutpuncts(Diff1,Diff),
+    !.
+
+setnewword(N,Word1,[I|Deps],[Word1|Deps]):-
+    I=..[i,N,W,Ca|Res], 
+    !.
+setnewword(N,Word1,[I|Deps],[I|DepsRest]):-
+    setnewword(N,Word1,Deps,DepsRest),
+    !.
+    
+wrapdepsfuncs(Words,[],[]):-!.
+wrapdepsfuncs(Words,[I|Deps],NewDeps):-
+    I=..[refex,N,pro|Res], 
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],NewDeps):-
+    I=..[i,N,pro|Res], 
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],NewDeps):-
+    I=..[i,N,expl_pro|Res], 
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+/*
+wrapdepsfuncs([I|Deps],[N-W-Dep1-Fun|NewDeps]):-
+    I=..[i,N,W,Ca|Res], 
+    preposcats(W,Ca),
+    reverse(Res,[-,Dep|_]),
+    member(Word,Deps),
+    Word=..[i,Dep,Wo|Ress], 
+    (reverse(Ress,[Fun/Rol,Dep1|U]),W\=ag;
+      reverse(Ress,[Sems,Dep1|U]),
+       is_list(Sems)),
+    remove(Word,Deps,Depss),
+    Ress1=[Fun/Rol,N|U],
+    Word1=..[i,Dep,Wo|Ress1],
+    setnewword(Dep,Word1,Deps,DepsRest),
+    wrapdepsfuncs(DepsRest,NewDeps),
+    !.    
+*/
+wrapdepsfuncs(Words,[I|Deps],[N1-W-Dep-Fun|NewDeps]):-
+      I=..[i,N-_,Clit,W|Res],
+      c_case(W,Cas), N1 is N+1,
+    reverse(Res,[Fu/Rol,Dep|Ress]),
+    (W=ne,Fun=advmod;
+     Fu=obl,Fun=pobj;
+     Fu=iobj,Fun=pobj;
+     Fu=pcomp,Fun=advmod;
+     Fu=obj,Fun=dobj),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+      I=..[i,N,W,poss|Res],Fun=poss,
+    reverse(Res,[_,Dep|Ress]),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+      I=..[i,N,W,pt|Res],Fun=aux,
+    reverse(Res,[_,Dep|Ress]),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+    I=..[i,N,W,ag|Res],
+    (reverse(Res,[Fu/Rol,Dep|Ress]),nonvar(Fu),
+     (Fu/Rol=mod/S, var(S),Fun=attr;Fu/Rol=mod/specif,Fun=amod;
+       Fu/Rol=mod/adj,Fun=amod;Fu/Rol=xcomp/adj,Fun=acomp;
+       Fu/Rol=xcomp/prop,Fun=acomp;Fu/Rol=xadj/R,Fun=amod)
+       ;
+       (reverse(Res,[-,Dep|Ress]),nonvar(Dep),integer(Dep)
+       ;
+       reverse(Res,[-,Feat,Dep|Ress]),nonvar(Dep),integer(Dep)
+        ),
+        Fun=amod),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+      I=..[i,N,W,n|Res],
+    reverse(Res,[Fu/Rol,Dep|Ress]),nonvar(Fu),
+    (Fu/Rol=mod/S, var(S),Fun=attr;Fu/Rol=mod/specif,Fun=pobj;
+       Fu/Rol=mod/adj,Fun=pobj;Fu/Rol=xcomp/_,Fun=dobj),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+      I=..[i,N,W,Ca|Res], 
+      (Ca=clit,(W=c;W='C_';W=c_),Fun=expl;
+       Ca=clit,Fun=prt;
+       Ca=neg,Fun=neg;Ca=avv,Fun=advmod;Ca=avvl,Fun=advmod),      
+    reverse(Res,[_,Dep|Ress]),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-prep|NewDeps]):-
+      I=..[i,N,W,Ca|Res], 
+     (allpreps(Ca);
+      preposcats(W,Ca)),
+    (reverse(Res,[_,Dep|Ress]),nonvar(Dep),integer(Dep)
+       ;
+       reverse(Res,[-,Feat,Dep|Ress]),nonvar(Dep),integer(Dep)),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-aux|NewDeps]):-
+      I=..[i,N,W,Ca|Res], 
+     (allpreps(Ca);
+      preposcats(W,Ca)),
+      Deps=[First|_],
+      First=..[i,N1,W1,Cat|_],
+      check_vcat(Cat),
+    (reverse(Res,[_,Dep|Ress]),nonvar(Dep),integer(Dep)
+       ;
+       reverse(Res,[-,Feat,Dep|Ress]),nonvar(Dep),integer(Dep)),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fu|NewDeps]):-
+    I=..[i,N,W,Ca|Res],
+    reverse(Res,[Fun,Dep|Ress]),
+    (Ca=num,Fu=num;Ca=cong,(Fu='-',Fun=cc;Fu\='-',Fu=Fun)
+      ),
+    nonvar(Dep),integer(Dep),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-N1-Fu|NewDeps]):-
+    I=..[i,N,W,Ca,LemFe],
+    (Ca=cong,Fu=cc,N1 is N - 1;
+     Ca=art,Fu=det, N1 is N + 1),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+    I=..[i,N,W,Ca,Lem,sn,Sem|Res],
+    Ca=nh, 
+    (Sem=[umano];Sem=[mfeats=Fea];Sem=[sems=propr|_]),
+    Fun=nnp, 
+    reverse(Res,[mod/_,Dep|Ress]),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+      I=..[i,N,W,Ca|Res], 
+      Ca\=clit,Ca\=v,Ca\=neg,Ca\=avv,
+       Ca\=q,Ca\=dim,
+    reverse(Res,[Fu/Rol,Dep|Ress]),
+    nonvar(Fu), Dep\=0,
+    (Fu=obl,Fun=pobj;
+     Fu=spec,Fun=pobj;
+     Fu=xadj,Fun=advmod;
+     Fu=pcomp,Fun=advmod;
+     Fu=mod,Fun=amod;
+     Fu=appos,Fun=amod;
+     Fu=obj,Fun=dobj;
+     Fu=subjpass,Fun=nsubjpass;
+     Fu=subj,Fun=nsubj),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+      I=..[i,N,W,Ca|Res], nouncats(Ca),
+    reverse(Res,[Fu/Rol,Dep|Ress]),
+    nonvar(Fu),
+    Fu=xcomp, Fun=attr,
+%    Fun=dobj,
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+    I=..[i,N,W,Ca|Res],
+    check_vcat(Ca),
+    (reverse(Res,[Fu,-,Dep,Sems|Ress]);
+      reverse(Res,[Fu,Dep,Sems|Ress])
+      ),
+      nonvar(Fu),Fu\='-',\+is_list(Fu),
+      (Fu=Fun/_;Fu=Fun),
+      integer(Dep),
+    is_list(Sems),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-nil-Fun|NewDeps]):-
+    I=..[i,N,Cat,W-Lem,Fea,Sems], 
+    is_list(Sems),check_vcat(Cat),
+    (\+ checkfeatstensed(Fea),Fun=vmod;Fun=ccomp),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-Dep-Fun|NewDeps]):-
+    I=..[i,N,W|Res], 
+    (reverse(Res,[-,Dep|_]),Dep\=0,\+is_list(Dep),matchfundep(W,Res,Fun)
+      ;
+      reverse(Res,[W,Dep|_]),matchfundep(W,Res,Fun)
+       ;
+      reverse(Res,[Fun/Rol,Dep|_]),W\=ag,Dep\=0,nonvar(Fun)
+       ;
+      reverse(Res,[Fu/Rol,Dep|_]),nonvar(Dep),Dep=0,Fun='ROOT'
+       ;
+      (reverse(Res,[-,Dep,Sems,Feat|Ress]),is_list(Sems);
+       reverse(Res,[-,Sems,Dep,Feat|Ress]),is_list(Sems);
+       reverse(Res,[Sems,Dep,Feat|Ress]),is_list(Sems)
+       ),
+       is_list(Sems),\+check_vcat(W),
+       (nonvar(Dep),Dep=0,Fun='ROOT'
+         ;
+         var(Dep), (matchfundep(W,Res,Fun) ; Fun=conj)
+         ;
+         nonvar(Dep), nonvar(Feat),
+         member(mfeats=Fe,Feat),mfs(Fe,participio_passato),
+         Fun=vmod
+         ;
+         nonvar(Dep), nonvar(Feat),
+         member(mfeats=Fe,Feat),mfs(Fe,infinito),
+         Fun=xcomp
+         ;
+         chooseparatipotax(Dep,Words,Fun))
+         ;
+         Res=[Cat|_],
+         nonvar(Dep),var(Sems),check_vcat(Cat),
+         chooseparatipotax(Dep,Words,Fun)
+         ;
+         Res=[Cat|_],\+check_vcat(W),
+         matchfundep(W,Res,Fun),Dep=nil
+         ;
+      Fun=nil,Dep=nil
+      ),
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-nil-nil|NewDeps]):-
+    I=..[i,N,W|Res], 
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+wrapdepsfuncs(Words,[I|Deps],[N-W-nil-nil|NewDeps]):-
+    I=..[refex,N,W|Res], 
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    !.    
+    
+chooseparatipotax(Dep,Words,Para):-
+        findall(N1,(
+                member(i(N1,Che,Ca,LemFeat),Words),(Ca=pk;Ca=congf;Ca=cosu)
+                ;
+                member(i(N1,P,[dirs],-),Words)
+                ;
+                member(i(N1,Che,Ca,Lem,Feat,_,Dep,-),Words),(Ca=pk;Ca=cosu;Ca=congf)
+                ;
+                member(i(N1,Che,Ca,Lem,Lem-Feat,Dep,-),Words),(Ca=pk;Ca=cosu;Ca=congf)
+               ),
+                Puns),
+          findall(N1,member(i(N1,P,[punt],-),Words),Punss),
+        (nonvar(Dep),
+         (Puns\=[],
+          Para=ccomp
+          ;
+          Puns=[], 
+          Punss\=[],
+          Para=parataxis)
+           ;
+          var(Dep),
+          (Puns\=[],
+           Para=ccomp
+           ;
+           (Puns=[]; 
+            Punss=[]),
+           Para=parataxis)
+           ;
+           Para=conj),
+           !.
+
+matchfundep(W,Res,predet):-
+  W=tutto;W=tutta;W=tutti;W=tutte.
+matchfundep(W,[clit|Res],prt).
+matchfundep(W,[art|Res],det).
+matchfundep(W,[dim|Res],det).
+matchfundep(W,[ind|Res],det).
+matchfundep(W,[n|Res],appos).
+matchfundep(W,[nh|Res],nnp).
+matchfundep(W,[np|Res],appos).
+matchfundep(W,[npro|Res],appos).
+matchfundep(W,[cong|Res],cc).
+matchfundep(W,[conjl|Res],cc).
+matchfundep(W,[cosu|Res],mark).
+matchfundep(W,[cosul|Res],mark).
+matchfundep(W,[ccom|Res],mark).
+matchfundep(W,[avv|Res],advmod).
+matchfundep(W,[ag|Res],amod).
+matchfundep(W,[rel|Res],mark).
+matchfundep(W,[ausep|Res],auxpass).
+matchfundep(W,[vcl|Res],auxpass):-
+    Res=[essere,Feat|_],
+    !.
+matchfundep(W,[ause|Res],aux).
+matchfundep(W,[ausa|Res],aux).
+matchfundep(W,[vsup|Res],aux).
+matchfundep(W,[vc|Res],aux):-
+    vcstare(W).
+matchfundep(W,[avv|Res],advmod).
+matchfundep(W,[[Punct]|Res],punct).
+matchfundep(W,[P|Res],prep):-
+    preposcats(W,P).
+matchfundep(W,[v|Res],vmod):-
+    Res=[Lem,Feat|_],
+    member(mfeats=Fe,Feat),
+    (Fe=fl;Fe=gl;Fe=tsms;Fe=tsmp;Fe=tsfs;Fe=tsfp),
+    !.
+matchfundep(W,[vcl|Res],xcomp):-
+    !.
+matchfundep(W,[poss|Res],poss):-
+    !.
+
+vcstare(W):-
+   vlm(W,_,stare),!.
+   
+checkdepsfuncss(Words,[],[],[],[],[]):-!.
+checkdepsfuncss(Words,[Id-Funs|Funcs],[Deps|Sents],[Diff|Diffs],[DifInd|DifInds],[Diffun|Diffuns]):-
+    wrapdepsfuncs(Words,Deps,NewDeps),
+    checkdepsfuncs(Funs,NewDeps,Diff),
+    checkdepsinds(Funs,NewDeps,DifInd),
+    checkonlyfuncs(Funs,NewDeps,Diffun),
+%    write(Id),nl,nl,
+    checkdepsfuncss(Words,Funcs,Sents,Diffs,DifInds,Diffuns),
+    !.
+checkdepsfuncss(Words,[Id-Funs|Funcs],Sents,Diffs,DifInds,Diffuns):-
+    write(Id),write(Id),nl,nl,
+    checkdepsfuncss(Words,Funcs,Sents,Diffs,DifInds,Diffuns),
+    !.
+/*
+checkdepsfuncss(Words,[Id-Funs|Funcs],[Deps|Sents],Diffs,DifInds,Diffuns):-
+    Funs=[N-W-D-F|_],
+    Deps=[N-W-Dd-Ff|_],
+    write(Id),nl,nl,
+    checkdepsfuncss(Words,Funcs,Sents,Diffs,DifInds,Diffuns),
+    !.
+checkdepsfuncss(Words,[Id-Funs|Funcs],Sents,Diffs,DifInds,Diffuns):-
+    write(Id),write(Id),nl,nl,
+    checkdepsfuncss(Words,Funcs,Sents,Diffs,DifInds,Diffuns),
+    !.
+*/
+
+checkonlyfuncs([],[],[]):-!.
+checkonlyfuncs([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func,Id1-Clit-Id-Fu|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id-W-Dep-Func,Id1-Clit-Id-Fu|Funcs],[Id1-Clit-Id-Fu,Id-W1-Dep-Func|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id1-Clit-Id-Fu,Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id-W-Dep-Func,Id1-W2-Id-prt|Funcs],[Id-W1-Dep-Func|Deps],Diffs):-
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func|Deps],Diffs):-
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1,Id1-Clit-Id-Fu|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id-W-Dep-Func,Id1-Clit-Id-Fu1|Funcs],[Id1-Clit-Id-Fu,Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id1-Clit-Id-Fu,Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id-W-Dep-Func,Id1-W2-Id-Fun|Funcs],[Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    (Fun=prt;c_case(W2,Cas)),
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1|Deps],Diffs):-
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+checkonlyfuncs([],[Id-W1-Dep1-Func1|Deps],Diffs):-
+    checkonlyfuncs(Funcs,Deps,Diffs),
+    !.
+
+checkdepsfuncs([],[],[]):-!.
+checkdepsfuncs([Id-W-Dep-Func|Funcs],[Id-W1-Dep-Func,Id1-Clit-Id-Fu|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id-W-Dep-Func,Id1-Clit-Id-Fu|Funcs],[Id1-Clit-Id-Fu,Id-W1-Dep-Func|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id1-Clit-Id-Fu,Id-W-Dep-Func|Funcs],[Id-W-Dep-Func|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id-W-Dep-Func,Id1-W2-Id-prt|Funcs],[Id-W1-Dep-Func|Deps],Diffs):-
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id-W-Dep-Func|Funcs],[Id-W-Dep-Func|Deps],Diffs):-
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id1-Clit-Id-Fu,Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1,Id1-Clit-Id-Fu|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id-W-Dep-Func,Id1-Clit-Id-Fu1|Funcs],[Id1-Clit-Id-Fu,Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id-W-Dep-Func|Funcs],[Id-W-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id-W-Dep-Func,Id1-W2-Id-Fun|Funcs],[Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    (Fun=prt;c_case(W2,Cas)),
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1|Deps],Diffs):-
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+checkdepsfuncs([],[Id-W1-Dep1-Func1|Deps],Diffs):-
+    checkdepsfuncs(Funcs,Deps,Diffs),
+    !.
+
+checkdepsinds([],[],[]):-!.
+checkdepsinds([Id-W-Dep-Func|Funcs],[Id-W1-Dep-Fun,Id1-Clit-Id-Fu|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id-W-Dep-Func,Id1-Clit-Id-Fu|Funcs],[Id1-Clit-Id-Fu,Id-W1-Dep-Func|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id1-Clit-Id-Fu,Id-W-Dep-Func|Funcs],[Id-W-Dep-Fun|Deps],Diffs):-
+    c_case(Clit,Cas),
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id-W-Dep-Func,Id1-W2-Id-prt|Funcs],[Id-W1-Dep-Func|Deps],Diffs):-
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id-W-Dep-Func|Funcs],[Id-W-Dep-Fun|Deps],Diffs):-
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+/* caso di comporti-ti che non e' corretto */
+checkdepsinds([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1,Id1-Clit-Id-Fu|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id-W-Dep-Func,Id1-Clit-Id-Fu1|Funcs],[Id1-Clit-Id-Fu,Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id1-Clit-Id-Fu,Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    c_case(Clit,Cas),
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id-W-Dep-Func|Funcs],[Id-W-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id-W-Dep-Func,Id1-W2-Id-Fun|Funcs],[Id-W1-Dep1-Func1|Deps],[Id-W-Dep-Func-Dep1-Func1|Diffs]):-
+    (Fun=prt;c_case(W2,Cas)),
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([Id-W-Dep-Func|Funcs],[Id-W1-Dep1-Func1|Deps],Diffs):-
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+checkdepsinds([],[Id-W1-Dep1-Func1|Deps],Diffs):-
+    checkdepsinds(Funcs,Deps,Diffs),
+    !.
+
+evalitacreatedeps(Funcs,Logs,[],Sems,[]):-!.
+evalitacreatedeps(Funcs,Logs,[Ind-Lemmed|Rest],Sems,[Deps|DepList]):-
+   getsentfunc(Ind,Funcs,Logs,Sems,Sent,Func,Sem),
+   createrss(Func,Sent,Ind,Lemmed,Sem,Refs,Data,No,EntsPas,Deps),
+%   write(Ind),write('  '),write(Ind),nl,nl,
+   evalitacreatedeps(Funcs,Logs,Rest,Sems,DepList),
+   !.
+evalitacreatedeps(Funcs,Logs,[Ind-Lemmed|Rest],Sems,DepList):-
+   write(Ind),write('  '),write(Ind),nl,nl,
+   evalitacreatedeps(Funcs,Logs,Rest,Sems,DepList),
+   !.
+
+allsents(All):-
+    findall(Ind-Sent, isdt(Ind,Sent), All),
+    !.
+turnallsents(Sents):-
+    findall(Ind-Sent, istd(Ind,Sent),All),
+    turnall(All,Sents),
+    !.
+
+turnall([],[]):-!.
+turnall([Ind-Sent|All],[Ind-First|Sents]):-
+    concatall(Sent,First),
+    turnall(All,Sents),
+    !.
+
+testallsents(Sents):-
+    findall(Ind-Sent, dpie(Ind,Sent),All),
+    testall(All,Sents),
+    !.
+
+testall([],[]):-!.
+testall([Ind-Sent|All],[Ind-First|Sents]):-
+    tconcatall(Sent,First),
+    testall(All,Sents),
+    !.
+
+tconcatall([],[]):-!.
+tconcatall([Word|Sent],[W1|First]):-
+    concat_atom(List,'\t',Word),
+    List=[Id,W,Lem,C,Cat,Feat],
+    term_to_atom(Id1,Id),
+    (term_to_atom(Dep1,Dep)
+     ;
+     Dep1=Dep),
+    W1=Id1-W-Lem-C-Cat-Feat,
+    tconcatall(Sent,First),
+    !.
+concatall([],[]):-!.
+concatall([Word|Sent],[W1|First]):-
+    concat_atom(List,'\t',Word),
+    List=[Id,W,Lem,C,Cat,Feat,Dep,Func,_,_],
+    term_to_atom(Id1,Id),
+    (term_to_atom(Dep1,Dep)
+     ;
+     Dep1=Dep),
+    W1=Id1-W-Lem-Cat-Feat-Dep1-Func,
+    concatall(Sent,First),
+    !.
+     
+testparseallisdt(Sents,Tagged,WOuts,ToLog,ParseFuncs,Words,Stats,Mults):-
+    testparsisdtsents(Sents,Outs,Mults),
+%    tell(tagging_test),
+    testmakefrasetaggedall(Outs,Frasi,Lemmed,Words),
+%    told,
+    convlemmsall(Frasi,Lemmed,Tagged,Diffs),
+    write(Diffs),nl,nl,
+    ttagtextall(Frasi,Words,WOuts,Errs),
+    write(Errs),nl,nl,
+    testconstituency_parsing(WOuts,ToLog,ParseFuncs),
+    testcountstats(Words,Diffs,Errs,Stats),
+    !.
+
+parseallisdt(Sents,Tagged,WOuts,ToLog,ParseFuncs,Funcs,Words,Stats,Mults):-
+%    parsisdtsents(Sents,Outs,Mults),
+    turnparsisdtsents(Sents,Outs,Mults),
+%    tell(tagging_dev),
+    makefrasetaggedall(Outs,Frasi,Lemmed,Words,Funcs),
+%    told,
+    convlemmsall(Frasi,Lemmed,Tagged,Diffs),
+    write(Diffs),nl,nl,
+    ttagtextall(Frasi,Words,WOuts,Errs),
+    write(Errs),nl,nl,
+    constituency_parsing(Funcs,WOuts,ToLog,ParseFuncs,Parserrs),
+    write(Parserrs),nl,nl,
+    countstats(Words,Diffs,Errs,Parserrs,Stats),
+    !.
+testcountstats(Words,Diffs,Errs,Stats):-
+    findall(Sent,(member(N-Sent,Words),
+                  asserta(fp(N,Sent))
+                   ),Sents),
+    appiattisci(Sents,SentsC),length(SentsC,LW),
+    findall(Dif,member(N-Dif,Diffs),Lems),
+    appiattisci(Lems,DiffsC),length(DiffsC,LM),
+    appiattisci(Errs,ErrsC),length(ErrsC,LT),
+    testcstats(LW,LM,LT,Stats),
+    !.
+testcstats(LW,LM,LT,[Lem1,Tag1]):-
+    Lem is LM / LW, Lem1 is Lem * 100,
+    Tag is LT / LW, Tag1 is Tag * 100,
+    !.
+
+countstats(Words,Diffs,Errs,Parserrs,Stats):-
+    findall(Sent,(member(N-Sent,Words),
+                  asserta(fp(N,Sent))
+                   ),Sents),
+    appiattisci(Sents,SentsC),length(SentsC,LW),
+    findall(Dif,member(N-Dif,Diffs),Lems),
+    appiattisci(Lems,DiffsC),length(DiffsC,LM),
+    appiattisci(Errs,ErrsC),length(ErrsC,LT),
+    appiattisci(Parserrs,ParsC),length(ParsC,LP),
+    cstats(LW,LM,LT,LP,Stats),
+    !.
+cstats(LW,LM,LT,LP,[Lem1,Tag1,Pars1]):-
+    Lem is LM / LW, Lem1 is Lem * 100,
+    Tag is LT / LW, Tag1 is Tag * 100,
+    Pars is LP / LW, Pars1 is Pars * 100,
+    !.
+    
+     
+ttagtextall([],[],[],[]):-!.
+ttagtextall([N-Frase|Frasi],[N-Words|Rest],[N-Fras|Tags],[Diff|Diffs]):-
+    ttagtext(1,Words,WOuts),
+%    disambs(WOuts,Frase1),
+%    newdisamb(WOuts,Frase1),
+%    cleantags1(WOuts,Frase1,Fras),
+    write(N),nl,
+    tagst(Frase,WOuts,Fras),
+    correcttags(Frase,Fras,Diff),
+    ttagtextall(Frasi,Rest,Tags,Diffs),
+    !.
+
+correcttags([],[],[]):-!.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    (grw(W);select_punct(W,_)),
+    correcttags(Frase,Fras,Diff),
+    !.
+/*
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    is_list(Cat),
+    member(Cat1,Cat),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    is_list(Cat1),
+    member(Cat,Cat1),
+    correcttags(Frase,Fras,Diff),
+    !.
+*/
+correcttags([N-W-Cat|Frase],[W-Cat-_|Fras],Diff):-
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat,N1-W1-Cats|Frase],[W2-vcl-_|Fras],Diff):-
+    check_vcat(Cat),Cats=clit,
+    mcon(W,W1,W22),
+    (W2=W22;tolower(W22,Low),Low\=W22,W2=Low),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    check_auxcat(Cat),check_auxcat(Cat1),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    check_vcat(Cat),check_vcat(Cat1),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    is_list(Cat1),
+    check_auxcat(Cat),
+    member(Ca,Cat1),check_auxcat(Ca),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    is_list(Cat1),
+    check_vcat(Cat),
+    member(Ca,Cat1),check_auxcat(Ca),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    (preposcats(W,Cat),preposcats(W,Cat1)
+    ;
+    allpreps(Cat),allpreps(Cat1)),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    is_list(Cat),
+    member(Ca,Cat),
+    preposcats(W,Ca),
+    (preposcats(W,Cat1);allpreps(Cat1)),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    adverbialcats(Cat),adverbialcats(Cat1),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    is_list(Cat),
+    member(Ca,Cat),
+    adverbialcats(Ca),adverbialcats(Cat1),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    nouncats(Cat),(nouncats(Cat1);Cat1=agn),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    proncat(Cat),proncat(Cat1),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    qcats(Cat),(anncats(Cat1);Cat1=neg;qcats(Cat1)),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    Cat=neg,Cat1=avv,
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    Cat=avv,
+    (Cat1=in;Cat1=neg;Cat1=nt),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    Cat=cong,Cat1=neg,
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    Cat=clit,
+    (Cat1=clit;Cat1=clitdat;Cat1=clitabl;Cat1=clitac),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],Diff):-
+    anncats(Cat),
+    (anncats(Cat1);Cat1=ppas;Cat1=poss;Cat1=dim;Cat1=agn),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W1-Cat|Frase],[W1-Cat1-_|Fras],Diff):-
+    tolower(W1,W),
+    (W=che;W=cui;W=cosa;W=che_cosa;W=chi;W=quando;W=dove;W=quanto;W=quanta;W=quanti;W=quante;W=quale;W=quali),
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-[Cat]|Frase],[W-Cat-_|Fras],Diff):-
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-[Cat]-_|Fras],Diff):-
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W-Cat1-_|Fras],[Cat-W-Cat1|Diff]):-
+    correcttags(Frase,Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],Fras,Diff):-
+    tolower(W,Low),W\=Low,
+    correcttags([N-Low-Cat|Frase],Fras,Diff),
+    !.
+correcttags([N-W-Cat|Frase],[W1-Cat1-_|Fras],Diff):-
+    correcttags([N-W1-Cat|Frase],[W1-Cat1-_|Fras],Diff),
+    !.
+
+%check_tensed
+preposcats(W,Cat):-
+      prepos(W), Lem=W
+      ;
+      preposs(W)
+      ;
+      Cat=php;Cat=part;Cat=partd;Cat=partda
+      ;
+      prepart(P,W,_)
+      ;
+      selectdi(W)
+      ;
+      preps(W,_,_,_),
+      !.
+adverbialcats(Cat):-
+    Cat=adv;Cat=av;Cat=avvl;Cat=avv;Cat=ccom;Cat=congf;Cat=cong;Cat=conj;Cat=cosu,
+    !.
+    
+testconstituency_parsing(Frasi,ToLog,Funcs):-
+   constparse(Frasi,ToLog,Funcs),
+   !.
+
+constituency_parsing(InFuncs,Frasi,ToLog,Funcs,Diffs):-
+   constparse(Frasi,ToLog,Funcs),
+   checkfuncsparse(InFuncs,ToLog,Funcs,Diffs),
+   !.
+
+constparse([],[],[]):-!.
+constparse([N-Fras|Frasi],[N-ToLog|Logs],[N-Func|Funcs]):-
+   shallowparsing(Fras,Out,ToLog),
+   collectfuncsems(Func),
+   constparse(Frasi,Logs,Funcs),
+   !.
+
+checkfuncsparse(InFuncs,ToLog,Funcs,[]):-!.
+checkfuncsparse([],[],Sems,[]):-!.
+checkfuncsparse([N-Func|InFuncs],[N-[]|Funcs],Sems,Diffs):-
+   checkfuncsparse(InFuncs,Funcs,Sems,Diffs),
+   !.
+checkfuncsparse([N-Func|InFuncs],[N-Costss|Funcs],Sems,[Diff|Diffs]):-
+   getcosts(Costss,Costs),
+   matchheadsfuncs(Costs,Func,Diff),
+   checkfuncsparse(InFuncs,Funcs,Sems,Diffs),
+   !.
+
+matchheadsfuncs([],Funcs,[]):-!.
+matchheadsfuncs([Func-Cost|Costs],Funcs,Diffs):-
+   (Func=dirs;Func=fp),
+   Cost=[A],
+   matchheadsfuncs(Costs,Funcs,Diffs),
+   !.
+matchheadsfuncs([Func-Cost|Costs],Funcs,[Diff|Diffs]):-
+   newprendi_testa(Func,Cost,Head),
+   remove(Id-Head-Dep-Fun,Funcs,Rest),
+   matchfuns(Func,Fun,Diff),
+   matchheadsfuncs(Costs,Rest,Diffs),
+   !.
+matchheadsfuncs([Func-Cost|Costs],Funcs,Diffs):-
+   (Func=fs;Func=fp;Func=fc;Func=fint;Func=dirsp;Func=f2),
+   remove(Id-W-Dep-Fu,Funcs,Rest),
+   member(W-TAg-Func,Cost),
+   matchheadsfuncs(Costs,Rest,Diffs),
+   !.
+matchheadsfuncs([Func-Cost|Costs],Funcs,Diffs):-
+   (Func=ibar;Func=ir_infl;Func=savv),
+   remove(Id-W-Dep-Fu,Funcs,Rest),
+   member(W-TAg-Func,Cost),
+   matchheadsfuncs(Costs,Rest,Diffs),
+   !.
+matchheadsfuncs([W-Tag-F|Costs],Funcs,Diffs):-
+   (F=f2;F=fint;F=cp;F=dirsp;F=fac),
+   remove(Id-W-Dep-Fu,Funcs,Rest),
+   matchheadsfuncs(Costs,Rest,Diffs),
+   !.
+matchheadsfuncs([W-Tag-savv|Costs],Funcs,Diffs):-
+   remove(Id-W-Dep-Fun,Funcs,Rest),
+   matchfuns(savv,Fun,Diff),
+   matchheadsfuncs(Costs,Rest,Diffs),
+   !.
+matchheadsfuncs([Func-Cost|Costs],Funcs,[Dii|Diffs]):-
+   remove(F-Cos,Cost,Rests),atomic(F),
+   remove(F1-Cos1,Rests,Rest),atomic(F1),
+   newprendi_testa(Func,Rest,Head),
+   remove(Id-Head-Dep-Fun,Funcs,RestF),
+   matchfuns(Func,Fun,Di),
+   newprendi_testa(F,Cos,Hea),
+   remove(Id0-Hea-Dep0-Fun0,RestF,Resto),
+   matchfuns(F,Fun0,Dif),
+   newprendi_testa(F1,Cos1,Hea1),
+   remove(Id1-Hea1-Dep1-Fun1,Resto,Ress),
+   matchfuns(F1,Fun1,Diff),
+   append(Di,Dif,Difs),
+   append(Difs,Diff,Dii),
+   matchheadsfuncs(Costs,Ress,Diffs),
+   !.
+matchheadsfuncs([Func-Cost|Costs],Funcs,[Difs|Diffs]):-
+   remove(F-Cos,Cost,Rests),atomic(F),
+   newprendi_testa(Func,Rest,Head),
+   remove(Id-Head-Dep-Fun,Funcs,RestF),
+   matchfuns(Func,Fun,Di),
+   newprendi_testa(F,Cos,Hea),
+   remove(Id0-Hea-Dep0-Fun0,RestF,Resto),
+   matchfuns(F,Fun0,Dif),
+   append(Di,Dif,Difs),
+   matchheadsfuncs(Costs,Ress,Diffs),
+   !.
+matchheadsfuncs([Func-Cost|Costs],Funcs,[Dif|Diffs]):-
+   member(Hea-_-_,Cost),
+   remove(Id0-Hea-Dep0-conj,Funcs,Resto),
+   remove(Dep0-Hea-Dep-Fun0,Funcs,Resto),
+   matchfuns(Func,Fun0,Dif),
+   matchheadsfuncs(Costs,Resto,Diffs),
+   !.   
+matchheadsfuncs([Func-Cost|Costs],Funcs,[Dif|Diffs]):-
+   member(Hea-_-_,Cost),
+   remove(Id0-Hea-Dep0-Fun0,Funcs,Resto),
+   matchfuns(Func,Fun0,Dif),
+   matchheadsfuncs(Costs,Resto,Diffs),
+   !.   
+matchheadsfuncs([Func-Cost|Costs],Funcs,[Func-Cost|Diffs]):-
+   matchheadsfuncs(Costs,Funcs,Diffs),
+   !.
+
+matchfuns(A,A,[]).
+matchfuns(subj,nsubj,[]).
+matchfuns(subj,nsubjpass,[]).
+matchfuns(subj,appos,[]).
+matchfuns(subj,conj,[]).
+matchfuns(sn,dobj,[]).
+matchfuns(sn,appos,[]).
+matchfuns(obj,dobj,[]).
+matchfuns(obl,pobj,[]).
+matchfuns(spec,pobj,[]).
+matchfuns(sp,pobj,[]).
+matchfuns(spd,pobj,[]).
+matchfuns(spda,pobj,[]).
+matchfuns(sp,iobj,[]).
+matchfuns(obl,iobj,[]).
+matchfuns(sa,amod,[]).
+matchfuns(amod,mod,[]).
+matchfuns(xcomp,attr,[]).
+matchfuns(xcomp,acomp,[]).
+matchfuns(xcomp,nsubj,[]).
+matchfuns(xcomp,vcomp,[]).
+matchfuns(xadj,acomp,[]).
+matchfuns(xadj,amod,[]).
+matchfuns(xadj,appos,[]).
+matchfuns(xadj,parataxis,[]).
+matchfuns(xcomp,vcomp,[]).
+matchfuns(savv,advmod,[]).
+matchfuns(savv,tmod,[]).
+matchfuns(ibar,'ROOT',[]).
+matchfuns(ibar,conj,[]).
+matchfuns(ibar,ccomp,[]).
+matchfuns(ibar,sub,[]).
+matchfuns(ibar,rcmod,[]).
+matchfuns(ir_infl,'ROOT',[]).
+matchfuns(ir_infl,conj,[]).
+matchfuns(ir_infl,sub,[]).
+matchfuns(ir_infl,rcmod,[]).
+matchfuns(sv2,vmod,[]).
+matchfuns(sv3,vmod,[]).
+matchfuns(sv5,advmod,[]).
+matchfuns(vcomp,vmod,[]).
+matchfuns(vcomp,advcl,[]).
+matchfuns(vcomp,conj,[]).
+matchfuns(vcomp,xcomp,[]).
+matchfuns(appos,attr,[]).
+matchfuns(appos,npadvmod,[]).
+matchfuns(xcomp,attr,[]).
+matchfuns(fs,mark,[]).
+matchfuns(cp,conj,[]).
+matchfuns(A,B,A-B).
+
+% tutti quantmod floating
+% si prt
+
+/*
+749 - [ (1 - 'Il' - 2 - det),
+    (2 - blitz - 4 - nsubj),
+    (3 - è - 4 - aux),
+    (4 - riuscito - 0 - 'ROOT'),
+    (5 - ',' - 4 - punct),
+    (7 - dal - 16 - prep),
+    (8 - punto - 7 - pobj),
+    (9 - di - 8 - prep),
+    (10 - vista - 9 - pobj),
+    (11 - tattico - 8 - amod),
+    (13 - 'l’' - 14 - det),
+    (14 - operazione - 16 - nsubjpass),
+    (15 - è - 16 - auxpass),
+    (16 - considerata - 4 - conj),
+    (17 - già - 18 - advmod),
+    (18 - conclusa - 16 - acomp),
+    (19 - '.' - 4 - punct)
+
+[ f - [ (subj - ['Il'-art-sn,blitz-n-sn]),
+    (ibar - [è-aux-ibar,riuscito-v-ibar]),
+    (fp - [ (',')-punt-fp]),
+    (obl - [dal-part-sp,punto-n-sn, (mod)-[di-pd-spd,vista-n-sn,tattico-n-sn]]),
+    (f - [ (subj - [l_-art-sn,operazione-n-sn]),
+      (ibar - [è-aux-ibar,considerata-v-ibar,già-avv-savv,conclusa-v-sn])
+    ])
+  ]
+]
+*/
+%   assertfrasecorr2(Frase,Ind),
+
+
+makefrasetaggedall([],[],[],[],[]):-!.
+makefrasetaggedall([N-Out|Outs],[N-Frs|Frase],[N-Lemm|Lemmed],[N-Ws|Words],[N-Func|Funcs]):-
+    makefrasetagged(Out,Frs,Lemm,Ws,Func),
+   makefrasetaggedall(Outs,Frase,Lemmed,Words,Funcs),
+   !.
+   
+makefrasetagged([],[],[],[],[]):-!.
+makefrasetagged([Id-W-Lem-Cat-Feat-Dep-Func|Outs],[Id-W-Cat|Frase],[Id-Lem|Lemm],[W|Ws],[Id-W-Dep-Func|Funcs]):-
+%    write(W-Cat),nl,
+    makefrasetagged(Outs,Frase,Lemm,Ws,Funcs),
+    !.
+
+testmakefrasetaggedall([],[],[],[]):-!.
+testmakefrasetaggedall([N-Out|Outs],[N-Frs|Frase],[N-Lemm|Lemmed],[N-Ws|Words]):-
+   testmakefrasetagged(Out,Frs,Lemm,Ws),
+   testmakefrasetaggedall(Outs,Frase,Lemmed,Words),
+   !.
+   
+testmakefrasetagged([],[],[],[]):-!.
+testmakefrasetagged([Id-W-Lem-Cat-Feat|Outs],[Id-W-Cat|Frase],[Id-Lem|Lemm],[W|Ws]):-
+%    write(W-Cat),nl,
+    testmakefrasetagged(Outs,Frase,Lemm,Ws),
+    !.
+
+getdiffs([],[],[]):-!.
+getdiffs([N-Lem|Gold],[LemFeat|Lemms],Diffs):-
+         grw(Lem),
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+/* this is different: the new word is a compound word and contains two original words */
+getdiffs([N-Lem,N1-Lem1|Gold],[LemFeat|Lemms],Diffs):-
+    LemFeat=..[i,N,W,Cat,Lem-Feat],
+    Cat = vcl,
+    c_case(Lem1,Cas),
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+getdiffs([N-Lem,N1-Lem1|Gold],[LemFeat|Lemms],Diffs):-
+    LemFeat=..[i,N,W,Cat,Lemm-Feat],
+    Cat = vcl,
+    c_case(Lem1,Cas),
+    check_vcat(Cat),
+    (Lem=Lemm
+     ;
+     stringof(List,Lemm),
+     reverse(List,[i,s|Verb]),
+     (reverse([e|Verb],RevV);
+       reverse([e,r|Verb],RevV)),
+     stringof(RevV,LemV),
+     LemV=Lem),
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+getdiffs([N-Lem|Gold],[LemFeat|Lemms],Diffs):-
+     spy_lower(Lem,Low,Pol),
+    (LemFeat=..[i,N,W,Cat,Lem]
+      ;
+     LemFeat=..[i,N,W,Cat,Lem-Feat]
+     ;
+     Pol=1,
+      (LemFeat=..[i,N,W,Cat,Low]
+      ;
+       LemFeat=..[i,N,W,Cat,Low-Feat])
+      ),
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+getdiffs([N-Lem|Gold],[LemFeat|Lemms],Diffs):-
+    LemFeat=..[i,N,W,Cat|_],
+    Cat=num,
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+getdiffs([N-Lem|Gold],[LemFeat|Lemms],Diffs):-
+    LemFeat=..[i,N,W,Cat,Lemm-Feat],
+    check_vcat(Cat),
+    (Lem=Lemm
+     ;
+     stringof(List,Lemm),
+     reverse(List,[i,s|Verb]),
+     (reverse([e|Verb],RevV);
+       reverse([e,r|Verb],RevV)),
+     stringof(RevV,LemV),
+     LemV=Lem),
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+getdiffs([N-Lem|Gold],[LemFeat|Lemms],Diffs):-
+    LemFeat=..[i,N,W,Cat|_],
+    \+nouncats(Cat), \+check_vcat(Cat), \+anncats(Cat),
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+/* the new word can be a multiword and the original one not */
+getdiffs([N-Lem|Gold],[LemFeat|Lemms],Diffs):-
+    LemFeat=..[i,N,W,Cat,W],
+    W=Lem,
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+getdiffs([N-Lem|Gold],[LemFeat|Lemms],Diffs):-
+    LemFeat=..[i,N,W,Cat|_],
+    recover_descs(W,List), is_list(List),
+    (member(Lem,List)
+      ;
+      tolower(Lem,LowLem),
+      member(W1,List),
+      tolower(W1,LowW), LowW=LowLem),
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+getdiffs([N-Lem|Gold],[Le|Lemms],[N-Lem|Diffs]):-
+    getdiffs(Gold,Lemms,Diffs),
+    !.
+
+% W-Cat-L-Lem
+
+convlemmsall([],[],[],[]):-!.
+convlemmsall([N-Frase|Frasi],[N-Gold|Lemmed],[N-Lemms|Tagged],[N-Diffs|Rest]):-
+    Frase=[_-First-_|_],
+    assert(firstword(First)),
+    newlemmatizeall(Frase,Logs),
+    newconvlemms(Logs,Lemms),
+%    convlemms(Frase,Lemms),
+    getdiffs(Gold,Lemms,Diffs),
+    abolish(firstword/1),
+    convlemmsall(Frasi,Lemmed,Tagged,Rest),
+    !.
+convlemmsall([N-Frase|Frasi],[N-Gold|Lemmed],Tagged,Rest):-
+    write(N),nl,nl,
+    convlemmsall(Frasi,Lemmed,Tagged,Rest),
+    !.
+
+newconvlemms([],[]):-!.
+newconvlemms([N-Word-Cat-Lem|Frase],[i(N,Word, Tag, -)|Tagged]):-
+    select_punct(Word, Tag),
+    newconvlemms(Frase,Tagged),
+    !.
+newconvlemms([N-Word-Cat-Lem|Frase],[i(N,Word, Cat, Lem)|Tagged]):-
+    (Cat=p;Cat=neg;Cat=adv;Cat=av;Cat=avvl;Cat=avv;Cat=cong;Cat=conj;Cat=pk;Cat=cosu;Cat=conjl;Cat=cosul;
+      preposs(Word);selectdi(Word), Cat\=part, Cat\=partd, Cat\=partda),
+    newconvlemms(Frase,Tagged),
+    !.
+newconvlemms([N-Word-Cat-Lem|Frase],[i(N,Word, Ca, Lem-Feat)|Tagged]):-
+    spy_lower(Word,Low,P), P=1,
+      upgetlem(Word,Ca,Feats), 
+      Feats\=Word,Feats=Lem1-Feat,
+      (is_list(Cat),
+       Cat=[Ca],
+      (Ca=nh;Ca=np;Ca=npro)
+       ;
+       atomic(Cat),
+      (Cat=nh;Cat=np;Cat=npro),
+       Ca=Cat),
+    (\+ firstword(Word)
+      ;
+      \+ lowgetlem(Word,Cat,LemFeat)),
+    newconvlemms(Frase,Tagged),
+    !.
+newconvlemms([N-Word-Cat-Lem,N1-Word1-Cat1-Lem1|Frase],[i(N,W2, vcl, Lem-Feat)|Tagged]):-
+    check_vcat(Cat),
+    Cat1=clit,
+    mcon(Word,Word1,W2),
+    stringof(List,Word),
+    reverse(List,[r|Rev]),
+    spy_lower(W2,Low,P),
+    getlem(Low,vcl,Feats),
+    Feats=Lem-Feat,
+    newconvlemms(Frase,Tagged),
+    !.
+newconvlemms([N-Word-Cat-Lem|Frase],[i(N,Word, Ca, Lem1-Feat)|Tagged]):-
+    spy_lower(Word,Low,P),
+    stringof(List,Word),
+    (\+member('_',List);reverse(List,['_'|_])),
+    (is_list(Cat),Cat=[Ca];atomic(Cat),Ca=Cat),
+    getlem(Low,Ca,Feats),
+    (Feats=Lem-Feat,Lem1=Lem;
+      Feats=Low-Feat,Lem1=Lem;
+      Cat=art,Feats=Lem1-Feat;
+      Cat=v,Feats=Lem1-Feat;
+      Cat=n,Feats=Lem1-Feat;
+      Cat=ag,Feats=Lem1-Feat;
+      Cat=part,Feats=Lem1-Feat),
+    newconvlemms(Frase,Tagged),
+    !.
+newconvlemms([N-Word-Cat-Lem|Frase],[i(N,Word, Ca, Feats)|Tagged]):-
+    (var(Cat);
+    dets(Cat);
+    Cat=ag),
+    (is_list(Cat),Cat=[Ca];atomic(Cat),Ca=Cat),
+    getlem(Word,Ca,Feats),
+    newconvlemms(Frase,Tagged),
+    !.
+newconvlemms([N-Word-Cat-Lem|Frase],[i(N,Word, Ca, Lem-Feat)|Tagged]):-
+   recover_descs(Word,List),
+    (is_list(Cat),Cat=[Ca];atomic(Cat),Ca=Cat),
+    is_list(List),
+    nouncats(Ca),
+    member(First,List),
+    \+ prepos(First), \+ prepart(First,_,_),
+    getlem(First,Ca,Lem1-Feat),
+    newconvlemms(Frase,Tagged),
+    !.
+newconvlemms([N-Word-Cat-Lem|Frase],[i(N,Word, Ca, Word)|Tagged]):-
+    (is_list(Cat),Cat=[Ca]
+      ;
+     is_list(Cat),member(Ca,Cat)
+      ;
+      atomic(Cat),Ca=Cat),
+    newconvlemms(Frase,Tagged),
+    !.
+
+convlemms([],[]):-!.
+convlemms([N-Word-Cat|Frase],[i(N,Word, Tag, -)|Tagged]):-
+    select_punct(Word, Tag),
+    convlemms(Frase,Tagged),
+    !.
+convlemms([N-Word-Cat|Frase],[i(N,Word, Cat, Word)|Tagged]):-
+    (Cat=adv;Cat=av;Cat=avvl;Cat=avv;Cat=cong;Cat=conj;Cat=pk;Cat=cosu;
+      preposs(Word);selectdi(Word), Cat\=part, Cat\=partd, Cat\=partda),
+    convlemms(Frase,Tagged),
+    !.
+convlemms([N-Word-Cat|Frase],[i(N,Word, Ca, Feats)|Tagged]):-
+    spy_lower(Word,Low,P), P=1,
+    \+ firstword(Word),
+    (is_list(Cat),Cat=[Ca];atomic(Cat),Ca=Cat),
+    upgetlem(Word,Ca,Feats), Feats\=Word,
+    (Cat=nh;Cat=np;Cat=npro;\+ lowgetlem(Word,Cat,Lem)),
+    convlemms(Frase,Tagged),
+    !.
+convlemms([N-Word-Cat,N1-Word1-Cat1|Frase],[i(N,W2, vcl, Lem-Feat)|Tagged]):-
+    check_vcat(Cat),
+    Cat1=clit,
+    mcon(Word,Word1,W2),
+    stringof(List,Word),
+    reverse(List,[r|Rev]),
+    spy_lower(W2,Low,P),
+    getlem(Low,vcl,Feats),
+    Feats=Lem-Feat,
+    convlemms(Frase,Tagged),
+    !.
+convlemms([N-Word-Cat|Frase],[i(N,Word, Ca, Lem-Feat)|Tagged]):-
+    spy_lower(Word,Low,P),
+    stringof(List,Word),
+    \+member('_',List),
+    (is_list(Cat),Cat=[Ca];atomic(Cat),Ca=Cat),
+    getlem(Low,Ca,Feats),
+    Feats=Lem-Feat,
+    convlemms(Frase,Tagged),
+    !.
+convlemms([N-Word-Cat|Frase],[i(N,Word, Ca, Feats)|Tagged]):-
+    (var(Cat);
+    dets(Cat);
+    Cat=ag),
+    (is_list(Cat),Cat=[Ca];atomic(Cat),Ca=Cat),
+    getlem(Word,Ca,Feats),
+    convlemms(Frase,Tagged),
+    !.
+convlemms([N-Word-Cat|Frase],[i(N,Word, Ca, Lem-Feat)|Tagged]):-
+   recover_descs(Word,List),
+    (is_list(Cat),Cat=[Ca];atomic(Cat),Ca=Cat),
+    is_list(List),
+    nouncats(Ca),
+    member(First,List),
+    \+ prepos(First), \+ prepart(First,_,_),
+    getlem(First,Ca,Lem-Feat),
+    convlemms(Frase,Tagged),
+    !.
+convlemms([N-Word-Cat|Frase],[i(N,Word, Cat, Word)|Tagged]):-
+    convlemms(Frase,Tagged),
+    !.
+
+turnparsisdtsents([],[],[]):-!.
+turnparsisdtsents([N-Sent|Sents],[N-NewFr|Outs],[Mults|Rests]):-
+    Sent=[Id-W-Lem-Ca-Feat-Dep-Func|_],
+    assert(firstword(W)),
+    parsisdts(Sent,Out1),
+    extractmwes(Out1,Out,Muls),
+    createmultsisdt(Out,NewFr,Mults),
+    abolish(firstword/1),
+    turnparsisdtsents(Sents,Outs,Rests),
+    !.    
+turnparsisdtsents([N-Sent|Sents],[N-Out|Outs],[Mults|Rests]):-
+    Sent=[Id-W-Lem-Ca-Feat-Dep-Func|_],
+    assert(firstword(W)),
+    parsisdts(Sent,Out1),
+    extractmwes(Out1,Out,Mults),
+    abolish(firstword/1),
+    write(N),nl,nl,
+    turnparsisdtsents(Sents,Outs,Rests),
+    !.    
+
+testparsisdtsents([],[],[]):-!.
+testparsisdtsents([N-Sent|Sents],[N-NewFr|Outs],[Mults|Rests]):-
+    Sent=[Id-W-Lem-Ca-Cos-Feat|_],
+    assert(firstword(W)),
+    tstparsisdts(Sent,Out1),
+    tstextractmwes(Out1,Out),
+    tstcreatemultsisdt(Out,NewFr,Mults),
+    abolish(firstword/1),
+    testparsisdtsents(Sents,Outs,Rests),
+    !.    
+testparsisdtsents([N-Sent|Sents],[N-Out|Outs],[Mults|Rests]):-
+    Sent=[Id-W-Lem-Ca-Cos-Feat|_],
+    assert(firstword(W)),
+    parsisdts(Sent,Out1),
+    extractmwes(Out1,Out,Mults),
+    abolish(firstword/1),
+    write(N),nl,nl,
+    testparsisdtsents(Sents,Outs,Rests),
+    !.    
+
+parsisdtsents([],[],[]):-!.
+
+parsisdtsents([N-Sent|Sents],[N-NewFr|Outs],[Mults|Rests]):-
+    findall(Id-W-Lem-Cat-Feat-Dep-Func,
+            member([Id,W,Lem,C,Cat,Feat,Dep,Func,_,_],Sent),
+            All),
+    All=[Id-W-Lem-Ca-Feat-Dep-Func|_],
+    assert(firstword(W)),
+    parsisdts(All,Out1),
+    extractmwes(Out1,Out,Muls),
+    createmultsisdt(Out,NewFr,Mults),
+    abolish(firstword/1),
+    parsisdtsents(Sents,Outs,Rests),
+    !.    
+parsisdtsents([N-Sent|Sents],[N-Out|Outs],Rests):-
+    findall(Id-W-Lem-Cat-Feat-Dep-Func,
+            member([Id,W,Lem,C,Cat,Feat,Dep,Func,_,_],Sent),
+            All),
+    All=[Id-W-Lem-Ca-Feat-Dep-Func|_],
+    assert(firstword(W)),
+    parsisdts(All,Out1),
+    extractmwes(Out1,Out,Muls),
+    abolish(firstword/1),
+    write(N),nl,nl,
+    parsisdtsents(Sents,Outs,Rests),
+    !.    
+
+/*
+testparsisdtsents([],[],[]):-!.
+
+testparsisdtsents([N-Sent|Sents],[N-NewFr|Outs],[Mults|Rests]):-
+    findall(Id-W-Lem-Cat-Feat-Dep-Func,
+            member([Id,W,Lem,C,Cat,Feat,Dep,Func,_,_],Sent),
+            All),
+    All=[Id-W-Lem-Ca-Feat-Dep-Func|_],
+    assert(firstword(W)),
+    parsisdts(All,Out1),
+    extractmwes(Out1,Out,Muls),
+    createmultsisdt(Out,NewFr,Mults),
+    abolish(firstword/1),
+    testparsisdtsents(Sents,Outs,Rests),
+    !.    
+testparsisdtsents([N-Sent|Sents],[N-Out|Outs],Rests):-
+    findall(Id-W-Lem-Cat-Feat-Dep-Func,
+            member([Id,W,Lem,C,Cat,Feat,Dep,Func,_,_],Sent),
+            All),
+    All=[Id-W-Lem-Ca-Feat-Dep-Func|_],
+    assert(firstword(W)),
+    parsisdts(All,Out1),
+    extractmwes(Out1,Out,Muls),
+    abolish(firstword/1),
+    write(N),nl,nl,
+    testparsisdtsents(Sents,Outs,Rests),
+    !.    
+testparsisdtsents([N-Sent|Sents],Outs,Rests):-
+    write(N),write(N),nl,nl,
+    testparsisdtsents(Sents,Outs,Rests),
+    !.    
+*/
+
+tstextractmwes(Out1,Out2):-
+     tstcheckwords(Out1,Out2),
+     !.
+tstcheckwords([],[]):-!.
+tstcheckwords([Id-W-Lem-Cat-Feat|Words],[Id-W1-Lem-Cat-Feat|Wors]):-
+     stringof(List,W),
+    (
+     reverse(List,['’'|Rev]),
+     reverse(['_'|Rev],Wor)
+     ;
+     reverse(List,['-'|Rev]),
+     Rev\=[],
+     reverse(Rev,Wor)
+     ),
+     stringof(Wor,W1),
+     tstcheckwords(Words,Wors),
+     !.
+tstcheckwords([Id-W-Lem-Cat-Feat|Words],[Id-W-Lem-Cat-Feat|Wors]):-
+     tstcheckwords(Words,Wors),
+     !.
+
+checkwords([],[]):-!.
+checkwords([Id-W-Lem-Cat-Feat-Dep-Func|Words],[Id-W1-Lem-Cat-Feat-Dep-Func|Wors]):-
+     stringof(List,W),
+    (
+     reverse(List,['’'|Rev]),
+     reverse(['_'|Rev],Wor)
+     ;
+     reverse(List,['-'|Rev]),
+     Rev\=[],
+     reverse(Rev,Wor)
+     ),
+     stringof(Wor,W1),
+     checkwords(Words,Wors),
+     !.
+checkwords([Id-W-Lem-Cat-Feat-Dep-Func|Words],[Id-W-Lem-Cat-Feat-Dep-Func|Wors]):-
+     checkwords(Words,Wors),
+     !.
+     
+extractmwes(Out1,Out,Mults):-
+     checkwords(Out1,Out2),
+     extractmwe(Out2,Out,Mults),
+     !.
+     
+extractmwe([],[],[]):-!.
+extractmwe([Id-W-Lem-Cat-Feat-Dep-Func,Id1-W1-Lem1-Cat1-Feat1-Id-mwe,Id2-W2-Lem2-Cat2-Feat2-Id1-mwe,Id3-W3-Lem3-Cat3-Feat3-Id2-mwe|All],[Id-W4-W4-Ca-Feat-Dep-Func|Out],[Mult-4-[Id-W-Lem-Ca-Feat-Dep-Func|Cont]|Mults]):-
+    mcon(W,'_',Ww),
+    mcon(Ww,W1,W11),
+    mcon(W11,'_',Ww1),
+    mcon(Ww1,W2,W22),
+    mcon(W22,'_',Ww2),
+    mcon(Ww2,W3,W4),
+    (ttagtext(Id,[W4],Le),Le=[_-Ca];
+      nouncats(Cat),Ca=Cat;
+       prepos(Lem),Ca=php;
+      Ca=Cat),
+      Cont=[Id1-W1-Lem1-Ca1-Feat1-Id-mwe,Id2-W2-Lem2-Ca2-Feat2-Id1-mwe,Id3-W3-Lem3-Ca3-Feat3-Id1-mwe],
+    extractmwe(All,Out,Mults),
+    !.    
+extractmwe([Id-W-Lem-Cat-Feat-Dep-Func,Id1-W1-Lem1-Cat1-Feat1-Id-mwe,Id2-W2-Lem2-Cat2-Feat2-Id1-mwe|All],[Id-W3-W3-Ca-Feat-Dep-Func|Out],[Mult-3-[Id-W-Lem-Ca-Feat-Dep-Func|Cont]|Mults]):-
+    mcon(W,'_',Ww),
+    mcon(Ww,W1,W11),
+    mcon(W11,'_',Ww1),
+    mcon(Ww1,W2,W3),
+    (nouncats(Cat),Ca=Cat;
+      ttagtext(Id,[W3],Le),Le=[_-Ca];
+      prepos(Lem),Ca=php;
+      Ca=Cat),
+      Cont=[Id1-W1-Lem1-Ca1-Feat1-Id-mwe,Id2-W2-Lem2-Ca2-Feat2-Id3-mwe],
+    extractmwe(All,Out,Mults),
+    !.    
+extractmwe([Id-W-Lem-Cat-Feat-Dep-Func,Id1-W1-Lem1-Cat1-Feat1-Dep1-mwe|All],[Id-W2-W2-Ca-Feat-Dep-Func|Out],[Mult-2-[Id-W-Lem-Ca-Feat-Dep-Func|Cont]|Mults]):-
+    mcon(W,'_',Ww),
+    mcon(Ww,W1,W2),
+    (nouncats(Cat),Ca=Cat;
+      ttagtext(Id,[W2],Le),Le=[_-Ca];
+      prepos(Lem),Ca=php;
+      Ca=Cat),
+      Cont=[Id1-W1-Lem1-Ca1-Feat1-Id-mwe],
+    extractmwe(All,Out,Mults),
+    !.    
+extractmwe([Id-W-Lem-Cat-Feat-Dep-Func|All],[Id-W-Lem-Cat-Feat-Dep-Func|Out],Mults):-
+    extractmwe(All,Out,Mults),
+    !.    
+
+tstparsisdts([],[]):-!.
+tstparsisdts([Id-W-Lem-C-Cat-Feat|All],[Id-W-Lem-Ca-Feat|Out]):-
+    ttranlscat(W,Lem,Feat,Cat,Ca),
+    tstparsisdts(All,Out),
+    !.    
+
+parsisdts([],[]):-!.
+parsisdts([Id-W-Lem-Cat-Feat-Dep-Func|All],[Id-W-Lem-Ca-Feat-Dep-Func|Out]):-
+    translcatisdt(Lem,Func,Feat,Cat,Ca),
+    parsisdts(All,Out),
+    !.    
+
+tstcreatemultsisdt(Out,NewFr,MultDeps):-
+    tstgetwordsisdt(Out,Words),
+    itmults(Words,NewFrase,Mults),
+    tstmakenewfraseisdt(Out,NewFrase,NewFr1,MultDeps),
+    appiattisci(NewFr1,NewFr),
+    !.
+tstgetwordsisdt([],[]):-!.
+tstgetwordsisdt([Id-W-Lem-Ca-Feat|Out],[W|Words]):-
+    tstgetwordsisdt(Out,Words),
+    !.
+tstmakenewfraseisdt([],[],[],[]):-!.
+tstmakenewfraseisdt([Id-W-Lem-Ca-Feat|Out],[W|Words],[Id-W-Lem-Ca-Feat|NewFr],Mults):-
+    tstmakenewfraseisdt(Out,Words,NewFr,Mults),
+    !.
+tstmakenewfraseisdt([Id-W-Lem-Ca-Feat|Out],[W1|Words],[Outs|NewFr],[MultDeps|Mults]):-
+    concat_atom(List,'_',W1),
+    is_list(List),
+    length(List,L),
+    checkrecoverdescs(W1,L,L1),
+    tstreconstructmult(L1,[Id-W-Lem-Ca-Feat|Out],W1,Outs,Rest,MultDeps),
+    tstmakenewfraseisdt(Rest,Words,NewFr,Mults),
+    !.
+tstmakenewfraseisdt([Id-W-Lem-Ca-Feat|Out],[W1|Words],NewFr,[W1-L-List|Mults]):-
+    concat_atom(List,'_',W1),
+    List=[W|Rest],
+    length(List,L),
+    append(List,Words,NewWords),
+    tstmakenewfraseisdt([Id-W-Lem-Ca-Feat|Out],NewWords,NewFr,Mults),
+    !.
+
+checkmembercat(Cat,Cat1):-
+    nouncats(Cat),(nouncats(Cat1);Cat1=agn)
+    ;
+    proncat(Cat),proncat(Cat1)
+    ;
+    adverbialcats(Cat),adverbialcats(Cat1)
+    ;
+    qcats(Cat),(anncats(Cat1);Cat1=neg;qcats(Cat1))
+    ;
+    qcats(Cat),relcats(Cat1)
+    ;
+    relcats(Cat),qcats(Cat1)
+    ;
+    allpreps(Cat),allpreps(Cat1)
+    ;
+    check_vcat(Cat),check_vcat(Cat1),
+    !.
+    
+tstreconstructmult(N,[],Mult,[],Rest,[]):-!.
+tstreconstructmult(1,Rest,Mult,[],Rest,[]):-!.
+tstreconstructmult(2,[Id-W-Lem-Ca-Feat|Out],Mult,[Id1-Mult-Lem1-Cat1-Feat1],Rest,Mult-2-[Id-W-Lem-Ca-Feat,Id1-W1-Lem1-Ca1-Feat1]):-
+    ttagtext(Id,[Mult],Tag),
+    (Tag=Mult-Cat;Tag=[Mult-Cat]),
+    (atomic(Cat),Cat1=Cat;is_list(Cat),Cat=[Cat1];
+      is_list(Cat),member(Cat1,Cat),checkmembercat(Ca,Cat1)),
+    Out=[Id1-W1-Lem1-Ca1-Feat1|Rest],
+    !.
+tstreconstructmult(3,[Id-W-Lem-Ca-Feat|Out],Mult,[Id-Mult-Lem-Cat-Feat],Rest,Mult-3-[Id-W-Lem-Ca-Feat|Cont]):-
+    ttagtext(Id,[Mult],Tag),
+    (Tag=Mult-Cat;Tag=[Mult-Cat]),
+    (atomic(Cat),Cat1=Cat;is_list(Cat),Cat=[Cat1];
+      is_list(Cat),member(Cat1,Cat),checkmembercat(Ca,Cat1)),
+    Out=[Id1-W1-Lem1-Ca1-Feat1,Id2-W2-Lem2-Ca2-Feat2|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1,Id2-W2-Lem2-Ca2-Feat2],
+    !.
+tstreconstructmult(4,[Id-W-Lem-Ca-Feat|Out],Mult,[Id-Mult-Lem-Cat-Feat],Rest,Mult-4-[Id-W-Lem-Ca-Feat|Cont]):-
+    ttagtext(Id,[Mult],Tag),
+    (Tag=Mult-Cat;Tag=[Mult-Cat]),
+    (atomic(Cat),Cat1=Cat;is_list(Cat),Cat=[Cat1];
+      is_list(Cat),member(Cat1,Cat),checkmembercat(Ca,Cat1)),
+    Out=[Id1-W1-Lem1-Ca1-Feat1,Id2-W2-Lem2-Ca2-Feat2,Id3-W3-Lem3-Ca3-Feat3|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1,Id2-W2-Lem2-Ca2-Feat2,Id3-W3-Lem3-Ca3-Feat3],
+    !.
+
+createmultsisdt(Out,NewFr,MultDeps):-
+    getwordsisdt(Out,Words),
+    itmults(Words,NewFrase,Mults),
+    makenewfraseisdt(Out,NewFrase,NewFr1,MultDeps),
+    appiattisci(NewFr1,NewFr),
+    !.
+
+getwordsisdt([],[]):-!.
+getwordsisdt([Id-W-Lem-Ca-Feat-Dep-Func|Out],[W|Words]):-
+    getwordsisdt(Out,Words),
+    !.
+
+makenewfraseisdt([],[],[],[]):-!.
+makenewfraseisdt([Id-W-Lem-Ca-Feat-Dep-Func|Out],[W|Words],[Id-W-Lem-Ca-Feat-Dep-Func|NewFr],Mults):-
+    makenewfraseisdt(Out,Words,NewFr,Mults),
+    !.
+makenewfraseisdt([Id-W-Lem-Ca-Feat-Dep-Func|Out],[W1|Words],[Outs|NewFr],[MultDeps|Mults]):-
+%    recover_descs(W1,List),
+    concat_atom(List,'_',W1),
+    is_list(List),
+    length(List,L),
+    checkrecoverdescs(W1,L,L1),
+    reconstructmult(L1,[Id-W-Lem-Ca-Feat-Dep-Func|Out],W1,Outs,Rest,MultDeps),
+    makenewfraseisdt(Rest,Words,NewFr,Mults),
+    !.
+makenewfraseisdt([Id-W-Lem-Ca-Feat-Dep-Func|Out],[W1|Words],NewFr,[W1-L-List|Mults]):-
+    concat_atom(List,'_',W1),
+    List=[W|Rest],
+    length(List,L),
+    append(List,Words,NewWords),
+    makenewfraseisdt([Id-W-Lem-Ca-Feat-Dep-Func|Out],NewWords,NewFr,Mults),
+    !.
+
+checkrecoverdescs(W1,L,L1):-
+    stringof(List,W1),
+    findall(U,member('_',List),Lis),
+    length(Lis,L22),
+    reverse(List,[A|Rev]),
+    (A='_',L2=L22;A\='_',L2 is L22 + 1),
+    (L2=L,L1=L;L1=L2).
+checkrecoverdescs(W1,L,L):-!.
+
+reconstructmult(N,[],Mult,[],Rest,[]):-!.
+reconstructmult(1,Rest,Mult,[],Rest,[]):-!.
+reconstructmult(2,[Id-W-Lem-Ca-Feat-Id1-Func|Out],Mult,[Id1-Mult-Mult-Cat-Feat1-Dep-Func1],Rest,Mult-2-[Id-W-Lem-Ca-Feat-Id1-Func,Id1-W1-Lem1-Ca1-Feat1-Dep-Func1]):-
+    ttagtext(Id,[Mult],Tag),
+    (Tag=Mult-Cat;Tag=[Mult-Cat]),
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Dep-Func1|Rest],
+    !.
+reconstructmult(2,[Id-W-Lem-Ca-Feat-Dep-Func|Out],Mult,[Id-Mult-Mult-Cat-Feat-Dep-Func],Rest,Mult-2-[Id-W-Lem-Ca-Feat-Dep-Func,Id1-W1-Lem1-Ca1-Feat1-Id-Func1]):-
+    ttagtext(Id,[Mult],Tag),
+    (Tag=Mult-Cat;Tag=[Mult-Cat]),
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1|Rest],
+    !.
+reconstructmult(2,[Id-W-Lem-Ca-Feat-Dep-Func|Out],Mult,[Id-Mult-Mult-Cat-Feat-Dep-Func],Rest,Mult-2-[Id-W-Lem-Ca-Feat-Dep-Func,Id1-W1-Lem1-Ca1-Feat1-Dep-Func1]):-
+    ttagtext(Id,[Mult],Tag),
+    (Tag=Mult-Cat;Tag=[Mult-Cat]),
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Dep-Func1|Rest],
+    !.
+reconstructmult(3,[Id-W-Lem-Ca-Feat-Dep-Func|Out],Mult,[Id-Mult-Lem-Cat-Feat-Dep-Func],Rest,Mult-3-[Id-W-Lem-Ca-Feat-Dep-Func|Cont]):-
+    ttagtext(Id,[Mult],Tag),
+    (Tag=Mult-Cat;Tag=[Mult-Cat]),
+    (
+     Out=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1,Id2-W2-Lem2-Ca2-Feat2-Id3-Func2|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1,Id2-W2-Lem2-Ca2-Feat2-Id3-Func2]
+     ;
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Id2-Func1,Id2-W2-Lem2-Ca2-Feat2-Id-Func2|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Id2-Func1,Id2-W2-Lem2-Ca2-Feat2-Id-Func2]
+     ;
+    Dep\=0,
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Id2-Func1,Id2-W2-Lem2-Ca2-Feat2-Id-Func2|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Id2-Func1,Id2-W2-Lem2-Ca2-Feat2-Id-Func2]
+    ;
+    Dep\=0,
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Dep-Func1,Dep-W2-Lem2-Ca2-Feat2-Id3-Func2|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Dep-Func1,Dep-W2-Lem2-Ca2-Feat2-Id3-Func2]
+    ;
+    Dep\=0,
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Id2-Func1,Id3-W2-Lem2-Ca2-Feat2-Id1-Func2|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Id2-Func1,Id3-W2-Lem2-Ca2-Feat2-Id1-Func2]
+    ),
+    !.
+reconstructmult(4,[Id-W-Lem-Ca-Feat-Dep-Func|Out],Mult,[Id-Mult-Lem-Cat-Feat-Dep-Func],Rest,Mult-4-[Id-W-Lem-Ca-Feat-Dep-Func|Cont]):-
+    Dep\=0,
+    ttagtext(Id,[Mult],Tag),
+    (Tag=Mult-Cat;Tag=[Mult-Cat]),
+    (
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Idd-Func1,Id2-W2-Lem2-Ca2-Feat2-Ids-Func2,Id3-W3-Lem3-Ca3-Feat3-Id-Func3|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Idd-Func1,Id2-W2-Lem2-Ca2-Feat2-Ids-Func2,Id3-W3-Lem3-Ca3-Feat3-Id-Func3]
+    ;
+    Dep\=0,
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1,Id2-W2-Lem2-Ca2-Feat2-Id1-Func2,Id3-W3-Lem3-Ca3-Feat3-Id1-Func3|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1,Id2-W2-Lem2-Ca2-Feat2-Id1-Func2,Id3-W3-Lem3-Ca3-Feat3-Id1-Func3]
+    ;
+    Dep\=0,
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1,Id2-W2-Lem2-Ca2-Feat2-Id1-Func2,Id3-W3-Lem3-Ca3-Feat3-Id2-Func3|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1,Id2-W2-Lem2-Ca2-Feat2-Id1-Func2,Id3-W3-Lem3-Ca3-Feat3-Id2-Func3]
+    ;
+    Dep\=0,
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Dep-Func1,Id2-W2-Lem2-Ca2-Feat2-Dep-Func2,Dep-W3-Lem3-Ca3-Feat3-Id3-Func3|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Dep-Func1,Id2-W2-Lem2-Ca2-Feat2-Dep-Func2,Dep-W3-Lem3-Ca3-Feat3-Id3-Func3]
+    ;
+    Dep\=0,
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1,Id2-W2-Lem2-Ca2-Feat2-Id1-Func2,Id3-W3-Lem3-Ca3-Feat3-Id2-Func3|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Id-Func1,Id2-W2-Lem2-Ca2-Feat2-Id1-Func2,Id3-W3-Lem3-Ca3-Feat3-Id2-Func3]
+    ;
+    Dep\=0,
+    Out=[Id1-W1-Lem1-Ca1-Feat1-Id3-Func1,Id2-W2-Lem2-Ca2-Feat2-Id3-Func2,Id3-W3-Lem3-Ca3-Feat3-Id-Func3|Rest],Cont=[Id1-W1-Lem1-Ca1-Feat1-Id3-Func1,Id2-W2-Lem2-Ca2-Feat2-Id3-Func2,Id3-W3-Lem3-Ca3-Feat3-Id-Func3]
+    ),
+    !.
+% reconstructmult(N,[Id-W-Lem-Ca-Feat-Id1-Func,Idd-W1-Lem1-Ca1-Feat1-Id2-Func1|Rest],Mult,[Id-W-Lem-Ca-Feat-Id1-Func,Idd-W1-Lem1-Ca1-Feat1-Id2-Func1],Rest,Mult-[Id-W-Lem-Ca-Feat-Id1-Func,Idd-W1-Lem1-Ca1-Feat1-Id2-Func1]):-!.
+
+translcatisdt(avere,'ROOT',Feat,'V',vc).
+translcatisdt(essere,'ROOT',Feat,'V',vc).
+translcatisdt(Lem,nnp,Feat,'SP',nh).
+translcatisdt(Lem,Func,Feat,'SP',np).
+translcatisdt(Lem,Func,Feat,'SW',npro).
+translcatisdt(Lem,prep,Feat,'S',php).
+translcatisdt(Lem,Func,Feat,'S',n).
+translcatisdt(Lem,Func,Feat,'V',v).
+translcatisdt(Lem,Func,mod=f,'V',vit).
+translcatisdt(Lem,Func,mod=g,'V',vgt).
+translcatisdt(Lem,vmod,[num=N,mod=p,gen=G],'V',vppt).
+translcatisdt(Lem,Func,Feat,'VM',vsup).
+translcatisdt(avere,aux,Feat,'VA',ausa).
+translcatisdt(essere,aux,Feat,'VA',ause).
+translcatisdt(essere,auxpass,Feat,'VA',Aus):-
+  member(mod=p,Feat),Aus=ausep;Aus=ause.
+translcatisdt(Lem,auxpass,Feat,'VA',v):-Lem\=essere.
+translcatisdt(Lem,Func,Feat,'VA',vc).
+translcatisdt(di,Func,Feat,'EA',partd).
+translcatisdt(da,Func,Feat,'EA',partda).
+translcatisdt(Lem,Func,Feat,'EA',part).
+translcatisdt(P,aux,Feat,'E',pt).
+translcatisdt(di,Func,Feat,'E',pd).
+translcatisdt(da,Func,Feat,'E',pda).
+translcatisdt(Lem,Func,Feat,'E',p).
+translcatisdt(Lem,Func,Feat,'RI',q):- selectdi(Lem).
+translcatisdt(Lem,Func,Feat,'RI',art).
+translcatisdt(Lem,Func,Feat,'RD',art).
+translcatisdt(Lem,Func,Feat,'A',ag).
+translcatisdt(Lem,Func,Feat,'AP',poss).
+translcatisdt(Lem,Func,Feat,'FB',par).
+translcatisdt(Lem,Func,Feat,'FS',punto).
+translcatisdt(Lem,Func,Feat,'FC',par).
+translcatisdt(Lem,Func,Feat,'FF',punt).
+translcatisdt(Lem,Func,Feat,'PC',clit).
+translcatisdt(Lem,Func,Feat,'PD',deit).
+translcatisdt(Lem,Func,Feat,'PE',pron).
+translcatisdt(Lem,Func,Feat,'PI',q).
+translcatisdt(Lem,Func,Feat,'PQ',int).
+translcatisdt(chi,Func,Feat,'PR',relin).
+translcatisdt(cui,Func,Feat,'PR',relob).
+translcatisdt(Lem,Func,Feat,'PP',poss).
+translcatisdt(Lem,Func,Feat,'PR',rel).
+translcatisdt(Lem,Func,Feat,'CC',cong).
+translcatisdt(Lem,Func,Feat,'CS',cosu).
+translcatisdt(che,Func,Feat,'CS',pk).
+translcatisdt(Lem,Func,Feat,'N',num).
+translcatisdt(Lem,Func,Feat,'NO',num).
+translcatisdt(Lem,prep,Feat,'B',php).
+translcatisdt(Lem,Func,Feat,'B',avv).
+translcatisdt(Lem,Func,Feat,'BN',neg).
+translcatisdt(Lem,Func,Feat,'D',dim).
+translcatisdt(Lem,Func,Feat,'DD',dim).
+translcatisdt(Lem,Func,Feat,'DE',ind).
+translcatisdt(Lem,Func,Feat,'DI',ind).
+translcatisdt(Lem,Func,Feat,'DT',ind).
+translcatisdt(Lem,Func,Feat,'DQ',q).
+translcatisdt(cui,Func,Feat,'DR',relob).
+translcatisdt(Lem,Func,Feat,'X',num).
+translcatisdt(Lem,Func,Feat,'I',intj).
+translcatisdt(Lem,Func,Feat,'T',qc).
+
+ttranlscat(W,Lem,Feat,'SP',nh):-if_first_name(W).
+ttranlscat(W,Lem,Feat,'SP',np).
+ttranlscat(W,Lem,Feat,'SA',n).
+ttranlscat(W,Lem,Feat,'SW',npro).
+ttranlscat(W,Lem,Feat,'S',n).
+ttranlscat(W,Lem,Feat,'V',v).
+ttranlscat(W,Lem,mod=f,'V',vit).
+ttranlscat(W,Lem,mod=g,'V',vgt).
+ttranlscat(W,Lem,[num=N,mod=p,gen=G],'V',vppt).
+ttranlscat(W,Lem,Feat,'VM',vsup).
+ttranlscat(W,avere,Feat,'VA',ausa).
+ttranlscat(W,essere,Feat,'VA',ause).
+ttranlscat(stata,essere,Feat,'VA',ausep).
+ttranlscat(stato,essere,Feat,'VA',ausep).
+ttranlscat(state,essere,Feat,'VA',ausep).
+ttranlscat(stati,essere,Feat,'VA',ausep).
+ttranlscat(W,Lem,Feat,'VA',vc).
+ttranlscat(W,di,Feat,'EA',partd).
+ttranlscat(W,da,Feat,'EA',partda).
+ttranlscat(W,Lem,Feat,'EA',part).
+ttranlscat(W,di,Feat,'E',pd).
+ttranlscat(W,da,Feat,'E',pda).
+ttranlscat(W,Lem,Feat,'E',p).
+ttranlscat(W,Lem,Feat,'RI',q):- selectdi(Lem).
+ttranlscat(W,Lem,Feat,'RI',art).
+ttranlscat(W,Lem,Feat,'RC',art).
+ttranlscat(W,Lem,Feat,'RD',art).
+ttranlscat(W,Lem,Feat,'A',ag).
+ttranlscat(W,Lem,Feat,'AP',poss).
+ttranlscat(W,Lem,Feat,'FB',par).
+ttranlscat(W,Lem,Feat,'FS',punto).
+ttranlscat(W,Lem,Feat,'FC',par).
+ttranlscat(W,Lem,Feat,'FF',punt).
+ttranlscat(W,Lem,Feat,'PC',clit).
+ttranlscat(W,Lem,Feat,'PD',deit).
+ttranlscat(W,Lem,Feat,'PE',pron).
+ttranlscat(W,Lem,Feat,'PI',q).
+ttranlscat(W,Lem,Feat,'PQ',int).
+ttranlscat(W,chi,Feat,'PR',relin).
+ttranlscat(W,cui,Feat,'PR',relob).
+ttranlscat(W,Lem,Feat,'PP',poss).
+ttranlscat(W,Lem,Feat,'PR',rel).
+ttranlscat(W,Lem,Feat,'CC',cong).
+ttranlscat(W,Lem,Feat,'CS',cosu).
+ttranlscat(W,che,Feat,'CS',pk).
+ttranlscat(W,Lem,Feat,'N',num).
+ttranlscat(W,Lem,Feat,'NO',num).
+ttranlscat(W,Lem,Feat,'B',avv).
+ttranlscat(W,Lem,Feat,'BN',neg).
+ttranlscat(W,Lem,Feat,'D',dim).
+ttranlscat(W,Lem,Feat,'DD',dim).
+ttranlscat(W,Lem,Feat,'DE',ind).
+ttranlscat(W,Lem,Feat,'DI',ind).
+ttranlscat(W,Lem,Feat,'DT',ind).
+ttranlscat(W,Lem,Feat,'DQ',q).
+ttranlscat(W,cui,Feat,'DR',relob).
+ttranlscat(W,Lem,Feat,'X',num).
+ttranlscat(W,Lem,Feat,'I',intj).
+ttranlscat(W,Lem,Feat,'T',qc).
+
+select_dirs('"', [par]).
+select_dirs('“', [par]).
+select_dirs('”', [par]).
+
+
+select_punct('·', [sect]).
+select_punct('•', [sect]).
+select_punct('''', [par]).
+select_punct('.', [punto]).
+select_punct('.', [punto]).
+select_punct('''.''', [punto]).
+select_punct('?', [puntint]).
+select_punct('!', [puntint]).
+select_punct(',', [punt]).
+select_punct(';', [punt]).
+select_punct(':', [dirs]).
+select_punct(''':''', [dirs]).
+select_punct('-', [par]).
+select_punct('—', [par]).
+select_punct('''-''', [par]).
+select_punct('(', [par]).
+select_punct(')', [par]).
+select_punct('{', [par]).
+select_punct('}', [par]).
+select_punct('<', [par]).
+select_punct('§', [parag]).
+select_punct('>', [par]).
+select_punct('|', [par]).
+select_punct('[', [par]).
+select_punct('"', [par]).
+select_punct('‘', [par]).
+select_punct('«', [par]).
+select_punct('“', [par]).
+select_punct('„', [par]).
+select_punct('”', [par]).
+select_punct('’', [par]).
+select_punct('»', [par]).
+select_punct(']', [par]).
+select_punct('#', [par]).
+select_punct('&', [and]).
+select_punct('©', [at]).
+select_punct('®', [at]).
+select_punct('™', [at]).
+select_punct('@', [at]).
+select_punct('$', [doll]).
+select_punct('£', [pound]).
+select_punct('€', [euro]).
+select_punct('+', [plus]).
+select_punct('/', [slash]).
+select_punct('=', [equal]).
+select_punct('_', [unders]).
+select_punct('°', [deg]).
+select_punct('...', [dots]).
+select_punct('…', [dots]).
+
+
+
+newtaggger(Tokens,Output):-
+   init,
+   newinit,
+    tokenizer(Tokens,Output),
+    recovertokens(Outs),
+   !.
+   
+cleantags(Frase,Frase1):-
+   disambiguate(Frase,Fras),
+   checkuniqq(Fras, List, Frase1),
+   !.
+
+cleantags1(Tags,Frase,Frase11):-
+   disambiguate(Frase,Fras),
+   makeunique(Fras,Frase2),
+   improvetagss(Tags,Frase2,Frase1),
+   attachclitics(Frase1,Frase11),
+   !.
+
+attachclitics([],[]):-!.
+attachclitics([W-Tag-S,W1-Tag1-S1|Frase1],[W2-vcl-S|Frase2]):-
+   (is_list(Tag),member(T,Tag),check_vcat(T)
+     ;
+     atomic(Tag),check_vcat(Tag)),
+   stringof(List,W),
+   reverse(List,[r|Rev]),
+   (is_list(Tag1),member(T,Tag1),T1=clit
+     ;
+     atomic(Tag1), Tag1=clit),
+   mcon(W,W1,W2),
+   attachclitics(Frase1,Frase2),
+   !.
+attachclitics([W-Tag-S|Frase1],[W-Tag-S|Frase2]):-
+   attachclitics(Frase1,Frase2),
+   !.
+   
+improvetagss(Tags,Frase2,Frase1):-
+   improvetags(Tags,Frase2,Frase1),
+   !.
+improvetagss(Tags,Frase,Frase):-
+   !.
+improvetags([],[],[]):-!.
+improvetags([],Frase,[]):-!.
+improvetags([W-T1|Tags],[W-T-S|Frase2],[W-Tag-S|Frase1]):-
+   atomic(T),T=v,
+   (islist(T1),member(Tag,T1),check_vcat(Tag)
+     ;Tag=T),
+   improvetags(Tags,Frase2,Frase1),
+   !.
+improvetags([W-T1,era-T2|Tags],[W-pron-S,era-n-S1|Frase2],[W-pron-S,era-ause-S1|Frase1]):-
+   improvetags(Tags,Frase2,Frase1),
+   !.
+improvetags([di-T1|Tags],[di-p-S|Frase2],[di-pd-S|Frase1]):-
+   improvetags(Tags,Frase2,Frase1),
+   !.
+improvetags([W1-T1|Tags],[W-T-S|Frase2],[W-Tag-S|Frase1]):-
+   atomic(W1),tolower(W1,W2),W2=W,
+   atomic(T),T=v,
+   (islist(T1),member(Tag,T1),check_vcat(Tag)
+     ;Tag=T),
+   improvetags(Tags,Frase2,Frase1),
+   !.
+improvetags([W1-T1|Tags],[W-T-S|Frase2],[W-T-S|Frase1]):-
+   atomic(W1),tolower(W1,W2),W2=W,
+   improvetags(Tags,Frase2,Frase1),
+   !.
+improvetags([W-T1|Tags],[W-T-S|Frase2],[W-T-S|Frase1]):-
+   improvetags(Tags,Frase2,Frase1),
+   !.
+improvetags([W-T1|Tags],Frase2,[W-T1-1|Frase1]):-
+   improvetags(Tags,Frase2,Frase1),
+   !.
+
+makeunique([],[]):-!.
+makeunique([e-T-S|Frase],[e-cong-S|Frase1]):-
+   makeunique(Frase,Frase1),
+   !.
+makeunique([W-mw-S|Frase],[W-part-S|Frase1]):-
+    (prepos(W);prepart(Lem,W,_)),
+   makeunique(Frase,Frase1),
+   !.
+makeunique([W-date-S|Frase],[W-num-S|Frase1]):-
+   makeunique(Frase,Frase1),
+   !.
+makeunique([W-T-S,W-T-S|Frase],[W-T-S|Frase1]):-
+   atomic(T),select_punct(W,_),
+   makeunique(Frase,Frase1),
+   !.
+makeunique([W-T-S|Frase],[W-T-S|Frase1]):-
+   atomic(T),
+   makeunique(Frase,Frase1),
+   !.
+makeunique([W-T-S|Frase],[W-A-S|Frase1]):-
+   islist(T), 
+   (T=[A];
+       allfs1(W,Cat,Allf),
+       sort(Allf,Alls),
+       reverse(Alls,RevAl),
+       RevAl=[_-TA|_],
+       (atomic(TA),A=TA;islist(TA),TA=[A])
+       ),
+   makeunique(Frase,Frase1),
+   !.
+makeunique([W-T-S|Frase],[W-B-S|Frase1]):-
+   islist(T), 
+   T=[A|_],
+   (atomic(A),B=A;
+     reverse(T,Rev),
+     Rev=[A1|_],
+     A1 = N-_-_-B),
+   makeunique(Frase,Frase1),
+   !.
+makeunique([W-T-S|Frase],[W-B-S|Frase1]):-
+   T=Sc-C-C1-B,
+   makeunique(Frase,Frase1),
+   !.
+
+
+/*
+restr=postnominale;pred=prenominale;attr;tr=post
+pa(tecnic,restr,statv,orig,[np/head/[-ani,+abst]]).
+pa(tedesc,restr,statv,orig,[np/head/[-ani,+hum,+abst,-abst]]).
+pa(socialdemocratic,restr,statv,orig,[np/head/[-ani,+hum,+abst]]).
+pa(socialist,restr,statv,orig,[np/head/[-ani,+hum,+abst]]).
+pa(soggett,restr,statv,exort,[np/head/[-ani,+hum,+abst],pp/obj2/goal/a/[-ani,+hum,+abst]]).
+pa(sol,pred,statv,statv,[np/subj1/head/[any]]).
+pa(solenn,pred,statv,intens,[np/subj1/head/[-ani,+hum,+abst]]).
+pa(solid,pred,statv,statv,[np/subj1/head/[-ani]]).
+pa(solit,attr,statv,temp,[np/head/[-ani,+hum,+abst]]).
+pa(sospettos,tr,statv,intens,[np/subj1/head/[+hum],pp/obl/theme/di/[-ani,+hum]]).
+*/
+
+disambiguate([],[]):-
+   !.
+
+/* disambigua 4 */
+disambiguate([W2-art-1,W4-Ag-N2,W-Par-S,W3-cong-N|Frase],[W2-art-1,W4-ag-1,W-Par-S,W3-n-N|Frase1]):-
+   (Par=par;Par=[par]),
+   (atomic(Ag),Ag=ag;islist(Ag),member(ag,Ag)),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-P-N1,W2-clit-1,W3-[ag,vin]-N,W4-[n]-N2|Frase],[W1-p-1,W2-art-1,W3-ag-1,W4-n-1|Frase1]):-
+   (P=p;P=[p]),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-P-N1,W2-clit-1,W3-[ag,vt]-N,W4-[n]-N2|Frase],[W1-p-1,W2-art-1,W3-ag-1,W4-n-1|Frase1]):-
+   (P=p;P=[p]),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-[art,clit]-N1,W2-n-1,W3-[p,pt]-N,W4-[v,n]-N2|Frase],[W1-art-1,W2-n-1,W3-p-1,W4-n-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-[avvl]-N1,W2-[n,p]-N0,W3-[art,clit]-N,W4-[n]-N2|Frase],[W1-avvl-1,W2-p-1,W3-art-1,W4-n-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-[v]-N1,W2-[n,p]-1,W3-[art,clit]-N,W4-[n]-N2|Frase],[W1-v-1,W2-p-1,W3-art-1,W4-n-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-[n]-N1,W2-[ag,n]-1,W3-[ag,n]-N,W4-[punto]-N2],[W1-n-1,W2-ag-1,W3-ag-1,W4-[punto]-1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-[n]-N1,W2-ag-1,W3-n-N,W4-[punto]-N2],[W1-n-1,W2-ag-1,W3-ag-1,W4-[punto]-1]):-
+   psl(W3,g,F,_,_,_),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-art-N1,W2-S-1,W3-Vc-N,come-Cat-N2|Frase],[W1-art-1,W2-S-1,W3-vc-1,come-ccom-1|Frase1]):-
+   (coplbh(W3);copl(W3)),
+   disambiguate(Frase,Frase1),
+   !.
+
+/* disambigua 3 */
+disambiguate([W1-P-N1,W2-clit-1,W3-[ag,vin]-N|Frase],[W1-p-1,W2-art-1,W3-ag-1|Frase1]):-
+   (P=p;P=[p]),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-P-N1,W2-clit-1,W3-[ag,vt]-N|Frase],[W1-p-1,W2-art-1,W3-ag-1|Frase1]):-
+   (P=p;P=[p]),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W2-n-1,W3-[p,pt]-N,W4-[v,n]-N2|Frase],[W2-n-1,W3-p-1,W4-n-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([Che-C-N1,era-Ca-N,W4-art-N2|Frase],[Che-C-N1,era-vc-1,W4-art-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([Che-C-N1,era-Ca-N,W4-n-N2|Frase],[Che-C-N1,era-vc-1,W4-n-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W2-V1-1,W3-V2-N,W4-Nn-N2|Frase],[W2-V1-1,W3-V2-1,W4-vppt-1|Frase1]):-
+   (W4=fatto;W4=fatti;W4=fatta;W4=fatte),
+   (atomic(V1),V=V1;islist(V1),member(V,V1)),check_all_verbs(V),
+   (atomic(V2),Vv=V2;islist(V2),member(Vv,V2)),check_all_verbs(Vv),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W2-V1-1,fosse-n-N,W4-Ag-N2|Frase],[W2-V1-1,fosse-vc-1,W4-ag-1|Frase1]):-
+   nouncats(V1),
+   (atomic(Ag),Ag=ag;islist(Ag),member(ag,Ag)),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-[p,part]-N1,W2-[ag,n]-N1,W3-[ag]-1|Frase],[W1-part-1,W2-n-1,W3-ag-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-n-1,W2-[part,q]-N0,W3-n-1|Frase],[W1-n-1,W2-part-1,W3-n-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-Art-N1,W2-[ag,deit,dim,q]-N1,W3-P-1|Frase],[W1-Art-1,W2-q-1,W3-P-1|Frase1]):-
+   (P=p;P=part;P=pd;P=partd),
+   (Art=art;Art=[art|_]),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-P-N1,W2-[ag,n]-N1,W3-[ag]-1|Frase],[W1-P-1,W2-n-1,W3-ag-1|Frase1]):-
+   (P=p;P=part),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-clit-1,W2-List-N0,W3-v-1|Frase],[W1-clit-1,W2-clit-1,W3-v-1|Frase1]):-
+   is_list(List),on(_-_-_-_,List),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-clit-1,W2-List-N0,W3-N-1|Frase],[W1-art-1,W2-ag-1,W3-n-1|Frase1]):-
+   is_list(List),on(_-ag-_,List),
+   (N=n;N=[n]),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-Cats-N,W2-vci-N0,W3-Vcats-1|Frase],[W1-Cat-N,W2-vci-1,W3-Ca-1|Frase1]):-
+   (is_list(Cats),on(Cat,Cats);atomic(Cats),Cat=Cats),
+     check_all_verbs(Cat),
+   (is_list(Vcats),on(Ca,Vcats);atomic(Vcats),Ca=Vcats),
+     check_all_verbs(Ca),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-Cats-N,W2-p-N0,W3-Dirs-1|Frase],[W1-Cat-N,W2-avv-1,W3-dirs-1|Frase1]):-
+   (is_list(Cats),on(Cat,Cats);atomic(Cat)),
+     check_all_verbs(Cat),
+     (Dirs=[dirs];Dirs=dirs),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([come-cong-1,W2-[n]-N0,W3-[punt]-1|Frase],[come-ccom-1,W2-n-1,W3-[punt]-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([come-cosu-1,W2-[n]-N0,W3-[punt]-1|Frase],[come-ccom-1,W2-n-1,W3-[punt]-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([come-cosu-1,W2-[C]-N0,W3-Cat-S|Frase],[come-ccom-1,W2-n-1,W3-Cat-S|Frase1]):-
+   nouncats(C),
+   (prepos(W3);prepart(Lem,W3,_)),
+   disambiguate(Frase,Frase1),
+   !.
+
+/*
+i(5,gli,art,il,sn,[mfeats=mp],6,-)
+i(6,era,ause,essere,sn,[sems=aux,mfeats=kj3s],0,sn/theme)
+i(7,non,neg,non,sn,non,10,-)
+i(8,perse,ag,perso,sn,[cat=verb,pred=perd+ere,scat=intr,mood=part,tense=pass,gen=f,num=p],10, (mod)/adj)
+i(9,il,art,il,sn,[sems=def,mfeats=fs],10,-)
+i(1,tutti,ag,tutto,sn,[mfeats=mp],0,xadj/theme)
+i(2,gli,art,il,sn,[mfeats=mp],3,-)
+i(3,invidiavano,v,invidiare,sn,[cat=verb,pred=invidi+are,scat=tr,mood=indic,tense=imperf,pers=3,num=p],0,sn/theme)
+i(4,il,art,il,sn,[sems=def,mfeats=fs],6,-)
+
+i(1,questa,deit,questo,sn,[sems=dim,mfeats=fs],2,subj/agent)
+i(2,Ë,vc,essere,ibar,[sems=cop,mfeats=kl3s],0,cop/esistenza)
+i(3,la,art,il,sn,[sems=def,mfeats=fs],4,-)
+i(4,storia,n,storia,sn,[sems=com,mfeats=fs],2,xcomp/prop)
+i(5,di,pd,di,sp,[],4,-)
+i(6,tre,num,tre,sn,[sems=card],5, (mod)/specif)
+i(7,porcellini,n,porcello,sn,[cat=noun,type=com,pred=porcell+o,gen=m,num=p,mode=dim,suff=ino],6, (mod)/specif)
+i(8,che,rel,che,f2,[sems=com,mfeats=fs],4,binder)
+i(9,andarono,v,andare,ibar,[sems=intr,mfeats=ks3p],8,inac/attivita)
+i(9,rel_pro,pro,bindee,f2,[sems=com,mfeats=fs],ante=storia,subj/_G46622)
+i(10,per,p,per,_G46937,_G46938,2,-)
+i(11,il,arg_det,il,cp,[cat=art,type=def,pred=il,gen=m,num=s],2,-)
+i(12,mondo,n,mondo,sn,[sems=com,mfeats=ms],2,subj/theme)
+i(13,a,pt,a,_G47000,_G47001,2,-)
+i(14,cercare,v,cercare,ibar,[sems=tr,mfeats=fl],2,trans/attivita)
+i(15,fortuna,n,fortuna,sn,[sems=com,mfeats=fs],14,obj/theme)
+i(16,'.',punto,punto,cp,-,2,-)
+*/
+
+/* disambigua 2 */
+disambiguate(['Era'-Ca-N,W4-art-N2|Frase],[era-vc-1,W4-art-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([Di-Ca-N,tramite-Ca1-N2|Frase],[Di-Ca-1,tramite-n-1|Frase1]):-
+   (Di=di;Di=da),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([Di-B-Ca-N,tramite-Ca1-N2|Frase],[Di-Ca-1,tramite-n-1|Frase1]):-
+   (Di=di;Di=da),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([o-cong-N1,che-rel-1|Frase],[o-cong-1,che-pk-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W-pt-N1,W1-Cat-1|Frase],[W-p-1,W1-Cat-1|Frase1]):-
+   \+ check_all_verbs(Cat),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([se-Clit-N1,W1-Cat-1|Frase],[se-cosu-1,W1-Cat-1|Frase1]):-
+   (atomic(Clit),Clit=clit;islist(Clit),member(clit,Clit)),
+   Cat\=clit,Cat\=clitac,Cat\=clitdat,
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([se-Clit-N1,ne-Cat-1|Frase],[se-clit-1,ne-Cat-1|Frase1]):-
+   (atomic(Cat),Cat=clit;islist(Cat),member(clit,Cat)),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([gli-Clit-N1,W1-Cat-1|Frase],[gli-clit-1,W1-Cat-1|Frase1]):-
+   (atomic(Cat),check_all_verbs(Cat);islist(Cat),member(Ca,Cat),check_all_verbs(Ca)),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W-Clit-N1,mise-Cat-1|Frase],[W-Clit-1,mise-v-1|Frase1]):-
+   (atomic(Clit),Clit=clit;islist(Clit),member(clit,Clit)),
+   (atomic(Cat),nouncats(Cat);islist(Cat),member(Ca,Cat),nouncats(Ca)),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W-[p,pt]-N,W1-T1-N1|Frase],[W-pt-N,W1-v-1|Frase1]):-
+   islist(T1), on(v,T1),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-[art,clit]-N1,W2-vt-1|Frase],[W1-clit-1,W2-vt-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([decise-vppt-N,di-P-N1|Frase],[decise-vt-N,di-P-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([decise-ag-N,di-P-N1|Frase],[decise-vt-N,di-P-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([più-avv-N,W1-ag-N1|Frase],[più-in-N,W1-ag-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W-clit-N,W1-T1-N1|Frase],[W-clit-N,W1-v-1|Frase1]):-
+   is_list(T1), (on(v,T1);on(vit,T1);on(vin,T1)),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W-[clit]-N,W1-T1-N1|Frase],[W-clit-N,W1-v-1|Frase1]):-
+   is_list(T1), (on(v,T1);on(vit,T1);on(vin,T1)),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([era-n-N1,Art-Cats-1|Frase],[era-ause-1,Art-art-1|Frase1]):-
+   (art_det_rom(Art,_,_);art_ndet_rom(Art,_,_)),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-clit-N1,era-n-1|Frase],[W1-clit-1,era-ause-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-Rel-N1,era-n-1|Frase],[W1-Rel-1,era-ause-1|Frase1]):-
+   (Rel=rel;Rel=relob;Rel=relin),
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([che-pk-N1,cosa-q-1|Frase],[che_cosa-int-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-neg-N1,era-n-1|Frase],[W1-neg-1,era-ause-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-[clit]-N1,era-n-1|Frase],[W1-clit-1,era-ause-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-clit-N1,W2-n-1|Frase],[W1-art-1,W2-n-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W1-clit-N1,W2-[n]-1|Frase],[W1-art-1,W2-n-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([di-List-N1,W2-[vcl]-1|Frase],[di-pt-1,W2-vcl-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([non-List-N1,sia-C-1|Frase],[non-neg-1,sia-vc-1|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([il-T-N|Frase],[il-art-N|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W-R-T-N|Frase],[W-T-N|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+disambiguate([W-T-N|Frase],[W-T-N|Frase1]):-
+   disambiguate(Frase,Frase1),
+   !.
+
+searchaux(W,T):-
+   copl(W),
+   T=vsup
+   ;
+   coplb(W),
+   T=ause
+   ;
+   coplh(W),
+   T=ausa,
+   !.
+
+filtercatss(W,T,T1):-
+   (T=mw;T=pw),T1=np
+   ;
+   T=sa, T1=ag
+   ;
+   T=aggpp, T1=ag
+   ;
+   T=aggpr, T1=ag
+   ;
+   T=av, T1=avv
+   ;
+   searchaux(W,T1)
+   ;
+   T1=T,
+   !.
+rordercats(N,[],[]):-!.
+rordercats(N,[W-T|Outs],[W-T1-1|Frase1]):-
+   atomic(T),
+   filtercatss(W,T,T1),
+   N1 is N + 1,
+   assertz(termin(N-[T1-W])),
+   rordercats(N1,Outs,Frase1),
+   !.
+rordercats(N,[W-T|Outs],[W-T1-1|Frase1]):-
+   T=[A],
+   filtercatss(W,A,T1),
+   N1 is N + 1,
+   assertz(termin(N-[A-W])),
+   rordercats(N1,Outs,Frase1),
+   !.
+rordercats(N,[W-T|Outs],[W-T1-L|Frase1]):-
+   is_list(T),
+   length(T,L), 1<L,
+%   create_new_lists(W,T,List),
+   deletepws(T,T1),
+   N1 is N + 1,
+   assertz(termin(N-List)),
+   rordercats(N1,Outs,Frase1),
+   !.
+
+deletepws(T,T1):-
+   remove(pw,T,T1)
+   ;
+   remove(mw,T,T1),
+   !.
+deletepws(T,T):-
+   !.
+   
+create_new_lists(Lex,ListAll,List):-
+    associate_lex_tag(Lex,ListAll,List),
+    !.
+
+associate_lex_tag(Lex,[],[]):-!.
+associate_lex_tag(L,[Cat|Cats],ListAl):-
+    (Cat=mw;Cat=pw),
+    associate_lex_tag(L,Cats,ListAl),
+    !.
+associate_lex_tag(L,[Cat|Cats],[Cat-L|ListAl]):-
+    associate_lex_tag(L,Cats,ListAl),
+    !.
+
+   
+pre(grande).
+pre(grandi).
+pre(bel).
+pre(bella).
+pre(belle).
+pre(bello).
+pre(povero).
+pre(povera).
+pre(povere).
+pre(poveri).
+
+% vinc(A, B, C, Cs, C1, Cc)
+% A = current word, B = its categories,
+% C = categories previous word, Cs = categories following word
+% C1 = imposed choice for current word, Cc = imposed category for following 
+% word
+
+/*
+[pk, exc, int, q, rel]
+fa [avvl, n, vin, virin, virt, vt]
+danno [n, vin, vt]
+[vin, vprog]
+[vin, vprog, vt]
+[vin, virin, virt, vppin, vppt, vt, agn]
+*/
+vinc(_, [vcl, vppt], PC, art, vcl, art).
+
+vinc(_, [vin, vprog, vt], PC, [vin, virin, virt, vppin, vppt, vt, agn], vprog, vppt):-!.
+
+vinc(_, [vin, vprog], PC, [vin, virin, virt, vppin, vppt, vt, agn], vprog, vppt):-!.
+
+vinc(_, [vin, vprog], PC, FC, vprog, pd):-
+   on(pd, FC),!.
+
+vinc(_, [vin, vprog, vt], PC, FC, vprog, pd):-
+   on(pd, FC),!.
+
+vinc(_, Cs, PC, [viin, vit], pt, [viin, vit]):-
+   on(pt, Cs),!.
+
+vinc(_, [ag, n, ppre, vprt], ag, C, vprt, C).
+
+vinc(W, [ag, n|_], n, Cats, ag, Cats):-!.
+
+vinc(W, [ag, n|_], PC, Cats, ag, n):-
+    on(n, Cats), \+ on(ag, Cats),!.
+
+vinc(W, [ag, n|_], PC, Cats, ag, n):-
+    on(ag, Cats), pre(W),!.
+
+vinc(W, [ag, n|_], PC, Cats, n, Cats):-
+    on(ag, Cats),!.
+
+vinc(_, [ag, n|_], art, Cats, n, Cats):-!.
+vinc(_, [ag, n|_], avv, FC, ag, FC):-!.
+
+vinc(_, [vcl, agn], n, FC, agn, FC).
+vinc(_, [vcl, agn], PC, FC, agn, n):-
+  on(n, FC), !.
+vinc(_, [n, vin, virin, virt, vt], p, FC, n, FC).
+
+vinc(fa,[avvl, n, vin, virin, virt, vt], p,[art, clitac], art, art).
+
+vinc(sia, [aueir, cong, vcir], punto, C, ccong, C):-!.
+vinc(sia, [aueir, cong, vcir], punt, C, ccong, C):-!.
+vinc(sia, [aueir, cong, vcir], n, Cats, cong, ag):-
+    on(ag, Cats),!.
+vinc(sia, [aueir, cong, vcir], vt, Cats, cong, n):-
+    on(n, Cats),!.
+vinc(e, [cong, congf], PC, Cats, cong, Cats).
+vinc(cui, [cong, relob], PC, Cats, relob, Cats).
+vinc(come, [avv, ccom, int], PC, [clitdat, cosu], congf, cosu):-
+    (PC=punt; PC=punto; PC=dirs; PC=puntint),!.
+
+vinc(_, [in, poss, pron], PC, FC, poss, n):-
+    on(n, FC),!.
+
+vinc(_, [vin, vt], PC, FC, vt, C):-
+    on(pt, FC), C=pt; on(pk, FC), C=pk,
+    on(art, FC), C=art; on(ag, FC), C=ag,!.
+
+vinc(di, Cats, n, [n, virt, vppin, vppt, vt, agn], pd, n).
+
+vinc(fatti, [n, vcl, vppin, vppt, agn], PC, FC, vppt, C):-
+     sel_pd(FC, C),!.
+%    on(p, FC), C=p;on(pda, FC), C=pda;on(pd,FC),C=pd,!.
+
+vinc(fatto, [nf, vppin, vppt, agn], ause, FC, vppt, FC).
+vinc(fatto, [nf, vppin, vppt, agn], ausa, FC, vppt, FC).
+
+vinc(tutto, [avv, qc], PC, FC, qc, art):-
+    on(art,FC),!.
+
+vinc(_, [n, vppt, agn], PC, FC, vppt, C):-
+     sel_pd(FC, C),!.
+
+vinc(danno, [n, vin, vt], PC, Cats, vt, n):-
+    on(n, Cats),!.
+
+vinc(fa, Cats, nt, FC, avvl, FC).
+
+vinc(se, [clitdat, cosu], PC, [art, clitac], cosu, art).
+
+vinc(che, [pk, exc, int, q, rel], ag, [ag,n], cong, ag).
+
+vinc(che, [pk, exc, int, q, rel], n, [avvl, n, vin, virin, virt, vt], Rel, vt):-
+  (amb_str(sia, [aueir, cong, vcir], vt, []), Rel=cong
+    ;
+   Rel=rel).
+
+vinc(che, [pk, exc, int, q, rel], n, Cats, Rel, Cats):-
+  (amb_str(sia, [aueir, cong, vcir], vt, []), Rel=cong
+    ;
+   Rel=rel).
+
+vinc(che, [pk, exc, int, q, rel], V, Cats, pk, Cats):-
+    on(V, [vc,vcir, viin, vin, virin, virt, vppin, vppt,vt, vit]),!.
+
+vinc(stati, [ag, ausep, n, vc, vcl], PC, Cats, ausep, Cats).
+
+vinc('Stati', [ag, ausep, n, vc, vcl], PC, Cats, n, Cats).
+
+vinc(sta, [vc, vcir, vin, virin, virt, vprogir, vt], PC, Cats, CC, C):-
+   (
+    (on(vgin, Cats), C=vgin
+   ; 
+   on(vgt, Cats), C=vgt), 
+    CC=vprog, !
+    ;
+   CC=vc, C=Cats).
+
+vinc(_,[ausa, vc], PC, Cats, Label, C):-
+     try_cats(WNet, NodeFrom, Op, [ausa, vc], Label, NodeTo, NNet),
+     try_cats(NNet, NodeTo, Op, Cats, C, NodeTo, Net),
+     !.
+
+vinc(_,[ause, vc], PC, Cats, Label, C):-
+     try_cats(WNet, NodeFrom, Op, [ause, vc], Label, NodeTo, NNet),
+     try_cats(NNet, NodeTo, Op, Cats, C, NoTo, Net),
+     !.
+
+vinc(_,[ause, vc], PC, Cats, Label, C):-
+     try_cats(WNet, NodeFrom, Op, [ause, vc], Label, NodeTo, NNet),
+     dependent(Cats, C, Net, NNet, 1),
+     (heads(NNet, NodeFrom, Label)
+       ;
+      heads(Net, NodeTo, C)
+     ),
+     !.
+
+% sel_pd([], P):-!.
+sel_pd([P|Ps], P):-
+     pds(P),!
+      ;
+      sel_pd(Ps, P),!.
+
+pds(pd).       
+pds(pda).       
+pds(partd).       
+pds(partda).       
+pds(p).       
+pds(part).       
+
+/*
+checkt(mr).
+checkt(san).
+checkt(sant).
+checkt(saint).
+checkt(sen).
+checkt(sens).
+checkt(gov).
+checkt(govs).
+checkt(ms).
+checkt(mrs).
+checkt('Mr').
+checkt('Ms').
+checkt('Mrs').
+checkt(mr_).
+checkt(ms_).
+checkt(mrs_).
+checkt(gov_).
+checkt(gen_).
+checkt(govs_).
+checkt(sen_).
+checkt(sens_).
+checkt('San').
+checkt('Sant').
+checkt('Saint').
+checkt('Mr_').
+checkt('Ms_').
+checkt('Mrs_').
+checkt('Sen_').
+checkt('Brig_').
+checkt('Gen_').
+checkt('St_').
+checkt('Dr_').
+checkt('Inc_').
+checkt('Co_').
+checkt('Corp_').
+checkt('Ltd_').
+
+checkab('AST').
+checkab('Adm').
+checkab('Ala').
+checkab('Alta').
+checkab('Apr').
+checkab('Ariz').
+checkab('Ark').
+checkab('Assn').
+checkab('Atty').
+checkab('Aug').
+checkab('Ave').
+checkab('Bancorp').
+checkab('Bankcorp').
+checkab('Bhd').
+checkab('Bros').
+checkab('CO').
+checkab('CORP').
+checkab('Calif').
+checkab('Capt').
+checkab('Cia').
+checkab('Cie').
+checkab('Cmdr').
+checkab('Co').
+checkab('Col').
+checkab('Colo').
+checkab('Conn').
+checkab('Corp').
+checkab('Cos').
+checkab('Dec').
+checkab('Del').
+checkab('Dept').
+checkab('Dist').
+checkab('De').
+checkab('Di').
+checkab('Dr').
+checkab('Drs').
+checkab('Elec').
+checkab('Etc').
+checkab('Feb').
+checkab('Fla').
+checkab('Fri').
+checkab('Ga').
+checkab('Gen').
+checkab('Gov').
+checkab('INC').
+checkab('Ia').
+checkab('Ida').
+checkab('Ill').
+checkab('Inc').
+checkab('Ind').
+checkab('Jan').
+checkab('Jr').
+checkab('Jul').
+checkab('Jun').
+checkab('Kans').
+checkab('Ken').
+checkab('Kft').
+checkab('La').
+checkab('Lt').
+checkab('Ltd').
+checkab('MR').
+checkab('Mar').
+checkab('Mass').
+checkab('Md').
+checkab('Me').
+checkab('Mfg').
+checkab('Mich').
+checkab('Minn').
+checkab('Miss').
+checkab('Mo').
+checkab('Mon').
+checkab('Mont').
+checkab('Mr').
+checkab('Mrs').
+checkab('Ms').
+checkab('Nebr').
+checkab('Nev').
+checkab('Nfld').
+checkab('No').
+checkab('Nov').
+checkab('Oct').
+checkab('Ont').
+checkab('Ore').
+checkab('PLC').
+checkab('Pa').
+checkab('ParCorp').
+checkab('Pct').
+checkab('Penn').
+checkab('Pf').
+checkab('Ph').
+checkab('Prof').
+checkab('Pte').
+checkab('Pty').
+checkab('Que').
+checkab('R-Wis').
+checkab('Rd').
+checkab('REP').
+checkab('Rep').
+checkab('Reps').
+checkab('Rev').
+checkab('SA').
+checkab('SCEcorp').
+checkab('SR').
+checkab('Sask').
+checkab('Sen').
+checkab('Sep').
+checkab('Sept').
+checkab('Sgt').
+checkab('Sr').
+checkab('St').
+checkab('Sun').
+checkab('Supt').
+checkab('Tenn').
+checkab('Tex').
+checkab('Thu').
+checkab('Tue').
+checkab('Univ').
+checkab('Ur').
+checkab('Va').
+checkab('Vt').
+checkab('Wash').
+checkab('Wed').
+checkab('Wis').
+checkab('Wyo').
+checkab('Yr').
+checkab('WWW').
+checkab(al).
+checkab(bn).
+checkab(bin).
+checkab(cent).
+checkab(co).
+checkab(conv).
+checkab(dept).
+checkab(ed).
+checkab(de).
+checkab(et).
+checkab(etc).
+checkab(hr).
+checkab(ie).
+checkab(inc).
+checkab(km).
+checkab(lbs).
+checkab(m).
+checkab(mg).
+checkab(di).
+checkab(min).
+%checkab(no).
+checkab(pct).
+checkab(pds).
+checkab(pts).
+checkab(rd).
+checkab(s).
+checkab(sq).
+checkab(th).
+checkab(v).
+checkab(vs).
+checkab(yr).
+checkab('Art').
+checkab('ART').
+checkab(art).
+checkab(artt).
+checkab(chapt).
+checkab(cfr).
+checkab('Cfr').
+checkab(cm).
+%checkab(cod).
+checkab(dd).
+checkab(disp).
+checkab(div).
+checkab(doc).
+checkab(dr).
+checkab(exp).
+%checkab(i).
+checkab(ii).
+checkab(iii).
+checkab(iv).
+checkab(industr).
+checkab(eng).
+checkab(ibid).
+checkab(imp).
+checkab(ix).
+checkab(kg).
+checkab(lett).
+checkab('L').
+checkab('•').
+checkab('$').
+checkab('•').
+checkab('Lit').
+checkab(lit).
+checkab(mm).
+checkab(mod).
+checkab(mr).
+checkab(ms).
+checkab(sen).
+checkab(mrs).
+checkab('Mr').
+checkab('Ms').
+checkab('Mrs').
+checkab('Sen').
+checkab('N').
+checkab(n).
+checkab(nd).
+checkab(p).
+checkab(pag).
+checkab(pp).
+checkab(ps).
+checkab(prec).
+checkab(prof).
+checkab(res).
+checkab(rtf).
+checkab(sec).
+checkab(serv).
+checkab(sect).
+checkab('Sen').
+checkab(sig).
+checkab(s).
+checkab(st).
+checkab(tel).
+checkab(ton).
+checkab('Tel').
+checkab(v).
+checkab(vi).
+checkab(vii).
+checkab(viii).
+checkab(vol).
+checkab(voll).
+checkab(x).
+
+chabbr('A').
+chabbr('B').
+chabbr(a).
+chabbr(c).
+chabbr(cc).
+chabbr('C').
+chabbr('CC').
+chabbr(d).
+chabbr(dd).
+chabbr(dm).
+chabbr('D').
+chabbr('DD').
+chabbr(e).
+chabbr('E').
+chabbr(f).
+chabbr(g).
+chabbr('F').
+chabbr('G').
+chabbr(ii).
+chabbr('II').
+chabbr('H').
+chabbr('I').
+chabbr('J').
+chabbr('K').
+chabbr('L').
+chabbr('M').
+chabbr('N').
+chabbr(n).
+chabbr('O').
+chabbr(o).
+chabbr(op).
+chabbr(p).
+chabbr('P').
+chabbr('Q').
+chabbr('R').
+chabbr('S').
+chabbr(s).
+chabbr(t).
+chabbr(u).
+chabbr('T').
+chabbr('U').
+chabbr('V').
+chabbr('W').
+chabbr('X').
+chabbr('Y').
+chabbr('Z').
+
+charl('Amm_').
+charl('Assicur_').
+charl(config_).
+charl('Impr_').
+charl('Amm').
+charl('Assicur').
+charl(config).
+charl('Impr').
+charl(mclink).
+charl(serv).
+charl(sig).
+charl(unive).
+charl(www).
+charl(http).
+charl(ftp).
+*/
+
+cercacoreferenti(Count,Out):-
+      (nogen_member('Berlusconi',Count);
+       nogen_member('Cavaliere',Count);
+       nogen_member('Cav',Count);
+       nogen_member(berlusconi,Count);
+       nogen_member('Silvio',Count);
+       nogen_member('Silvio_Berlusconi',Count)),
+       berlusconi1_coreferents(Corefs),
+   findall(Low,(
+                     member(Low,Corefs),
+                     member(Low,Count)),Coreff),
+   Coreff\=[],
+   msort(Coreff,Coref),
+   Out=['Berlusconi'-Coref].
+cercacoreferenti(Count,Out):-
+     (nogen_member('Monti',Count);
+      nogen_member(monti,Count);
+      nogen_member('Mario_Monti',Count);
+      nogen_member('Mario',Count);
+      nogen_member('Super_Mario',Count)),
+      monti_coreferents(Corefs),
+   findall(Low,(
+                     member(Low,Corefs),
+                     member(Low,Count)),Coreff),
+   Coreff\=[],
+   msort(Coreff,Coref),
+   Out=['Monti'-Coref].
+cercacoreferenti(Count,Out):-
+       (nogen_member('Maroni',Count);
+        nogen_member(bossi,Count);
+        nogen_member('Roberto_Maroni',Count);
+        nogen_member('Bossi',Count);
+        nogen_member('Umberto_Bossi',Count)),
+        tolower('Maroni',Upper),
+        append([Upper],Count,Counts),
+       bossi_coreferents(Corefs),
+   findall(Low,(
+                member(Low,Corefs),
+                     member(Low,Counts)),Coreff),
+   Coreff\=[],
+   msort(Coreff,Coref),
+   Out=['Bossi'-Coref].
+cercacoreferenti(Count,Out):-
+     (nogen_member('Formigoni',Count);
+      nogen_member(formigoni,Count);
+      nogen_member('Roberto_Formigoni',Count);
+      nogen_member('Celeste',Count)),
+      tolower('Formigoni',Upper),
+      append([Upper],Count,Counts),
+      formig_coreferents(Corefs),
+   findall(Low,(
+               member(Low,Corefs),
+                     member(Low,Counts)),Coreff),
+   Coreff\=[],
+   msort(Coreff,Coref),
+   Out=['Formigoni'-Coref].
+cercacoreferenti(Count,Out):-
+      (nogen_member('Bersani',Count);
+       nogen_member('Renzi',Count);
+       nogen_member('Pd',Count);
+       nogen_member('Pierluigi_Bersani',Count);
+       nogen_member('Matteo_Renzi',Count);
+       nogen_member('Pier_Luigi_Bersani',Count)),
+       tolower('Renzi',Upper),
+       append([Upper],Count,Counts),
+      pd_coreferents(Corefs),
+   findall(Low,(
+         member(Low,Corefs),
+                     member(Low,Counts)),Coreff),
+   Coreff\=[],
+   msort(Coreff,Coref),
+   Out=['Pd'-Coref].
+cercacoreferenti(Count,Out):-
+      (nogen_member('Grillo',Count);
+       nogen_member('M5S',Count);
+       nogen_member('Cinque_Stelle',Count);
+       nogen_member('Cinquestelle',Count)),
+       grillo_coreferents(Corefs),
+      tolower('Grillo',Upper),
+      append([Upper],Count,Counts),
+      findall(Low,(
+            member(Low,Corefs),
+                     member(Low,Counts)),Coreff),
+   Coreff\=[],
+   msort(Coreff,Coref),
+   Out=['M5S'-Coref].
+cercacoreferenti(Count,Out):-
+      (nogen_member('Napolitano',Count);
+       nogen_member('Re_Giorgio',Count);
+       nogen_member('Giorgio_Napolitano',Count);
+       nogen_member('re_Giorgio',Count)),
+       napolitano_coreferents(Corefs),
+       tolower('Napolitano',Upper),
+       append([Upper],Count,Counts),
+  findall(Low,(
+            member(Low,Corefs),
+                     member(Low,Counts)),Coreff),
+   Coreff\=[],
+   msort(Coreff,Coref),
+   Out=['Napolitano'-Coref].
+cercacoreferenti(Count,Out):-
+     member(Ref,Count),
+    recover_descs(Ref,List),is_list(List),
+    reverse(List,[Surname|RevList]),
+    allentities(EntsList),
+    \+ member(Surname,EntsList),
+    tolower(Surname,Low),Low\=Surname,
+   findall(Surs,(
+    member(Surname,Count),Surs=Surname;member(Low,Count),Surs=Low),Coreff),
+   Coreff\=[],
+   msort(Coreff,Coref),
+   Out=[Ref-Coref].
+   
+allentities(['Napolitano','M5S','Pd','Formigoni','Bossi','Monti','Berlusconi','Renzi']).
+   
+searchallentitiescorefs(A,Head,Corefs):-
+   napolitano_coreferents(Corefs),(member(A,Corefs);A='Napolitano'),Head='Napolitano';
+   grillo_coreferents(Corefs),(member(A,Corefs);A='M5S'),Head='M5S';
+   pd_coreferents(Corefs),(member(A,Corefs);A='Pd'),Head='Pd';
+   formig_coreferents(Corefs),(member(A,Corefs);A='Formigoni'),Head='Formigoni';
+   bossi_coreferents(Corefs),(member(A,Corefs);A='Bossi'),Head='Bossi';
+   monti_coreferents(Corefs),(member(A,Corefs);A='Monti'),Head='Monti';
+   berlusconi_coreferents(Corefs),(member(A,Corefs);A='Berlusconi'),Head='Berlusconi',
+   !.
+
+pos_creare([apportare, avviare, comporre, coniare, immaginare, inventare, eleggere, formare, generare, ideare, istituire, originare, partorire, plasmare, procreare, produrre, progettare, realizzare, suscitare, costruire, fondare, determinare, far_nascere, nominare, costituire, dare_vita_a, foggiare, dare_luogo_a, mettere_al_mondo, procurare, concretizzare, dar_vita_a, eseguire, mettere_in_piedi, compilare, scrivere, escogitare, promulgare, promuovere, organizzare, impiantare, metter_su, architettare, dare_avvio_a, dare_inizio_a, mettere_in_moto, far_sorgere, mettere_in_pratica, strutturare, accendere, alimentare, destare, eccitare, insinuare, ispirare, scatenare, seminare, svegliare, sviluppare, accomodare, aggiustare, articolare, conciliare, distendere, fabbricare, montare, risolvere, sistemare, unire, afferrare, combinare, comprendere, concludere, conseguire, dipingere, guadagnare, trasformare, affrontare, assolvere, avanzare, celebrare, ordinare, scattare, svolgere, consolare, esaltare, incoraggiare, innalzare, liberare, scacciare, sciogliere, sgombrare, allevare, nutrire, qualificare, aprire, tracciare, inaugurare, sfidare, decidere, definire, fissare, precisare, predisporre, fruttare, consacrare, proclamare, trovare, salutare, votare, valere, agevolare, aiutare, appianare, avvantaggiare, facilitare, favorire, fantasia, genialità, inventiva, ispirazione, immaginazione, genio, ingegno, talento, estro, ingegnosità, idea, stimolo]).
+
+
+/*
+cmq
+ c**** 
+emoticons
+
+risata  lol  LOL
+
+allegro =  ^_^
+sorriso = :-)  :)  :]  =)
+felice =  :-D  :D  =D
+diavolo =  3:)  3:-)
+angelo =  O:)  O:-)
+occhiolino = ;-)  ;)
+
+
+ammicca =  -_-
+cuore =  <3
+pacman =  :v
+imbronciato = :3
+squalo = (^^^)
+
+
+triste  = :-(  :(  :[  =(
+capriccioso =  >:(  >:-(
+incerto =  :/  :-/  :  :-
+confuso =  o.O  O.o
+linguaggio =  :-P  :P  :-p  :p
+pianto =  :'(
+contrariato = >:O  >:-O  >:o  >:-o
+stupito =  :-O  :O  :-o  :o
+
+ ironico  =  uu   u.u   u___u  U.U
+ v.v
+ >.<
+  (;
+ xD
+ :/
+  :-*
+  *-*
+   *o* 
+  *____*
+  ;_____;
+  *_______________________*
+   :*******
+ 
+*/
+
+swr([abiezione,acquoso,alibi,allocco,animale,antinomia,asinata,asineria,asino,assurdità,assurdo,atrocità,avventatezza,avventato,babbaleo,babbeo,bagattella,baggianata,baggiano,balengo,balla,balordaggine,balzano,bambinata,bambocciata,banale,banalità,barbarie,barzelletta,bassezza,bazzeccola,bazzecola,belluinità,beota,bernarda,bestemmia,bestia,bestialità,birbanteria,bischero,bislacco,bizzarro,boccalone,boiata,bovino,bricconata,brutalità,bruttura,bubbola,bufala,bugia,cacca,caduta,cagata,calunnia,capriccioso,carabattola,carneficina,castronata,castroneria,cavillo,cavolata,cazzata,cazzo,cerebrolabile,cesto,ciondolo,citrullo,ciucca,coglionata,coglione,coglioneria,coglioni,colpa,confusione,contraddittorio,contraddizione,controsenso,corbelleria,corbelli,corbello,cortezza,cosina,coso,cosuccia,cotta,credulo,credulone,cretinata,cretineria,cretino,crudeltà,curiosità,dabbenaggine,debolezza,deficiente,deficienza,delitto,demente,devastazione,diceria,disastro,disattenzione,disgrazia,disinvoltura,dissennatezza,dissennato,distruzione,ebete,ecatombe,eccentrico,eccidio,efferatezza,eresia,errore,estroso,fallo,falsità,fandonia,fanfaluca,fanfaronata,farneticazione,fastidi,fastidio,fatuo,ferinità,ferocia,fessacchiotto,fesseria,fesso,fica,fifa,figa,finta,fola,folle,follia,fregnaccia,frescaccia,frescone,frivolezza,frivolo,frottola,futile,futilità,gaffe,gatte_da_pelare,ghiandola_seminale,ghiandola_spermatica,giochetto,globo,gnocco,gonzo,granchio,grane,grave,grullo,guai,handicappato,idiota,idiozia,ignorante,ignoranza,illogicità,illogico,imbecille,imbecillità,immaturo,impicci,impossibilità,imprudenza,inavveduto,incapace,incapacità,incerto,incoerente,incoerenza,incongruente,incongruenza,incongruo,incostante,indecenza,indegnità,indifeso,inezia,inferiore,insapore,insensatezza,insensato,insetto,insipido,instabile,insufficiente,insulsaggine,insulso,interdetto,invalido,irragionevole,irrazionale,irrazionalità,lapsus,leggerezza,lento,lento_a_capire,limitatezza,lunatico,macello,maldicenza,malignità,mancanza,marachella,marrone,marroni,martello,massacro,matto,mattoide,mazza,membro,menomato,mentecatto,menzogna,merlo,meschino,minchia,minchiata,minchione,minorato,minus_habens,minuzia,miseria,monata,mondano,mongoloide,montatura,mostro,mostruosità,nefandezza,niente,ninnolo,noia,noie,nonnulla,nonsenso,nulla,obbrobrio,oca,opaco,orrore,oscenità,ottusità,ottuso,pagliuzza,panzana,panzanata,papera,paradossale,paradosso,passera,passo_falso,pastocchia,paura,pazzesco,pazzia,pazzo,pazzoide,peccato,pene,pensierino,pesce,pettegolezzo,picchiato,piccolezza,pinzillacchera,pisellina,pispola,pistolino,pochezza,porcheria,preoccupazioni,pretesto,primitivo,problemi,proiettile,puerile,purezza,puttanata,quisquilia,ragazzata,ricordino,ridicolaggine,ridicolo,rimbecillito,ristrettezza,ritardato,rogne,rovina,rozzo,sacrilegio,sadismo,salottiero,sbaglio,sballato,sbandato,sbornia,sbronza,scappatella,scatola,scatole,scemata,scemenza,scemo,scempiaggine,scervellato,scherzetto,scherzo,schifezza,schiodato,scialbo,sciapo,scimmia,scimunito,sciocchezza,sciocchezzuola,sciocco,scipito,scocciature,sconcio,sconclusionato,scondito,sconquasso,sconsiderato,scossone,scusa,scusante,seccature,semplicione,semplicioneria,sempliciotto,sfacelo,sfascio,somaro,sorca,sottosviluppato,spietatezza,sporcizia,spostato,sproposito,sprovveduto,squasso,squilibrato,squinternato,sterminio,stolido,stoltezza,stolto,stopposo,stordito,storto,strafalcione,strage,strambo,strampalato,stranezza,strano,stravagante,stravaganza,strazio,stronzata,stronzo,stupidaggine,stupidata,stupidità,stupido,subnormale,sui_generis,superficiale,svarione,sventatezza,svitato,tarato,tardo,tardo_di_mente,testa_di_cavolo,testa_di_cazzo,testa_di_rapa,testicoli,testicolo,testone,tonto,tontolone,topa,topica,troiata,trovata,truculenza,turpitudine,ubriacatura,uccello,vacuo,vagina,vanesio,verga,vigliacco,volgarità,vulva,zebedei]).
+
+swrw([vaffanculo,fanculo,vai_a_fare_in_culo, vai_a_farti_fottere, vai_a_morire_ammazzato, vai_al_diavolo, vai_alla_malora, vai_in_malora,asinata,asineria,assurdità,baggianata,balla,balordaggine,balordo,bestialità,boiata,castronata,cavolata,cazzata,cazzo,coglionata,coglione,coglioneria,coglioni,corbelleria,cretinata,cretineria,cretino,fesseria,fesso,fica,fregna,fregnaccia,idiota,idiozia,minchia,minchione,monata,panzana,scemenza,scemo,scempiaggine,scempio,sciocchezza,sciocchezzuola,sciocco,stupidaggine,stupidata,stupidità,stupido]).
+
+nsww([a_posto,abile,accortezza,accorto,acume,acutezza,acuto,affidabile,agilità,ameno,america,ammissibilità,arguto,assennatezza,assennato,astuto,astuzia,attendibilità,bengodi,brillante,brioso,buffo,burlesco,cervello,comico,corretto,cosciente,coscienzioso,credibilità,cuccagna,divertente,dotato,eldorado,faceto,farsesco,fidato,figata,fine,fiuto,fortuna,frizzante,furbizia,furbo,geniale,gustoso,importante,importanza,ingegno,intelletto,intelligente,intelligenza,intenso,lepido,lungimirante,lungimiranza,mente,miniera_d_oro,mordace,naso,normale,pacchia,paese_della_cuccagna,penetrazione,pepato,pericolosità,perspicace,peso,piacevole,pieno,plausibilità,pregnante,pregno,prontezza,pronto,ragionevolezza,responsabile,sagace,sagacia,saggezza,saggio,salace,salato,sano,sapido,saporito,saporoso,saturo,scaltro,senno,sensatezza,sensato,serietà,serio,significativo,sottile,spassoso,spiritoso,stabile,sveglio,testa,umoristico,veridicità,verità,vero,verosimiglianza,vigoroso,vivace]).

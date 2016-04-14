@@ -1,0 +1,4381 @@
+﻿:- style_check(-singleton). 
+
+:- assert(wfst(off)).
+:- assert(strap(off)).
+:- assert(strata(off)).
+:- assert(stratf(off)).
+:- assert(stratl(off)).
+:- assert(comp_less(off)).
+:- assert(strath(off)).
+:- assert(minimal(off)).
+:- assert(pronoun(off)).
+:- assert(genre(narrative)).
+:- assert(active_grammar(italiano)).
+:- assert(interp(compl)).
+:- assert(sw(nil-nil-nil)).
+:- assert(includes(x,x)).
+:- asserta(qm(nil)).
+
+/*
+:- abolish(is_ax/2).
+:- abolish(included/2).
+:- abolish(stereotipo/1).
+:- abolish(cause_result/2).
+:- abolish(infer_trig/2).
+:- abolish(deriv/2).
+*/
+
+
+active_output_win(user).
+
+:-assert(rete(a1)).
+
+wfront(A).
+
+retraction(A,B):-!.
+
+one(Goal) :- Goal, !.
+
+lst(A) :- list(A).
+
+kill(A):- retractall(A).
+
+list(A) :- is_list(A).
+ 
+% false :- fail,!.
+
+/* apply - applica un predicato ad 1 argomento 
+ad una lista */
+
+apply1(_,[]):-
+  !.
+apply1(P,[X|L]):-
+  Q =.. [P,X],
+  call(Q),
+  apply1(P,L).
+
+writenl(_,[]) :- nl.
+writenl(_,T) :-    
+     writeq(T), nl.
+
+writenl([]) :- nl.
+writenl(T) :-    
+     writeq(T), nl.
+     
+writeqnl(_,[]) :- nl.
+writeqnl(_,T) :-    
+     writeq(T), nl.
+
+writeseq(_,[]):-!.
+writeseq(_,[T]) :-
+   writeq(T),nl,!. 
+writeseq(_,[T|C]) :-
+   writeq(T),write(', '), 
+   writeseq(_,C).
+
+writeseqnl(_,[]) :- nl.
+writeseqnl(_,[T]) :-    
+       writeq(T),nl,!.
+writeseqnl(_,[T|C]) :-    
+       writeq(T),write(', '), writeseqnl(_,C).
+
+
+:- dynamic(proposto/1).
+:- dynamic(principale/1).
+:- dynamic(secondario/1).
+:- dynamic(altri/2).
+:- dynamic(stato/2).
+:- dynamic(frase_corrente/2).
+:- dynamic(risolto/4).
+:- dynamic(topic/3).
+:- dynamic(ind/2).
+:- dynamic(set/2).
+:- dynamic(ent/2).
+:- dynamic(loc/3).
+:- dynamic(class/1).
+:- dynamic(cl/1).
+:- dynamic(new_pred/2).
+:- dynamic(card/3).
+:- dynamic(in/3).
+:- dynamic(po_view/2).
+:- dynamic(fact/6).
+:- dynamic(sit/6).
+:- dynamic(new_ind/3).
+:- dynamic(eq_infon/2).
+:- dynamic(confer_ind/3).
+:- dynamic(confer_infon/4).
+:- dynamic(confer_topic/5).
+:- dynamic(confer_rel_temp/3).
+:- dynamic(current_prop_node/1).
+:- dynamic(info/9).
+:- dynamic(antecedente/4).
+:- dynamic(esterno/1).
+:- dynamic(genre/1).
+:- dynamic(interp/1).
+:- dynamic(comp_less/1).
+:- dynamic(minimal/1).
+:- dynamic(termin/1).
+:- dynamic(stackxp/1).
+:- dynamic(look/1).
+:- dynamic(wfst/1).
+:- dynamic(rcs/2).
+:- dynamic(prph/1).
+:- dynamic(stratl/1).
+:- dynamic(strata/1).
+:- dynamic(stratf/1).
+:- dynamic(stratp/1).
+:- dynamic(strap/1).
+:- dynamic(strath/1).
+:- dynamic(esterno/3).
+:- dynamic(controllato/2). 
+:- dynamic(fin_fp/1).
+:- dynamic(frase_atomo/2).
+:- dynamic(contains/2). 
+:- dynamic(overlap/2). 
+:- dynamic(after/2). 
+:- dynamic(before/2). 
+:- dynamic(during/2). 
+:- dynamic(undef/2). 
+:- dynamic(rete/1).
+:- dynamic(lista_fcs/1).
+:- dynamic(entity_relevance/3).
+:- dynamic(pronoun/1).
+:- dynamic(logical/1).
+:- dynamic(todo/2).
+:- dynamic(int_temp/1).
+:- dynamic(rel_temp/3).
+:- dynamic(has_ref_int/2).
+:- dynamic(is_ref_int/1).
+:- dynamic(current_node/1).
+:- dynamic(current_num/2).
+:- dynamic(curr_frase/1).
+
+:- op(600,xfy,'&&').
+:- op(600,xfy,&).
+:- op(800,xfx,is_string).
+:- op(800,xfx,is_atom).
+:- op(800,xfx,the_list).
+:- op(605,xfy,':').
+:- op(800,xfx,the_list).
+:- op(655,xfy,'::'). 
+:- op(800,xfy,:::). 
+:- op(950,xfy,'=>').
+:- op(610, xfy, aftr).
+
+/************************   INITS   ******************/
+
+init_rosie:-  
+   assert(genre(narrative)),
+   assert(active_grammar(english)),
+   assert(interp(compl)),
+   assert(sw(nil-nil-nil)).
+
+init:-
+    abolish(wnet/1),
+    assert(wnet(off)),
+   abolish(fp/2),
+   abolish(ags/1),
+   abolish(idx/5),
+   abolish(idmw/5),
+   abolish(ts/3),
+    abolish(disc/1),
+    abolish(totf/1),
+    abolish(numtoks/3),   
+    abolish(numtyp/3),   
+    abolish(typtoks/4),   
+    abolish(tr/1),
+    abolish(tt/1),
+   assert(tt(off)),
+    abolish(rr/1),
+   assert(rr(0-0)),
+   assert(newp(off)),
+   assert(numtyp(0,0,0)),
+   assert(typtoks(0,0,0,0)),
+   assert(numtoks(0,1,1)),
+   assert(disc(1-[])),
+   assert(rm(nil,nil)),
+    abolish(parsed/1),
+    assert(count(on)),
+    abolish(wnet/1),
+    assert(wnet(on)),
+    abolish(disc/1),
+    abolish(totf/1),
+    abolish(curr_frase/1),
+    assert(curr_frase(1)),
+   !.
+
+init_tops:-
+   abolish(tr/1),
+   abolish(top/2),
+   abolish(topps/5),
+   abolish(topic/3),
+   abolish(main/2),
+   abolish(second/2),
+   abolish(others/1),
+   abolish(risolto/4),
+   dynamic(risolto/4),
+   assert(topps(nil, nil,nil,nil,nil)),
+   assert(topic(nil, nil,nil)),
+   assert(top(nil, nil)),
+   assert(main(nil, 0)),
+   assert(second(nil, 0)),
+   assert(others([])),
+   !.
+
+init_risolto:-
+   abolish(risolto/4),
+   dynamic(risolto/4),
+   abolish(recent_concepts/1),
+   dynamic(recent_concepts/1),
+   abolish(topps/4),
+   assert(topps(nil,nil,nil,nil)),
+   assert(recent_concepts([])),
+   !.
+
+newinit_tops(Tops):-
+   abolish(top/2),
+   abolish(main/2),
+   abolish(second/2),
+   abolish(others/1),
+   abolish(risolto/4),
+   dynamic(risolto/4),
+   assert(top(nil, nil)),
+   assert(main(nil, 0)),
+   assert(second(nil, 0)),
+   assert(others([])),
+   assert_first_tops(1,Tops),
+   !.
+
+init_lexicon:-
+   abolish(sw/1),
+   assert(sw(nil-nil-nil)),
+   abolish(mult/2),
+   assert(mult(nil,nil)),
+   abolish_all_new,
+   assert(pronoun(on)),
+   assert(logical(off)),
+   assert(new_avv(nil,nil)),
+   assert(new_n(nil,nil,nil)),
+   assert(new_np(nil,nil,nil)),
+   assert(new_npro(nil,nil,nil)),
+   assert(new_pp_ger(nil,nil)),
+   assert(new_v(nil,nil,nil,nil,nil,nil)),
+   assert(new_a_engl(nil)),
+   assert(new_pred_np(nil,nil,nil,nil)),
+   assert(new_pred_n(nil,nil,nil,nil)),
+   assert(new_pred_a(nil,nil,nil)).
+   abolish_all_new:-
+			abolish(new_avv/2),
+			abolish(new_n/3),
+			abolish(new_np/3),
+			abolish(new_npro/3),
+			abolish(new_pp_ger/2),
+			abolish(new_v/6),
+			abolish(new_a_engl/1),
+			abolish(new_pred_np/4),
+			abolish(new_pred_n/4),
+			abolish(new_pred_a/3),
+   dynamic(new_avv/2),
+   dynamic(new_n/3),
+   dynamic(new_np/3),
+   dynamic(new_npro/3),
+   dynamic(new_pp_ger/2),
+   dynamic(new_v/6),
+   dynamic(new_a_engl/1),
+   dynamic(new_pred_np/4),
+   dynamic(new_pred_n/4),
+   dynamic(new_pred_a/3).
+
+
+:-init_lexicon.
+
+initheaps:-
+   abolish(dgrs/2),
+   abolish(funcs/4),
+   abolish(ref_funcs/4),
+   abolish(copul/1),
+   dynamic(copul/1),
+   abolish(passiv/1),
+   dynamic(passiv/1),
+   dynamic(ref_funcs/4),
+   dynamic(funcs/4),
+   abolish(contr/1),
+   assert(contr(off)),
+   dynamic(dgrs/2),
+   abolish(governor/2),
+   dynamic(governor/2),
+   asserta(governor(nil,nil)),
+   !.
+   
+sentence_inits:-
+  abolish(termin/1),
+  abolish(stackxp/1),
+  dynamic(termin/1),
+  assert(look(head)),
+  asserta(stackxp(0-0-0-0)),
+  gen_sym(f,0),
+  gen_sym(sn,0),
+  gen_sym(finf,0),              
+%  retract(tensed(_)),
+%  assert(tensed(Tensed)),
+  !.
+
+init_nomi :-
+   clear_nomi,
+   asserta(coreferent(nil, nil,nil,nil)),
+   asserta(cospecified(nil, nil, nil, nil)),
+   asserta(libero(nil, nil, nil)),!.
+
+clear_nomi :-
+   abolish(coreferent/4),
+   abolish(cospecified/4),
+   abolish(libero/3).
+
+
+init_pronomi :-
+   clear_pronomi,
+   asserta(controllato(nil, nil)),
+   asserta(antecedente(nil, nil, nil, nil)),
+   asserta(esterno(nil, nil, nil)),!.
+
+
+allen_start :- clear_temp,
+               retractall(time_focus(_, _)),
+               retractall(aspetto_frase(_,_)),
+               assert(time_focus(0, nil)).
+
+qstart:-
+   abolish(q_fact/6),
+   abolish(q_sit/6),
+   abolish(q_card/3),
+   abolish(q_in/3),
+   abolish(q_ind/2),
+   abolish(q_set/2),
+   abolish(q_ent/2),
+   abolish(q_loc/3),
+   abolish(topps/4),
+   abolish(proposto/1),
+   abolish(principale/1),
+   abolish(secondario/1),
+   abolish(recent_concepts/1),
+   abolish(altri/2),
+   abolish(stato/2),
+   abolish(frase_corrente/2),
+   abolish(topic/3),
+   abolish(new_pred/2),
+   abolish(rcs/2),
+   abolish(po_view/2),
+   abolish(new_ind/3),
+   abolish(eq_infon/2),
+   abolish(confer_ind/3),
+   abolish(confer_infon/5),
+   abolish(confer_topic/5),
+   abolish(confer_rel_temp/3),
+   abolish(current_prop_node/1),
+   abolish(disc_struc/10),
+   abolish(current_main_loc/3),
+   abolish(d_structure/10),
+   abolish(tknow/2),
+   abolish(cf/2),
+   abolish(cb/2),
+   assert(cf(nil,nil)),
+   assert(cb(nil,nil)),
+   assert(tknow(nil,nil)),
+   abolish(ind/2),
+   abolish(set/2),
+   abolish(ent/2),
+   abolish(loc/3),
+   abolish(class/2),
+   abolish(card/3),
+   abolish(in/3),
+   abolish(fact/6),
+   abolish(sit/6),
+   dynamic(ind/2),
+   dynamic(set/2),
+   dynamic(ent/2),
+   dynamic(loc/3),
+   dynamic(class/2),
+   dynamic(card/3),
+   dynamic(in/3),
+   dynamic(fact/6),
+   dynamic(sit/6),
+   dynamic(q_ind/2),
+   dynamic(q_set/2),
+   dynamic(q_ent/2),
+   dynamic(q_loc/3),
+   dynamic(q_class/2),
+   dynamic(q_card/3),
+   dynamic(q_in/3),
+   dynamic(q_fact/6),
+   dynamic(q_sit/6),
+   dynamic(cf/2),
+   dynamic(cb/2),
+   dynamic(tknow/2),
+   dynamic(indefinite/1),
+   dynamic(proposto/1),
+   dynamic(principale/1),
+   dynamic(secondario/1),
+   dynamic(recent_concepts/1),
+   dynamic(altri/2),
+   dynamic(stato/2),
+   dynamic(frase_corrente/2),
+   dynamic(topic/3),
+   dynamic(new_pred/2),
+   dynamic(new_ind/3),
+   dynamic(eq_infon/2),
+   dynamic(confer_ind/3),
+   dynamic(confer_infon/5),
+   dynamic(confer_topic/5),
+   dynamic(confer_rel_temp/3),
+   dynamic(current_prop_node/1),
+   dynamic(current_main_loc/3),
+   dynamic(d_structure/10),
+   dynamic(disc_struc/10),
+   assert(frase_corrente(1, nil)),
+   assert(current_main_loc(0,tempo, ref_ex(univ))),
+   assert(current_main_loc(0,luogo, ref_ex(univ))),
+   assert(rcs(nil,nil)),
+   allen_start.
+
+
+nstart :-
+   abolish(topps/4),
+   abolish(proposto/1),
+   abolish(principale/1),
+   abolish(secondario/1),
+   abolish(recent_concepts/1),
+   abolish(altri/2),
+   abolish(stato/2),
+   abolish(frase_corrente/2),
+   abolish(topic/3),
+   abolish(ind/2),
+   abolish(set/2),
+   abolish(ent/2),
+   abolish(loc/3),
+   abolish(class/2),
+   abolish(new_pred/2),
+   abolish(card/3),
+   abolish(in/3),
+   abolish(rcs/2),
+   abolish(po_view/2),
+   abolish(fact/6),
+   abolish(sit/6),
+   abolish(new_ind/3),
+   abolish(eq_infon/2),
+   abolish(confer_ind/3),
+   abolish(confer_infon/5),
+   abolish(confer_topic/5),
+   abolish(confer_rel_temp/3),
+   abolish(current_prop_node/1),
+   abolish(info/13),
+   abolish(disc_struc/10),
+   abolish(current_main_loc/3),
+   abolish(d_structure/10).
+
+start :-
+   dynamic(indefinite/1),
+   dynamic(proposto/1),
+   dynamic(principale/1),
+   dynamic(secondario/1),
+   dynamic(recent_concepts/1),
+   dynamic(altri/2),
+   dynamic(stato/2),
+   dynamic(frase_corrente/2),
+   dynamic(topic/3),
+   dynamic(ind/2),
+   dynamic(set/2),
+   dynamic(ent/2),
+   dynamic(loc/3),
+   dynamic(class/2),
+   dynamic(new_pred/2),
+   dynamic(card/3),
+   dynamic(in/3),
+   dynamic(po_view/2),
+   dynamic(fact/6),
+   dynamic(sit/6),
+   dynamic(new_ind/3),
+   dynamic(eq_infon/2),
+   dynamic(confer_ind/3),
+   dynamic(confer_infon/5),
+   dynamic(confer_topic/5),
+   dynamic(confer_rel_temp/3),
+   dynamic(current_prop_node/1),
+   dynamic(info/9),
+   dynamic(current_main_loc/3),
+   dynamic(d_structure/10),
+   dynamic(disc_struc/10),
+   assert(
+      info(
+         0, _, _, _, nil, nil, nil, nil, nil, nil, nil, nil, nil)),
+   assert(
+      d_structure(
+         0, 0, 0, [], nil, nil, nil, nil, nil, 0)),
+   assert(frase_corrente(1, nil)),
+   assert(current_main_loc(0,tempo, ref_ex(univ))),
+   assert(current_main_loc(0,luogo, ref_ex(univ))),
+   assert(fact(nil,nil,nil,nil,nil,nil)),
+   assert(sit(nil,nil,nil,nil,nil,nil)),
+   assert(class(nil,nil)),
+   assert(rcs(nil,nil)),
+   gen_sym(infon, 0),
+   gen_sym(id, 0),
+   allen_start.
+
+/*  ALGORITMO DI ALLEN  */
+
+clear_temp :- retractall(rel_temp(_, _X,_Y,_Z)),
+              retractall(int_temp(_X)),
+              retractall(is_ref_int(_X)),
+              retractall(has_ref_int(_X,_Y)), 
+              retractall(todo(_X,_Y)). 
+
+
+init_user_model(Id) :-
+   abolish(tknow/2),
+   dynamic(tknow/2),
+   dynamic(tens/1),
+   assert(perspective(Id)).
+
+init_model(Input,FileName):-
+   concat(model,Input,B),
+   tell(B),
+   open(B,write,_),
+   !.
+
+pname(A,AA):-
+  nonvar(A),
+  \+ atomic(A),
+  functor(A,B,C),
+  AA=A,
+  !.
+  
+pname(AA,B):-
+  nonvar(B),
+  \+ atomic(B),
+  functor(B,A,C),
+  AA=A,
+  !.
+
+pname(A,B):-
+  var(A),
+  atom_to_term(B,A,_),
+  !.
+pname(A,B):-
+  var(B),
+  atom_to_term(A,B,_),
+  !.
+
+
+% remove(A,[A|L],L) :- !.
+remove(A,[A|L],L).
+remove(A,[B|L],[B|M]) :- remove(A,L,M).
+
+/*
+remove(A, B, C):-
+   subtract(B, [A], C),!.
+*/
+
+
+mcon(M, [], M):-!.
+mcon([], M, M):-!.
+mcon(M, R, N):-
+   (nonvar(R),
+    nonvar(M),
+    var(N),
+    concat(M, R, N)
+    ;
+    fail).
+
+dt(Call,Time,Seconds) :-
+  Call,
+    ticks(Time1),Delta is Time1-Time,Seconds is Delta/60,
+       writenl(User, Seconds),write('/60 sec.'),nl
+     ;
+    ticks(Time1),Delta is Time1-Time,Seconds is Delta/60,
+       writenl(User, Seconds),write('/60 sec.'),nl,fail.
+
+compute_time(Time):-
+    var(Time),!.
+compute_time(Time):-
+   logical(on),
+   nonvar(Time),
+   ticks(Time1),
+   Delta is Time1-Time,
+   Seconds is Delta/60,
+   write(Seconds),
+   nl,
+   !,
+   Seconds < 30.
+
+compute_time(Time):-
+   logical(off).
+
+comput_time(Time,Seconds):-
+   nonvar(Time),
+   ticks(Time1),
+   Delta is Time1-Time,
+   Seconds is Delta/60,
+   !.
+
+/******************
+and_to_listw(+NestedAndWff, -FlatAndWff)
+== Convert a nested conjunction of wffs in a flat one
+******************/
+and_to_listw(wff(and, Args), wff(and, List)) :-
+   !,
+   conjs_to_list(Args, List).
+
+and_to_listw(Wff, Wff) .
+  
+land_to_list(wff(and, Args), wff(and, List)) :-
+   !,
+   conjs_to_list(Args, List).
+
+land_to_list(Wff, Wff) .
+
+conjs_to_list([Conj, wff(and, Conjs)], [Conj | List]) :-
+   !,
+   conjs_to_list(Conjs, List).
+
+conjs_to_list(Conjs, Conjs).
+ 
+/************************************************************************************************/
+/* Regole per la concatenazione di due identificativi 
+
+concatena(S1,S2,S3) :- name(S1,L1),
+                       name(S2,L2),
+                       name('_',La),
+                       conc(L1,La,Lb),
+                       conc(Lb,L2,L3),
+                       name(S3,L3). 
+
+conc([],Lista,Lista).
+conc([T|Lista1],Lista2,[T|Lista3]):-conc(Lista1,Lista2,Lista3).
+
+*/
+
+/* concatena due simboli - per creare i nomi dei
+   concetti individuali associati alle primitive */
+
+concatena(S1,S2,S3):-
+  nonvar(S1), nonvar(S2),
+  concat2([S1,'_',S2],S3).
+
+                                                                                               
+/* Generazione di simboli */
+/* la chiamata    gen_sym(Radice,0) inizializza il generatore 
+   per la radice Radice  */
+
+/* EP 93.05.27 */
+init_gen_sym(Radice, N) :- 
+   integer(N),
+   !,
+   retractall(current_num(Radice, _)),
+   assert(current_num(Radice, N)).
+
+
+/* solo inizializzazione a 0 */
+gen_sym(Radice,X) :- 
+   nonvar(X),
+   !,
+   X = 0,  
+   retractall(current_num(Radice, _)).
+
+gen_sym(Radice,Atomo) :- 
+   get_num(Radice,Num),
+   name(Radice,Name1),
+   name(Num,Name2),
+   append_list(Name1,Name2,Name),
+   name(Atomo,Name).
+
+get_num(Radice,Num) :- 
+   retract(current_num(Radice,Num1)),
+   !,
+   Num is Num1 + 1,
+   assert(current_num(Radice,Num)).
+get_num(Radice,1)   :- assert(current_num(Radice,1)).
+
+
+
+
+/* serve per la stampa dei grafi 
+   calcola il numero di caratteri in un atomo o in una struttura
+   X/Y dove X e Y sono atomi */
+
+term_length(N,X/Y) :- 
+		term_length(N1,X),
+		term_length(N2,Y),N is N1 + N2 + 1.
+term_length(2,[]) :-!.
+term_length(N,Atomo) :- 
+  atomic(Atomo),name(Atomo,L),length(L,N).
+
+
+/***************************
+ Generalized map program
+map/[2,3,4,5]
+****************************/
+
+map(Rel, Input):-
+    map1(Rel, Input).
+
+map(Rel, Input, Output):-
+    map2(Rel, Input, Output).
+
+map(Rel, Input, Start, Finish):-
+    map3(Rel, Input, Start, Finish).
+
+map(Rel, Input, Output, Start, Finish):-
+    map4(Rel, Input, Output, Start, Finish).
+
+
+map1(Rel, L):-
+    var( L ),
+    !,
+    fail.
+map1(Rel, []):-
+    !.
+map1(Rel, [Val| List]):-
+    make_map_goal(Rel, Call, [Val]),
+    Call,
+    map1(Rel, List).
+
+map2(Rel, [], []):-
+    !.
+map2(Rel, [El1| List1], [El2| List2]):-
+    make_map_goal(Rel, Call, [El1, El2]),
+    Call,
+    map2(Rel, List1, List2).
+
+map3(Rel, [], Value, Value):-
+    !.
+map3(Rel, [El| List], Acc, Value):-
+    make_map_goal(Rel, Call, [El, Acc, Int]),
+    Call,
+    map3(Rel, List, Int, Value).
+
+map4(Rel, [], [], Value, Value):-
+    !.
+map4(Rel, [El1| List1], [El2| List2], Acc, Value):-
+    make_map_goal(Rel, Call, [El1, El2, Acc, Int]),
+    Call,
+    map4(Rel, List1, List2, Int, Value).
+
+make_map_goal( Fix, Call, Rest ):-
+    Fix=.. [Rel,Fixed],
+    Call =.. [Rel, Fixed| Rest],
+    !.
+make_map_goal( Rel, Call,  Args ):-
+    Call =.. [Rel| Args].
+    
+concat2([],Out):-!.
+concat2([A,B],Out):-
+    concat(A,B,Out),
+    !.
+concat2([A,B|Lista],Out):-
+    concat(A,B,C),
+    append([C],Lista,Lista1),
+    concat2(Lista1,Out),!.
+    
+
+
+% keysort/3
+keysort( List, Sorted, -1 ):-
+  !,
+  keysort( List, Sorted ).
+keysort( List, Sorted, 1 ):-
+  keysort( List, SortedAsc ),
+  reverse( SortedAsc, Sorted ).
+
+% on/2
+% Same as member/2
+on( X, Y ):-
+  member( X, Y ).
+
+
+% remove_all/3
+remove_all( _, [], [] ).
+remove_all( RemoveItems, [El|Rest], Rems ):-
+  member( El, RemoveItems ),
+  !,
+  remove_all( RemoveItems, Rest, Rems ).
+remove_all( RemoveItems, [El|Rest], [El|Rems] ):-
+  remove_all( RemoveItems, Rest, Rems ).
+
+
+% sort/4
+sort( List, Sorted, Path, -1 ):-
+  !,
+  sort( List, Sorted).
+sort( List, Sorted, Path, 1 ):-
+  nonvar(List),List\=[],
+  sort( List, SortedAsc),
+  reverse( SortedAsc, Sorted ).
+
+
+stringof( ListOfChars, Atom ):-
+  atom( Atom ),
+  !,
+  name( Atom, ListOfBytes ),
+  bytestochars( ListOfBytes, ListOfChars ).
+
+stringof( Atom, ListOfChars ):-
+  integer( Atom ),
+  !,
+  name( Atom, ListOfBytes ),
+  bytestochars( ListOfBytes, ListOfChars ).
+
+stringof( ListOfChars, Atom ):-
+  var( Atom ),
+  \+ atom(ListOfChars),
+  !,
+  charstobytes( ListOfChars, ListOfBytes ),
+  name( Atom, ListOfBytes ),
+  !.
+
+stringof( ListOfChars, Atom ):-
+  integer( Atom ),
+  !,
+  name( Atom, ListOfBytes ),
+  bytestochars( ListOfBytes, ListOfChars ).
+  
+charstobytes( [], [] ).
+charstobytes( [Char|Chars], [Byte|Bytes] ):-
+  nonvar(Char),
+  var(Byte),
+  name( Char, [Byte] ),
+  charstobytes( Chars, Bytes ).
+
+bytestochars( [], [] ).
+bytestochars( [Byte|Bytes], [Char|Chars] ):-
+  nonvar(Byte),
+  var(Char),
+  name( Char, [Byte] ),
+  bytestochars( Bytes, Chars ).
+
+bytes_to_chars( Bytes, Chars ):-
+  name(Chars, Bytes).
+
+nth(Lista, N, Elemento) :-
+  nth_member(Lista, N, Elemento, 1).
+
+nth_member([H|T], N, H, N).
+nth_member([H|T], N, X, C):-
+  C1 is C+1,
+  nth_member(T, N, X, C1).
+
+
+sommatoria([], 0, 0).
+sommatoria([H| T], S, N) :-
+  sommatoria(T, S1, N1),
+   S is H + S1,
+   N is 1 + N1.
+sommatoria([], 0).
+sommatoria([H| T], S) :-
+  sommatoria(T, S1),
+  S is H + S1.
+
+
+retract_all(Pred/Arity) :-
+  abolish(Pred, Arity).
+
+clear_net(_) :-
+   abolish(f/1),
+   abolish(rete/1),
+   retractall(current_num(n,_)),
+   abolish(arco/5),
+   abolish(arco/4),
+   abolish(foglia/3),
+   !.
+clear_net(_).
+
+clear_pronomi :-
+   abolish(antecedente/4),
+   abolish(controllato/2),
+   abolish(esterno/3).
+
+
+write_wrap(List,_ ) :-
+   writeq(List).
+
+netta_fin(Fin) :-!.
+/*
+netta_fin(Fin) :-
+  cursor(Fin, 0, -1),
+  clear(Fin),
+  !.
+netta_fin(__1).
+*/
+
+/****************
+write_all(+call)
+
+ARGUMENTS
+   Call   :term. May be partially or completely ground
+
+== Writes all deducible facts that make Call true. 
+****************/
+write_all(Call) :-
+   Call, 
+   write(Call), 
+   fail.
+write_all(_) .
+
+
+
+/****************
+‚Ä¢ write_all(+pred, +arity) -
+'Writes all deducible facts that make Pred/Arity true'.
+‚Ä¢ 
+ARGUMENTS
+   Pred    :Atom. Name of a functor defined in the Data Base
+   Arity   :Integer.
+‚Ä¢
+****************/
+write_all(Pred, Arity) :-
+   length(Args, Arity),
+   Call=..[Pred | Args],
+   Call,
+   write(Call), 
+   writenl('.'),
+   fail.
+write_all(_, _) .
+pp_list(List) :-
+  pp_list(List, user).
+pp_list(List, Fin) :-
+  pp_list(List, ',', '[', ']', Fin).
+pp_list(List, SepEl, Beg, End, Fin) :-
+  pp_list(List, SepEl, Beg, End, 1, 0, Fin).
+pp_list(Var, SepEl, Beg, End, Ind, Tab, Fin) :-
+  (var(Var);atomic(Var)),
+  !,
+  (\+ (Beg='')->nl(Fin),tab(Fin, Tab),write(Fin, Beg);true),
+  (\+ (Beg='',End='')->NewTab is Tab+Ind;NewTab=Tab),
+  write(Fin, Var),
+/* DB penso ci voglano delle parentesi - cosi' sembra funzionare */
+  (\+ (End='')->nl(Fin),tab(Fin, Tab),write(Fin, End);true).
+pp_list([], SepEl, Beg, End, Ind, Tab, Fin) :-
+  !,
+  write(Fin, []).
+pp_list([El| AltriEL], SepEl, Beg, End, Ind, Tab, Fin) :-
+  (\+ (Beg='')->nl(Fin),tab(Fin, Tab),write(Fin, Beg);true),
+  (\+ (Beg='',End='')->NewTab is Tab+Ind;NewTab=Tab),
+  pp_elements([El| AltriEL], SepEl, Beg, End, Ind, NewTab, Fin),
+/* DB penso ci vogliano le parentesi - cosi sembra funzionare */  
+  (\+ (End='')->nl(Fin),tab(Fin, Tab),write(Fin, End);true).
+pp_elements([El| Var], SepEl, Beg, End, Ind, Tab, Fin) :-
+  var(Var),
+  !,
+  pp_el(El, SepEl, Beg, End, Ind, Tab, Fin),
+  pp_el(Var, SepEl, Beg, End, Ind, Tab, Fin).
+pp_elements([El], SepEl, Beg, End, Ind, Tab, Fin) :-
+  pp_el(El, SepEl, Beg, End, Ind, Tab, Fin).
+pp_elements([El| AltriEl], SepEl, Beg, End, Ind, Tab, Fin) :-
+  pp_el(El, SepEl, Beg, End, Ind, Tab, Fin),
+  pp_elements(AltriEl, SepEl, Beg, End, Ind, Tab, Fin).
+  
+pp_el(El, SepEl, Beg, End, Ind, Tab, Fin) :-
+  var(El),
+  !,
+  nl(Fin),
+  tab(Fin, Tab),
+  writeq(Fin, El),
+  write(Fin, SepEl).
+pp_el([T| C], SepEl, Beg, End, Ind, Tab, Fin) :-
+  !,
+  pp_list([T| C], SepEl, Beg, End, Ind, Tab, Fin).
+pp_el([], SepEl, Beg, End, Ind, Tab, Fin) :-
+  !,
+  pp_list([], SepEl, Beg, End, Ind, Tab, Fin).
+pp_el(Struct, SepEl, Beg, End, Ind, Tab, Fin) :-
+  Struct=..[Op,Att,Val],
+  (atomic(Val);var(Val)),
+  !,
+  nl(Fin),
+  tab(Fin, Tab),
+  writeq(Fin, Struct),
+  write(Fin, SepEl).
+pp_el(Struct, SepEl, Beg, End, Ind, Tab, Fin) :-
+  Struct=..[Op,Att,[T|C]],
+  !,
+  nl(Fin),
+  tab(Fin, Tab),
+  writeq(Fin, Att),
+  writeq(Fin, Op),
+  NewTab is Tab+Ind,
+  pp_list([T| C], SepEl, Beg, End, Ind, NewTab, Fin),
+  write(Fin, SepEl).
+pp_el(Struct, SepEl, Beg, End, Ind, Tab, Fin) :-
+  Struct=..[Op,Att,List1-List2],
+  !,
+  nl(Fin),
+  tab(Fin, Tab),
+  writeq(Fin, Att),
+  writeq(Fin, Op),
+  NewTab is Tab+Ind,
+  pp_list(List1, SepEl, Beg, End, Ind, NewTab, Fin),
+  nl(Fin),
+  tab(Fin, NewTab),
+  writeq(Fin, -),
+  pp_list(List2, SepEl, Beg, End, Ind, NewTab, Fin),
+  write(Fin, SepEl).
+pp_el(Struct, SepEl, Beg, End, Ind, Tab, Fin) :-
+  Struct=..[Op,Att,Struct2],
+  Struct2=..[Op,Att1,Value],
+  !,
+  nl(Fin),
+  tab(Fin, Tab),
+  writeq(Fin, Att),
+  writeq(Fin, Op),
+  NewTab is Tab+Ind,
+  pp_el(Struct2, SepEl, Beg, End, Ind, NewTab, Fin).
+pp_el(El, SepEl, Beg, End, Ind, Tab, Fin) :-
+  nl(Fin),
+  tab(Fin, Tab),
+  writeq(Fin, El),
+  write(Fin, SepEl).
+
+pp_win(PPWin) :-
+  def(pretty_print_win),
+  !,
+  syswin(pretty_print, PPWin).
+pp_win(user).
+
+read_term(Win, FromTerm, ToTerm, Term) :-
+  TermOffset is ToTerm-FromTerm,
+  conv_is_win,
+  netta_fin(conv),
+  cursor(Win, FromTerm, FromTerm),
+  copy_bytes(TermOffset, Win, conv),
+  write(conv, '.~M'),
+  cursor(conv, 0, 0),
+  read(conv, Term).
+
+conv_is_win :-
+  is_win(conv, __1),
+  !.
+conv_is_win :-
+  crea_fin(conv).
+
+crea_fin(conv) :-
+  !,
+  wkill(conv),
+  wcreate(conv, 0, 140, 10, 500, 400),
+  wfont(conv, 'Monaco', 0, 9).
+crea_fin(Fin) :-
+  wkill(Fin),
+  wcreate(Fin, 0, 50, 50, 100, 100).
+
+notnodop(N, Path, Atomo):-
+   findall(Value, 
+           nodo(N)::Path::Atomo::Value, Ps),
+   Ps=[].
+
+
+notno(N, Path):-
+    findall(Value, 
+           nodo(N)::Path::Value, Ps),
+    (Ps\=[],  Ps\=[[]], !
+    ;
+    Ps\=[[]],
+    !, 
+    nodo(N)::Pa::Value, 
+    Pa\=Path).
+
+notnod(N, Path):-
+   findall(Value, 
+           nodo(N)::Path::nodo(Value), Ps),
+   Ps=[],!.
+
+notnodo0(N, Path, Atomo):-
+   findall(Value, 
+           nodo(N)::Path::Atomo::Value, Ps),
+   Ps=[],!.
+
+notnodo(N, Path, Atomo):-
+   findall(Value, 
+           nodo(N)::Path::Atomo::nodo(Value), Ps),
+   Ps=[],!.
+
+notnodo1(N, Attributo, Path, Atomo):-
+   findall(Value, 
+           nodo(N)::Attributo::Path::Atomo::nodo(Value), Ps),
+   Ps=[],!.
+
+notnodo2(N, Attributo1, Path, Attributo2, Atomo):-
+   findall(Value, 
+           nodo(N)::Attributo1::Path::Attributo2::Atomo::nodo(Value), Ps),
+   Ps=[],!.
+
+notfogl(N, V, Rete):-
+   findall(N-V, foglia(N,V,Rete), Inds),
+   Inds = [],!.
+
+
+nodo(Nodo)::Percorso :-
+   nonvar(Nodo),
+   rete(Rete),
+   nodo(Percorso, Nodo, Rete).
+
+nodo(Nodo)::Path :-
+   var(Nodo),
+   rete(Rete),
+   back_node(Path, Nodo, Rete).
+
+nodo(Valore,N,Rete) :-
+  foglia(N,V,Rete),
+  nonvar(V),
+  Valore=V
+  ;
+  notfogl(N,V,Rete),
+  Valore = nodo(N).
+
+nodo(Cammino, N, Rete) :-
+   nonvar(Cammino),
+   Cammino = Attributo::Valore,
+   arco(N, N1, Attributo, Rete),
+   nodo(Valore, N1, Rete).
+
+nodo(Cammino, N, Rete) :-
+   nonvar(Cammino),
+   Cammino = Attributo::Valore,
+   nonvar(Attributo),
+   Attributo = path(P),
+   arco(N, N1, Attributo2, Rete),
+   nodo(X::Valore, N1, Rete),
+   P = Attributo2::X. 
+
+nodo(Cammino, N, Rete) :-
+   nonvar(Cammino),
+   Cammino = Attributo::Valore,
+   nonvar(Attributo),
+   Attributo = path(P),
+   arco(N, N1, Attributo2, Rete),
+   nodo(path(X)::Valore, N1, Rete),
+   X=F/R::F1/R1::indice,
+   F/R \=fcomp/prop,
+   P = Attributo2::X. 
+
+
+back_node(nodo(ToNode), ToNode, _).
+
+back_node(Leaf, FromNode, Rete) :-
+   atomic(Leaf),
+   foglia(FromNode, Leaf, Rete).
+
+back_node(Leaf, FromNode, Rete) :-
+   lst(Leaf),
+   foglia(FromNode, Leaf, Rete).
+
+back_node(Label::Path, FromNode, Rete) :-
+   legal_label(Label),
+   nonvar(Path),
+   back_node(Path, PathFromNode, Rete),
+   arco(FromNode, PathFromNode, Label, Rete).
+   
+back_node(Label::Leaf, FromNode, Rete) :-
+   legal_label(Label),
+   var(Leaf),
+   arco(FromNode, MidNode, Label, Rete),
+   foglia(MidNode, Leaf, Rete).
+   
+back_node(Path1::Path2, FromNode, Rete) :-
+   nonvar(Path1),
+   Path1=path(Path),
+   back_path(Path1::Path2, FromNode, Rete).
+   
+back_path(path(Path)::Path1, FromNode, Rete):-
+   nonvar(Path),
+   ground_back_path(path(Path)::Path1, FromNode, Rete).
+
+back_path(path(Path)::Path1, FromNode, Rete):-
+   var(Path),
+   back_node(Path1, Path1FromNode, Rete),
+   var_back_path(RevPath, FromNode, Path1FromNode, Rete),
+   reverse_path(RevPath, Path).
+
+ground_back_path(path(Label)::Path, FromNode, Rete) :-
+   atomic(Label),
+   back_node(Path, PathFromNode, Rete),
+   arco(FromNode, PathFromNode, Label, Rete).
+
+ground_back_path(path(Label::Path)::Path1, FromNode, Rete) :-
+   ground_back_path(path(Path)::Path1, PathFromNode, Rete),
+   arco(FromNode, PathFromNode, Label, Rete).
+
+var_back_path([Label1, Label2], FromNode, ToNode, Rete) :-
+   arco(MidNode, ToNode, Label1, Rete),
+   arco(FromNode, MidNode, Label2, Rete).
+
+var_back_path([Label | Path], FromNode, ToNode, Rete) :-
+   arco(MidFromNode, ToNode, Label, Rete),
+   var_back_path(Path, FromNode, MidFromNode, Rete).
+
+
+reverse_path([Label | Path], RevPath) :-
+   reverse_path(Path, Label, RevPath).
+
+reverse_path([Label | Path], Acc,  RevPath) :-
+   reverse_path(Path, Label::Acc,  RevPath).
+
+reverse_path([], Path,  Path) .
+
+legal_label(Var):-
+   var(Var),
+   !.
+legal_label(_/_) :-
+   !.
+
+legal_label(Atomic) :-
+   atomic(Atomic).
+   
+atomic_path(Path) :-
+   atomic(Path).
+atomic_path(Path) :-
+   var(Path).
+
+legal_leaf(Leaf) :-
+   atomic(Leaf).
+legal_leaf(Leaf) :- 
+   var(Leaf).
+ 
+
+/* F-struttura = funzione + indice del valore */
+
+f_struttura(Indice, F/R, Nodo) :-
+        nodo(Nodo)::F/R::indice::Indice.
+
+f_struttura(Indice, F/R, Nodo) :-
+        nodo(Nodo)::F::indice::Indice.
+
+
+f_strutture(Indice, F/R, Nodo) :-
+        (nodo(Nodo)::F/R::indice::Indice, 
+         R\=nil,!
+         ;
+         nodo(Nodo)::F/R::F0/R0::indice::Indice,
+         R\=nil
+         ).
+
+f_sec_str(Indice, F, Nodo) :-
+        nodo(Nodo)::F::indice::Indice.
+ 
+/*
+f_comanda(-AlphaIndex, -AlphaFunc , +BetaIndex, -Livello)
+Beta non √® soggetto
+*/
+
+f_comanda(Alpha, Alpha_Funz, Beta, Livello, N0) :- 
+   f_struttura(Beta, F, N), 
+   f_command(F, N, Alpha, Alpha_Funz, Beta, Livello, N0). 
+
+f_command(sogg/_, N, Alpha, Alpha_Funz, Beta, Livello, N0):-
+   nodo(N1)::F1::nodo(N), 
+   F1 =sogg/_, 
+   nodo(N2)::F2::nodo(N1), 
+   f_c(N,N2,F2,Alpha,Alpha_Funz,0,Livello_x, N0),
+   Livello is Livello_x + 2.
+
+f_command(sogg/R, N, Alpha, Alpha_Funz, Beta, Livello, N0):-
+%   !,
+   nodo(N1)::F1::nodo(N), 
+   F1 \= sogg/_, 
+   (nonvar(R),
+   R\=nil
+   ;var(R)), 
+   f_c(N,N1,F1,Alpha,Alpha_Funz,0,Livello_x, N0),
+   Livello is Livello_x + 1.
+
+f_command(F/R, N, Alpha, Fun/Rol, Beta, Livello, N0):-
+   (nonvar(Rol),
+   Rol\=nil
+   ;var(Rol)), 
+   f_c(N,N,F,Alpha,Fun/Rol,0,Livello, N0).
+
+f_c(En,N,F,Alpha,Alpha_Funz,Liv,Livello, N0) :-
+   0 < Liv,
+   on(F, [sogg/_, ogg/_, obl/_, fcomp/_, vcomp/_, acomp/_, ncomp/_]),
+   nodo(N)::F::nodo(N1),
+   f_c_down(En,N,N1,F,Alpha,Alpha_Funz,Liv,Livello, N0).
+
+f_c(En,N,F,Alpha,Alpha_Funz,Liv,Liv, N) :-
+   0 < Liv,
+   nodo(N)::Alpha_Funz::indice::Alpha,
+   Alpha_Funz\=sub/prop.
+
+f_c(En,N, F, Alpha, Alpha_Funz, 0, 0, N) :- 
+   nodo(N)::Alpha_Funz::indice::Alpha,
+%   not_cl_fclist(Alpha_Funz).
+   \+ clean_fclist(Alpha_Funz).
+
+f_c(En,N,F,Alpha,Alpha_Funz,Liv,Livello, N0) :-
+   nodo(N1)::F1::nodo(N),
+   Liv1 is Liv + 1,
+   f_c(En,N1,F1,Alpha,Alpha_Funz,Liv1,Livello, N0).
+
+f_c(En,n1,F,Alpha,Alpha_Funz,Liv,Livello, N0) :-
+   f_c_down(En,n1,n1,F,Alpha,Alpha_Funz,Liv,Livello, N0).
+
+f_c_down(En,N,N1,F,Alpha,Alpha_Funz,Liv,Liv, N0) :-
+   0 < Liv,
+   nodo(N1)::indice::Alpha,
+   nodo(N0)::F::indice::Alpha,
+   Alpha_Funz=F,
+%   not_cl_fclist(Alpha_Funz).
+   \+ clean_fclist(Alpha_Funz).
+
+f_c_down(En,N0,N,F,Alpha,Alpha_Funz,Liv,Livello, N2) :-
+   nonvar(N),
+%   not_cl_fclist(F),
+   \+ clean_fclist(F),
+   nodo(N)::F1::nodo(N1),
+   F1\=spec, N1\=En,
+   Liv1 is Liv + 1,
+   f_c_down(En,N0,N1,F1,Alpha,Alpha_Funz,Liv1,Livello, N2).
+
+
+contiene(Indice1, Indice2) :- 
+         nodo(Nodo1)::indice::Indice1,
+         nodo(Nodo1)::path(Bo)::indice::Indice2,
+         nodo(Nodo2)::indice::Indice2.
+
+contiene(Indice1, Indice2) :- 
+         nodo(Nodo1)::indice::Indice1,
+         nodo(Nodo1)::path(Bo)::Indice2,
+         nodo(Nodo2)::indice::Indice2.
+
+cont_fstrct(Indice1, Indice2) :- 
+         nodo(Nodo1)::F/R::indice::Indice1,
+         nodo(Nodo1)::path(Bo)::nodo(Nodo2),
+         nodo(Nodo2)::_::_/predic::nodo(Nodo3),
+         nodo(Nodo3)::F1/R2::indice::Indice2.
+
+cont_fstrct(Indice1, Indice2) :- 
+         nodo(Nodo1)::F/R::indice::Indice1,
+         nodo(Nodo1)::path(Bo)::indice::Indice2,
+         nodo(Nodo2)::indice::Indice2.
+
+cont_fstrct(Indice1, Indice2) :- 
+         nodo(Nodo1)::F/R::indice::Indice1,
+         nodo(Nodo1)::path(Bo)::Indice2,
+         nodo(Nodo2)::indice::Indice2.
+
+
+f_dominio(Nodo,Dominati) :-
+      pari_livello(Nodo,Lista_pari),
+      delete_el(Nodo,Lista_pari,Lista_altri),
+      maplist(profondita,Lista_altri,D),
+      flatten(D,DF),
+      append_list(Lista_altri,DF,Dominati).
+
+pari_livello(Ind,Lista_altri) :-
+   nodo(Nodo)::indice::Ind,
+   nodo(X)::Y::nodo(Nodo),
+   findall_q(N/A,(nodo(X)::A::nodo(N),A \= Y),Lista_pari_livello),
+   delete_el(Nodo/Y,Lista_pari_livello,Lista_altri).
+
+profondita(Nodo,Lista_dominio) :-
+      bagof(Sotto_nodo,sotto_nodo(Nodo,Sotto_nodo),Lista_dominio).
+
+/* not nodo diventa findall e not [] */
+notnogen(N-_, W):-
+   atomic(N),
+   findall(N, nogen_member(N-_,W), Inds),
+   Inds = [],!.
+
+notnogen(N-_, W):-
+   list(N), 
+   findall(N, (on(N1, N), nogen_member(N1-_,W)), Inds),
+   Inds = [],!.
+
+notnodpat(N_ante, Ind):-
+   findall(N_antes-Ind, nodo(N_antes)::path(_)::Ind, Inds),
+   \+ member(N_ante-Ind, Inds),
+   !.
+
+notnodspart(N):-
+   findall(N, nodo(N)::spec::part::_, Inds),
+   Inds = [],!.
+
+notnodspard(N):-
+   findall(N, nodo(N)::spec::card::_, Inds),
+   Inds = [],!.
+
+notnodfcomp(N):-
+   findall(N, nodo(NodeAnte)::fcomp/propq::yes/no_question::_/_::pred::Pro, Inds),
+   Inds = [],!.
+
+notnodcoord(N):-
+  findall(N, nodo(N)::coord::nodo(_), Inds),
+   Inds = [],!.
+
+notnodsubprop(N):-
+  findall(N, nodo(N)::sub/prop::adj::sub/prop::nodo(_), Inds),
+  Inds = [],!.
+
+notnodfunc(N):-
+  findall(N, nodo(N0)::F0/R0::nodo(N),Inds),
+  Inds = [],!.
+
+notnodposs(N):-
+  findall(N, nodo(N)::sogg/poss::indice::Ind,Inds),
+  Inds = [],!.
+
+notnodmain(N):-
+  findall(N, nodo(n1)::main/prop::F/R::indice::N,Inds),
+  Inds = [],!.
+
+notnodcoordf(N):-
+  findall(N, nodo(No)::coord::Fu/Ru::indice::N,Inds),
+  Inds = [],!.
+
+/**************
+‚Ä¢ is_principale(+nodo, +rete).
+‚Ä¢ il nodo individua una frase principale in calc_temp ‚Ä¢
+***************/
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::main/prop::[],
+  nodo(N)::adj::sub/prop::adj::sub/prop::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::main/prop::[],
+  nodo(N)::adj::sub/prop::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::main/prop::[],
+  nodo(N)::adj/gerund::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::report/prop::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(_)::report/prop::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::dir_speech/prop::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::main/prop::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::adv_main/prop::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::adj::sub/prop::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::adj::sub/prop::cp_dir::nodo(Nodo).
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::presentv/prop::nodo(Nodo).
+
+is_principale(n1,_Rete).       /* n1 e' il nodo di partenza del grafo*/
+
+is_principale(Nodo,_Rete):- 
+  nodo(n1)::yes/no_question::nodo(Nodo).
+
+is_principale(Nodo,Rete):- 
+  arco(_X,Nodo,coord,Rete).  % una coordinata (solo principale ????)
+
+is_principale(Nodo,_Rete):- 
+  nodo(N)::main/prop::nodo(Nodo).
+
+/**************
+‚Ä¢ is_relativa(+nodo, +rete).
+‚Ä¢ il nodo individua una frase relativa ‚Ä¢
+***************/
+
+is_relativa(Nodo,Rete):- 
+  arco(_X,Nodo,FF,Rete),
+  (FF=mod/predic;          /* una relativa  */
+   FF=adj/predic).         /* altra forma di relativa*/
+
+
+/***********************
+sotto_nodo(-Nodo, +SottoNodo) in f-comando
+************************/
+
+sotto_nodo(Nodo,Sotto_nodo):-
+  nodo(Nodo)::_X::nodo(Sotto_nodo),
+  nodo(Sotto_nodo)::indice::_.
+
+sotto_nodo(Nodo,Sotto_nodo):-
+  nodo(Nodo)::path(_X)::nodo(Sotto_nodo),
+  nodo(Sotto_nodo)::indice::_.
+
+
+/********
+‚Ä¢ nominal_pred(+nominalIndex, -nominalPred). ‚Ä¢‚Ä¢
+********/
+
+nominal_pred(Index,Pred):-
+  nodo(Nodo)::indice::Index,
+  nodo(Nodo)::pred::Pred,
+  !.
+
+nominal_pred(_,unknown).
+
+
+/********
+‚Ä¢ np_function(+nominalIndex, -nominalFunction). ‚Ä¢‚Ä¢
+:- np_function(Index, Function) 
+********/
+
+np_function(Index,Fun/Verbo):-
+  nodo(Nodo)::Fun/_Role::indice::Index,
+  syntactic_verbal_pred(Nodo,Verbo),
+  !.
+
+np_function(Index,topic/Tipo):-
+  nodo(Nodo)::indice::Index,
+  nodo(Nodo)::tipo_topic::Tipo,
+  !.
+
+np_function(Index,Any):-
+  nodo(_)::Any::indice::Index,
+  !.
+
+np_function(_,unknown).
+
+/***********************
+prop_roots(-Nodes)
+== Trova i punti di accesso alla rete da cui partono proposizioni. Nodes √® una lista i cui elementi hanno struttura Node-(Function/Role)
+************************/
+prop_roots(Nodes) :-
+   setof(Node, prop_root(Node), Nodes).
+
+/* principale se √® vuota e ci sono due subordinate */
+prop_root(N11-(main/Role)) :-
+   nodo(n1)::main/prop::[],
+   nodo(n1)::adj::nodo(N2),
+   nodo(N2)::sub/prop::nodo(N1),
+   nodo(N1)::main/prop::[],
+   nodo(N1)::adj::nodo(N3),
+   nodo(N3)::sub/prop::nodo(N11),
+   nodo(N3)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* subordinata se √® vuota e ci sono due subordinatori */
+prop_root(N11-(adj/Role)) :-
+   nodo(n1)::main/prop::[],
+   nodo(n1)::adj::nodo(N2),
+   nodo(N2)::sub/prop::nodo(N1),
+   nodo(N1)::main/prop::nodo(N3),
+   nodo(N1)::adj::nodo(N4),
+   nodo(N4)::sub/prop::nodo(N11),
+   nodo(N4)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* principale se √® vuota e c'√® una subordinata */
+prop_root(N1-(main/Role)) :-
+   nodo(n1)::main/prop::[],
+   notnodo1(n1, adj, sub/prop, coord),
+   notnodo2(n1, adj, sub/prop, adj, sub/prop),
+   nodo(n1)::adj::nodo(N2),
+   nodo(N2)::sub/prop::nodo(N1),
+   nodo(N2)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* principale se √® vuota e c'√® una subordinata */
+prop_root(N1-(main/Role)) :-
+   nodo(n1)::main/prop::[],
+   notnodo1(n1, adj, sub/prop, coord),
+   notnodo2(n1, adj, sub/prop, adj, sub/prop),
+   notnodo(n1, adj, sub/prop),
+   nodo(n1)::adj/Role::nodo(N1).
+
+prop_root(N1-(coord/prop)) :-
+   nodo(n1)::main/prop::[],
+   nodo(n1)::adj::nodo(N2),
+   nodo(N2)::sub/prop::nodo(N),
+   nodo(N)::coord::nodo(N1).
+
+
+prop_root(N1-(coord/prop)) :-
+   nodo(n1)::adj::nodo(N2),
+   nodo(N2)::sub/prop::nodo(N),
+   nodo(N)::coord::indice::Ind,
+   nodo(N)::coord::coords::nodo(N1).
+
+prop_root(N1-(coord/prop)) :-
+   nodo(n1)::adj::nodo(N2),
+   nodo(N2)::sub/prop::nodo(N),
+   nodo(N)::coord::nodo(N1).
+
+
+prop_root(N1-(coord/prop)) :-
+   nodo(n1)::coord_ip::nodo(N),
+   nodo(N)::main/prop::nodo(N1).
+
+/* principale vuota, gerundiva di una subordinata-"principale" */
+prop_root(N-(adj/gerund)) :-
+   nodo(n1)::main/prop::[],
+   nodo(n1)::adj::sub/prop::adjs::adj/gerund::nodo(N).
+
+/* principale report */
+prop_root(N-(main/advers)) :-
+   nodo(n1)::adv_main /prop::nodo(N).
+
+prop_root(N-(report/prop)) :-
+   nodo(n1)::report/prop::nodo(N).
+
+prop_root(N-(report/prop)) :-
+   nodo(_)::report/prop::nodo(N).
+
+/* ellittica */
+prop_root(N-(ip_ell/prop)) :-
+   nodo(n1)::ip::nodo(N),
+   nodo(N2)::ip_ell/prop::nodo(N1).
+
+/* principale per default */
+prop_root(n1-(main/prop)) :-
+   notno(n1, main/prop),
+   notnod(n1, main/prop),
+   notnod(n1, report/prop),
+   notnod(n1, adv_main/prop),
+   notnod(n1, dir_speech/prop).
+
+/* coordinate principali */
+prop_root(N1-(coord/prop)) :-
+   nodo(n1)::main/prop::main/prop::nodo(N),
+   nodo(N)::coord::nodo(N1).
+
+/* coordinate principali */
+prop_root(N1-(coord/prop)) :-
+   nodo(n1)::main/prop::nodo(N),
+   notnodo(n1, main/prop, main/prop),
+   nodo(N)::coord::nodo(N1).
+
+/* discorso diretto */
+prop_root(N-(dir_speech/prop)) :-
+   nodo(n1)::dir_speech/prop::nodo(N).
+
+/* principale */
+prop_root(N-(main/prop)) :-
+   nodo(n1)::main/prop::nodo(N),
+   notnodo(n1, main/prop, main/prop),
+   notnod(N, coord).
+
+prop_root(N-(main/prop)) :-
+   nodo(n1)::main/prop::[],
+   nodo(n1)::adj::sub/prop::main/prop::nodo(N).
+
+prop_root(N-(adj/prop)) :-
+   nodo(n1)::adj::sub/prop::cp_dir::nodo(N).
+
+/* gerundiva aggiunta alla principale */
+prop_root(N-(adj/gerund)) :-
+   notnod(n1, main/prop),
+   nodo(n1)::adjs::adj/gerund::nodo(N).
+
+/* gerundiva argomento della principale */
+prop_root(N-(adv/gerund)) :-
+   notnod(n1, main/prop),
+   nodo(n1)::adv/modal::coord::nodo(N).
+
+/* participiale aggiunta alla principale */
+prop_root(N-(adj/particip)) :-
+   nodo(n1)::main/prop::nodo(_),
+   nodo(n1)::adj/particip::nodo(N).
+
+prop_root(N-(adj/particip)) :-
+   nodo(n1)::main/prop::nodo(_),
+   nodo(n1)::adj/partic::nodo(N).
+
+prop_root(N-(adj/particip)) :-
+   nodo(n1)::adjs::nodo(_),
+   nodo(n1)::adjs::adj/partic::nodo(N).
+
+/* subordinata aggiunta alla principale */
+prop_root(N-(adj/Role)) :-
+   nodo(n1)::adjs::nodo(N1),
+   nodo(N1)::adj::nodo(N2),
+   nodo(N2)::sub/prop::nodo(N),
+   nodo(N2)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* subordinata aggiunta alla principale */
+prop_root(N-(adj/Role)) :-
+   nodo(n1)::adj::nodo(N2),
+   nodo(N2)::sub/prop::nodo(N),
+   nodo(N2)::sem_mark::Subord,
+   nodo(N)::pred::Pred,
+   nodo(N)::sogg/R::indice::I,
+   subord_role(Subord, Role).
+
+prop_root(N-(adj/result)) :-
+   nodo(n1)::adjs::nodo(N1),
+   nodo(N1)::vcomp/prop::nodo(N),
+   !.
+prop_root(N-(adj/result)) :-
+   nodo(N2)::Main/prop::nodo(N1),
+   nodo(N1)::vcomp/result::nodo(N),
+   !.
+
+/* subordinata coordinata aggiunta alla principale */
+prop_root(N-(coord/Role)) :-
+   nodo(n1)::main/prop::nodo(_),
+   nodo(n1)::adj::nodo(N1),
+   nodo(N1)::sub/prop::main/prop::coord::nodo(N),
+   nodo(N1)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* subordinata coordinata aggiunta alla principale */
+prop_root(N-(coord/Role)) :-
+   nodo(n1)::main/prop::[],
+   nodo(n1)::adj::nodo(N1),
+   nodo(N1)::sub/prop::coord::nodo(N),
+   nodo(N1)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* subordinata aggiunta alla principale */
+prop_root(N-(coord/Role)) :-
+   nodo(n1)::main/prop::nodo(_),
+   nodo(n1)::adj::nodo(N1),
+   notnodo1(N1, sub/prop, main/prop, coord),
+   nodo(N1)::sub/prop::coord::nodo(N),
+   nodo(N1)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* subordinata aggiunta alla principale */
+prop_root(N-(adj/Role)) :-
+   (nodo(n1)::main/prop::nodo(_);
+    nodo(n1)::adv_main/prop::nodo(_)),
+   nodo(n1)::adj::nodo(N1),
+   notnodo(n1, sub/prop, coord),
+   notnodo1(N1, sub/prop, main/prop, coord),
+   nodo(N1)::sub/prop::nodo(N),
+   nodo(N1)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+
+/* gerundive coordinate aggiunte alla principale */
+prop_root(N-(adj/gerund)) :-
+   notnod(n1, main/prop),
+   nodo(n1)::adjs::gerundive_coordinate::adj/gerund::nodo(N).
+
+
+/* gerundiva dentro una coordinata */
+prop_root(N1-(adj/gerund)) :-
+   nodo(n1)::main/prop::nodo(N),
+   nodo(N)::coord::nodo(N2),
+   nodo(N2)::adjs::adj/gerund::nodo(N1).
+
+/* gerundiva dentro una coordinata */
+prop_root(N3-(adj/Role)) :-
+   nodo(n1)::main/prop::nodo(N),
+   nodo(N)::coord::nodo(N2),
+   nodo(N2)::adjs::adj::nodo(N1),
+   nodo(N1)::sub/prop::nodo(N3),
+   nodo(N1)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* fcomp di una principale */
+% EP 93.02.26
+prop_root(N-(fcomp/prop)) :-
+   nodo(_)::fcomp/prop::nodo(N).
+
+prop_root(N-(fcomp/propq)) :-
+   nodo(_)::fcomp/propq::nodo(N).
+
+prop_root(N-(fcomp/propint)) :-
+   nodo(_)::fcomp/propint::nodo(N).
+
+prop_root(N-(fcomp/propadj)) :-
+   nodo(_)::fcomp/propadj::nodo(N).
+
+prop_root(N1-(relp/prop)) :-
+   nodo(N)::mods::mod/predic::nodo(N1),
+   nodo(N1)::modo::ind.
+
+prop_root(N1-(relp/prop)) :-
+   notnodo(_, adjs, nadj/tema),
+   nodo(N)::adjs::adj/predic::nodo(N1).
+
+/******************
+sn_prop_node(+SnIndex, -PropNode)
+== Dato l'indice di un sn argomento, fornisce il nodo da cui parte la relativa proposizione
+sn_prop_node(SnIndex, nil) :-
+   beep(1),
+   nl,writeseq(User, 
+      ['Unable to find proposition node from:', SnIndex]).
+
+******************/
+sn_prop_node(SnIndex, Node) :-
+   nodo(Node)::_/_::indice::SnIndex,
+   !.
+
+sn_prop_node(SnIndex, nil).
+
+/******************
+main_sentence_index(+SentenceIndex)
+******************/
+main_sentence_index(FrX) :-
+   nodo(n1)::indice::FrX,
+   !.
+main_sentence_index(FrX) :-
+   nodo(n1)::main/prop::indice::FrX,
+   !.
+main_sentence_index(FrX) :-
+   nodo(n1)::report/prop::indice::FrX,
+   !.
+main_sentence_index(FrX) :-
+   nodo(n1)::dir_speech/prop::indice::FrX,
+   !.
+
+main_sentence_index(FrX) :-
+  nodo(n1)::presentv/prop::indice::FrX,
+   !.
+main_sentence_index(FrX) :-
+   nodo(N)::indice::FrX,
+   !.
+
+/**************************
+== Selezionano informazioni dalla f-struttura
+**************************/
+/* Speech Type */
+speech_type(Root, direct) :-
+   nodo(_)::dir_speech/prop::nodo(Root),
+   !.  
+speech_type(_, indirect).
+
+
+/********
+‚Ä¢ np_description(+nominalIndex, -nominalPred, -nominalFunction). ‚Ä¢‚Ä¢
+?- sn_prop_node(SnIndex, Node), np_description(SnIndex, NominalPred, NominalFunction) in pro_ambigui 
+********/
+np_description(Index, Pred, FunVerb) :-
+   nominal_pred(Index, Pred),
+   np_function(Index, FunVerb).
+
+/********
+‚Ä¢ semantic_verbal_pred(+propRoot, -verbalPred). 
+‚Ä¢ The main verb or the prop object of a support verb ‚Ä¢
+********/
+semantic_verbal_pred(Root, Pred) :-
+   nodo(Root)::pred::Pred,
+   !.
+semantic_verbal_pred(Root, Pred) :-
+   nodo(Root)::_/prop::pred::Pred.
+
+semantic_verbal_pred(Root, Pred) :-
+   nodo(Root)::adj::_/prop::pred::Pred.
+
+semantic_verbal_pred(Root, Pred) :-
+   nodo(Root)::coord::pred::Pred.
+
+semantic_verbal_pred(Root, Pred) :-
+   nodo(Root)::coords::_/prop::pred::Pred.
+
+
+/********
+‚Ä¢ syntactic_verbal_pred(+propRoot, -verbalPred). 
+‚Ä¢ The main verb or a support verb ‚Ä¢
+********/
+syntactic_verbal_pred(Root, Pred) :-
+   nodo(Root)::supporto::Pred,
+   !.
+syntactic_verbal_pred(Root, Pred) :-
+   nodo(Root)::pred::Pred,
+   !.
+
+/* Semantic category */
+/* ??? */
+sem_cat(Root, SemCat) :-
+   nodo(Root)::cat::process,
+   !,
+   (
+   nodo(N)::_/prop::nodo(N1),
+   sem_cat(N1, SemCat)
+   ;
+   nodo(n1)::main/prop::nodo(N),
+   nodo(N)::coord::nodo(N1)
+   ),
+   !.
+
+sem_cat(Root, stato) :-
+   nodo(Root)::cat::L,
+   lst(L),
+   !.
+
+sem_cat(Root, SemCat) :-
+   nodo(Root)::cat::SemCat,
+   !.
+
+sem_cat(Root, SemCat) :-
+   nodo(Root)::_/prop::nodo(N),
+   sem_cat(N, SemCat).
+
+sem_cat(Root, SemCat) :-
+   nodo(Root)::adj::_/prop::nodo(N),
+   sem_cat(N, SemCat).
+
+sem_cat(Root, SemCat) :-
+   nodo(Root)::coord::nodo(N),
+   sem_cat(N, SemCat).
+
+sem_cat(Root, SemCat) :-
+   nodo(Root)::coords::nodo(N),
+   sem_cat(N, SemCat).
+
+
+/* geverning role */
+
+gov_role(Node, Fun/Role) :-
+  nodo(_)::Fun/Role::nodo(Node),
+  !.
+gov_role(Node, nil) .
+  
+
+/* tense */
+
+tense(Root, adj/gerund, Tense) :-
+   nodo(N1)::adjs::adj/gerund::nodo(Root),
+   nodo(N1)::tempo::Tense,
+   !.
+tense(Root, adj/gerund, Tense) :-
+   nodo(N1)::adjs::gerundive_coordinate::adj/gerund::nodo(Root), 
+   nodo(N1)::tempo::Tense,
+   !.
+tense(Root,_, Tense) :-
+   nodo(Root)::tempo::Tense,
+   !.
+
+tense(Root,_, Tense) :-
+   nodo(_)::tempo::Tense,
+   !.
+
+tense(_, _, nil).
+
+
+/* focalizers */
+focalizers(Root, Focs) :-
+   findall(Foc, focalizer(Root, Foc), Focs).
+
+focalizer(Root, Foc) :-
+  nodo(Root)::adjs::adj/focal::pred::Foc.
+
+focalizer(Root, Foc) :-
+  nodo(Root)::adj/focal::pred::Foc.
+
+/* support */
+
+support(Root, Support) :-
+   nodo(Root)::supporto::Support,
+   !.
+support(_, nil).
+
+
+
+/* mood */
+
+mood(Root, Mood) :-
+   nodo(Root)::modo::Mood,
+   !.
+
+mood(Root, Mood) :-
+   nodo(Root)::_/prop::nodo(N),
+   nodo(N)::modo::Mood,
+   !.
+
+mood(Root, Mood) :-
+   nodo(Root)::adj::_/prop::nodo(N),
+   nodo(N)::modo::Mood,
+   !.
+
+mood(Root, Mood) :-
+   nodo(Root)::coord::nodo(N),
+   nodo(N)::modo::Mood,
+   !.
+
+mood(Root, Mood) :-
+   nodo(Root)::coords::nodo(N),
+   nodo(N)::modo::Mood,
+   !.
+
+mood(Root, Mood) :-
+   nodo(_)::modo::Mood,
+   !.
+
+/* aspect */
+
+aspect(Root, Aspect) :-
+   nodo(Root)::aspetto::Aspect,
+   !.
+
+aspect(Root, Aspect) :-
+   nodo(Root)::_/prop::nodo(N),
+   nodo(N)::aspetto::Aspect,
+   !.
+
+aspect(Root, Aspect) :-
+   nodo(Root)::adj::_/prop::nodo(N),
+   nodo(N)::aspetto::Aspect,
+   !.
+
+aspect(Root, Aspect) :-
+   nodo(Root)::coord::nodo(N),
+   nodo(N)::aspetto::Aspect,
+   !.
+
+aspect(Root, Aspect) :-
+   nodo(Root)::coords::nodo(N),
+   nodo(N)::aspetto::Aspect,
+   !.
+
+aspect(Root, Aspect) :-
+   nodo(_)::aspetto::Aspect,
+   !.
+
+aspect(_, nil).
+
+/* voice */
+
+voice(Root, Voice) :-
+   nodo(Root)::voice::Voice,
+   !.
+
+voice(Root, Voice) :-
+   nodo(Root)::Prop::nodo(N),
+   nodo(N)::voice::Voice,
+   !.
+voice(Root, Voice) :-
+   nodo(Root)::_/prop::nodo(N),
+   nodo(N)::voice::Voice,
+   !.
+voice(Root, Voice) :-
+   nodo(Root)::adj::_/prop::nodo(N),
+   nodo(N)::voice::Voice,
+   !.
+voice(Root, Voice) :-
+   nodo(_)::_/prop::nodo(N),
+   nodo(N)::voice::Voice,
+   !.
+voice(_, active).
+
+/* polarity */
+
+polarity(Root, no) :-
+   nodo(Root)::adjs::nodo(N),
+   nodo(N)::neg::_,
+   !.
+polarity(_, yes).
+
+
+
+perform(Root, _, perform) :-
+   social_engagement(Root),
+   !.
+
+perform(Root, _, optat) :-
+   obligation_verb(Root),
+   !.
+
+perform(Root, _, allow) :-
+   perm_verb(Root),
+   !.
+
+perform(Root, Supp, prescr) :-
+   genre(legal),
+   nonvar(Supp),!.
+
+perform(Root, _, inform).
+
+
+
+objecto(Root, Object) :-
+   nodo(Root)::ogg/Role::nodo(_),
+   !.
+objecto(_, nil/nil).
+
+
+
+event_index(Root, tes(TesIndex)) :-
+   nodo(Root)::indice::PropIndex,
+   rete(Rete),
+   concat2([PropIndex, '_', Rete], TesIndex).
+
+event_index(Root, tes(TesIndex)) :-
+   nodo(Roo)::indice::PropIndex,
+   rete(Rete),
+   concat2([PropIndex, '_', Rete], TesIndex).
+
+/* segue una catena di controllo */
+segui_catena_di_controllo(IndContr, CC) :- 
+      antecedente(A,IndContr,CC,D), 
+     !.
+segui_catena_di_controllo(IndContr, CC) :- 
+      controllato(IndContr,CC), 
+     !.
+segui_catena_di_controllo(IndContr, CC) :- 
+      antecedente(A,CC,IndContr,D), 
+     !.
+segui_catena_di_controllo(IndContr, CC) :- 
+      controllato(CC,IndContr), 
+     !.
+
+segui_catena_di_controllo(IndContr, CC) :- 
+   nodo(N)::F/R::indice::IndContr,    
+   (
+   nodo(N)::F/R::controllore::NuovoIndContr
+   ;     
+   nodo(N)::F/R::antecedente::NuovoIndContr
+   ),    
+   NuovoIndContr \= esterno,    
+   segui_catena_di_controllo1(NuovoIndContr,CC), 
+   CC\=IndContr,
+   !.
+
+segui_catena_di_controllo1(IndContr, CC) :- 
+   nodo(N)::F/R::indice::IndContr,    
+   (
+   nodo(N)::F/R::controllore::NuovoIndContr
+   ;     
+   nodo(N)::F/R::antecedente::NuovoIndContr
+   ),    
+   NuovoIndContr \= esterno,    
+   segui_catena_di_controllo2(IndContr, NuovoIndContr,CC), !.
+
+segui_catena_di_controllo1(X,X).
+
+segui_catena_di_controllo2(IndContr, NIndContr, CC) :- 
+   nodo(N)::F/R::indice::IndContr,    
+   (
+   nodo(N)::F/R::controllore::NuovoIndContr
+   ;     
+   nodo(N)::F/R::antecedente::NuovoIndContr
+   ),    
+   NuovoIndContr \= esterno,
+   NuovoIndContr\=NIndContr,    
+   segui_catena_di_controllo1(NuovoIndContr,CC), !.
+
+segui_catena_di_controllo2(X,Y,X).
+
+find_headpos(P, I, Head):-
+   findall_poss(Si),
+   on(I-X, Si),
+   member(P-Head,X),!.
+
+/* extract_head(Y-P,Head,I):-!. 
+extract_head(Y-P,Head,I):-
+  find_pos(P, I),
+  !. 
+*/
+
+extract_heads([], Y-P,Head,I):-
+   nonvar(P),
+   findall_pos(P, I),
+   !.
+
+extract_heads([], Y-P,Head,I):-
+   var(P),
+   findall_pos(P, Is),
+   reverse(Is, [I|_]),
+   !.
+
+extract_heads(F, Y-P,P,Ii):-
+   nonvar(P),
+   find_pos(P, I, X, _),
+   findall_poss(AllP),
+   reverse(AllP, [O-_|_]),
+   length(F,L),
+   nonvar(L),
+   Ii is O - L + 1,
+   !.
+
+extract_heads(F, Y-P,Head,I):-
+  (find_pos(P, I, X, AllP),
+   member(Y-Head, X) 
+   ;
+   F=[P1|_],
+   extract_head(Z-P1,Head,I1),
+   nonvar(Head)
+   ).
+
+
+extract_heads(F, Y-Pre, Head,I)
+     :-
+    (onegr(pp_n,romance) ; onegr(pp_n,deutsch)),
+     prep_articolata(Pre,[P,Art]),
+     extract_heads(F, Y-P, Head, I),
+     !.
+
+extract_heads(F, Y-Pre, Head,I)
+     :-
+    (onegr(pp_n,romance) ; onegr(pp_n,deutsch)),
+     vcl(Pre,P,Art),
+     extract_heads(F, Y-P, Head, I),
+     !.
+
+extract_heads(F, Y-Pre, Head, I)
+     :-
+    (onegr(pp_n,romance) ; onegr(pp_n,deutsch)),
+     mod_alterato(Pre,Nome,Agg,Gen,Num),
+     extract_heads(F, Y-Nome, Head, I),
+     !.
+
+extract_sec_head(Y-P,Head,K):-
+  (find_pos(P, I, X, AllP),
+   AllP\=[],
+   K is I+1,
+   on(K-W, AllP),
+   nogen_member(Y-Head, W) 
+   ;
+   true).
+
+extract_ter_head(Y-P,Head,I):- 
+  (find_pos(P, I, X, AllP),
+   AllP\=[],
+   K is I+2,
+   on(K-W, AllP),
+   nogen_member(Y-Head, W) 
+   ;
+   true).
+
+
+check_empty_cost1(Cost):-
+     var(Cost),
+     !.
+check_empty_cost1(Cost):-
+     nonvar(Cost),
+     (Cost\=[], 
+      Cost=..[Pref,C], C=[]
+      ;
+      Cost=[]),
+     !.
+check_empty_cost(Cost):-
+     var(Cost),
+     !.
+check_empty_cost(Cost):-
+     nonvar(Cost),
+     (Cost\=[], 
+      Cost=..[Pref,C], C\=[]
+      ;
+      Cost=[]),
+     !.
+
+check_cost_mod(Nom,SA,Agg,Gen,Num,Cat):-
+     Nom=..[Mod,SA],
+     SA=saa(indice(Simb), cat(Cat), agg(Agg, Gen, Num), Spec, args(Ar), adjs(Ad))
+     ;
+     Nom=..[Mod,SA],
+     SA=sa(indice(Simb), cat(Cat), agg(Agg, Gen, Num), args(Ar))
+     ;
+     Nom=saa(indice(Simb), cat(Cat), agg(Agg, Gen, Num), Spec, args(Ar), adjs(Ad)), SA=Nom
+     ;
+     Nom=sa(indice(Simb), cat(Cat), agg(Agg, Gen, Num), args(Ar)), SA=Nom,
+     !.
+
+triplelook(P,Mc,Y,Z,Q):-
+   find_pos(P, I, X, List),
+   member(Y-_,X), 
+   nonvar(I),
+   K is I+1,
+   alternatelist(List, K-W),
+   nogen_member(Z-_,W),
+   J is K+1,
+   alternatelist(List, J-U),
+   nogen_member(Q-_,U),!.
+
+
+eitherdlook(P,Mc,T,S,R):-
+  (
+   find_pos(P, I, X, List),
+   (K is I+1,
+    member(T-_,X),
+    alternatelist(List, K-W),
+    J is K+1,
+    (nogen_member(S-_,W)
+     ;
+     nogen_member(R-_,W))
+    ; 
+    alternatelist(List, J-U),
+    nogen_member(R-_, U))
+   ;
+   true),!.
+
+eitherlook(P,Mc,T,nil):-
+  (
+   find_pos(P, I, X, List),
+   (member(T-_,X)
+    ; 
+   nonvar(I),
+    K is I+1,
+    alternatelist(List, K-W),
+    nogen_member(T-_,W))
+   ;
+   true),!.
+
+eitherlook(P,Mc,T,N):-
+  N\=nil,
+  (
+   find_pos(P, I, X, List),
+   (nogen_member(T-_,X),
+    (X=[R-_]
+     ;
+     on(V-_,X), V=T,V\=N)
+    ; 
+   nonvar(I),
+    K is I+1,
+    alternatelist(List, K-W),
+    nogen_member(T-_,W),
+    (W=[R-_]
+     ;
+     on(V-_,W), V=T,V\=N))
+   ;
+   true),!.
+
+dlook(List,Q,I,Mc,Y,Z,W):-
+   nonvar(I),
+   K is I+1,
+   alternatelist(List, K-W),
+   (list(Z),
+   on(Zz, Z)
+   ;
+   atomic(Z), Zz=Z),
+   nogen_member(Zz-_,W),!.
+
+doublelook([P, Q|Rest],Mc,Y,Z,nil):- 
+  (find_pos([P, Q|Rest], I, X, AllP),
+   doublesearch(Y,X), 
+   dlook(AllP,Q,I,Mc,Y,Z,W)
+   ;
+   fail),!.
+
+doublelook([P, Q|Rest],Mc,Y,Z,N):-
+   N \= nil, 
+  (find_pos([P, Q|Rest], I, X, AllP),
+   doublesearch(Y,X), 
+   dlook(AllP,Q,I,Mc,Y,Z,W),
+   notnogen(N-_,W)
+   ;
+   fail),!.
+
+doublesearch(Y,X):-
+   atomic(Y),
+   nogen_member(Y-_,X)
+   ;
+   list(Y),
+   multlook(X,Y),
+   !.
+ 
+/*
+doublesearch(Y,X):-
+   nogen_member(Y-_,X),
+   !.
+*/
+
+multiplelook(_,_,[]):-
+  !.
+
+multiplelook(P,Mc,Cats):-
+  find_pos(P, I, X, AllP),
+   multlook(X,Cats),!.
+
+multlook(X,[]):-fail,!.
+
+multlook(X,[Y|Rest]):-
+  (nogen_member(Y-_, X)
+   ;
+   multlook(X,Rest)),!.
+
+ambigu_tok(P,Mc,Y,Cats):-
+  (look(head), 
+  find_pos(P, I, X, AllP),
+  member(Y-_, X),    
+  (X \= [Y-_],
+   multlook(X,Cats)
+   ;
+   X = [Y-_]
+   ;
+   X = [Y-_|Rest],
+   nogen_member(V-_,Rest),
+   V\=v)),
+   !.
+
+notonelook(P,Mc,Y,Cats):- 
+  find_pos(P, I, X, List),
+  alternatelist(List, I-W),
+  \+ multlook(W,Cats),!.
+
+neitherlook(P,Mc,Y,Cats):- 
+  find_pos(P, I, X, List),
+  member(Y-_, X),    
+   nonvar(I),
+  K is I+1,
+  alternatelist(List, K-W),
+  \+ multlook(W,Cats),!.
+
+onebacklook(P,Mc,Y,Cats):- 
+  find_pos(P, I, X, List),
+  member(Y-_, X),    
+   nonvar(I),
+  K is I-1,
+  alternatelist(List, K-W),
+  \+ multlook(W,Cats),!.
+
+olook(I,Mc,Z,W):-
+  !, 
+  (nogen_member(Z-_,W)
+   ;
+   list(Z),
+   multlook(W,Z)),!.
+
+onelook(P,Mc,Y,nil):- (var(P); P=[]; P=[A], var(A); P=[A|_], var(A)), fail.
+
+onelook(P,Mc,Y,Nil):- 
+  member(A,P),
+  oneluk(A,Mc,Y,Nil),!.
+
+oneluk(P,Mc,Y,nil):- 
+  find_pos(P, I, X, AllP),
+  (olook(I,Mc,Y,X)
+   ;
+   false),!.
+
+oneluk(P,Mc,Z,N):- 
+  N \= nil, 
+  find_pos(P, I, W, AllP),
+  (olook(I,Mc,Z,W),
+    (W=[R-_], 
+      (atomic(N),
+        R\=N;
+        list(N),
+       \+ nogen_member(R,N))
+    ;
+    W\=[R-_],
+    exhaust_list(W, Z, N)
+    )
+   ;
+   false),!.
+
+exhaust_list([], Z, N):-!.
+exhaust_list([Y-_|W], Z, N):-
+      atomic(N),
+     (atomic(Z),
+      (Y=Z,Y\=N; 
+       Y\=Z,Y\=N)
+      ;
+      list(Z),
+      (alternatemember(Z,Xx),
+       Xx\=N
+       ;
+      (
+      var(W)
+      ;
+      alternatelists(W, T-_),
+      T=Xx,T\=N))
+      ),
+      exhaust_list(W, Z, N),
+      !.
+
+exhaust_list([Y-_|W], Z, N):-
+      list(N),
+     (atomic(Z),
+      (Y=Z,Y\=N; 
+       Y\=Z,Y\=N)
+      ;
+      list(Z),
+      (\+ multlook([Y-_|W],N)
+       ;
+      (
+      var(W)
+      ;
+      findall(T, (
+                   on(T,N),on(T-_,W)),Ts),
+      Ts=[]))
+            ),
+      !.
+
+/*
+alternatelists(W, T-_),
+      remove(Tt,N,N1),
+      Tt\=T),
+      exhaust_list(W, Z, N1))
+*/
+
+alternatelists([], K-W):-!.
+alternatelists(List, K-W):-
+   List\=[],
+   List=[X-W|_],
+   nonvar(K),
+   X<K,
+   !.
+alternatelists(List, K-W):-
+   List\=[],
+   on(K-W, List),
+   !.
+
+alternatelist([], I-X):-
+   one(termin(I-X)),
+   !.
+   
+alternatelist(List, K-W):-
+   List\=[],
+   on(K-W, List),
+   !.
+alternatelist(List, K-W):-
+   List\=[],
+   List=[X-W|_],
+   (nonvar(K),
+    X<K
+    ;
+    var(K)),
+   !.
+
+alternatemember(A,X):-
+  member(X, A),!.
+
+% nogen_member([], []):-fail.
+
+choose_pref(Pref):-
+  Pref=sn;Pref=sp;Pref=fcomp;
+  Pref=vcomp;Pref=acomp;Pref=ncomp;Pref=xcomp.
+
+
+nogen_member(A=N, [B=N|T]):-
+  atomic(B),
+  nonvar(B),
+  A=B,!.
+nogen_member(A, [B|T]):-
+  atomic(B),
+  nonvar(B),
+  A=B,!.
+nogen_member(A/_, [B/_|T]):-
+  nonvar(A),
+  nonvar(B),
+  A=..[ref_ex|RestA],
+  B=..[ref_ex|RestB],
+  RestA=RestB,!.
+
+nogen_member(A/F/R/P/G, [B/F/R/P/G|T]):-
+  nonvar(A),
+  nonvar(B),
+  choose_pref(Pref),
+  A=Pref,
+  B=Pref,!.
+
+nogen_member(A/F/R/G, [B/F/R/G|T]):-
+  nonvar(A),
+  nonvar(B),
+  choose_pref(Pref),
+  A=Pref,
+  B=Pref,!.
+
+nogen_member(A/R/G, [B/R/G|T]):-
+  nonvar(A),
+  nonvar(B),
+  B\=_/_,
+  choose_pref(Pref),
+  A=Pref/_/RestA,
+  B=Pref/_/RestB,!.
+
+nogen_member(A/R/G, [B/R/G|T]):-
+  nonvar(A),
+  nonvar(B),
+  B\=_/_,
+  A=B,!.
+
+nogen_member(A/G, [B/G|T]):-
+  nonvar(A),
+  nonvar(B),
+  B\=_/_,
+  choose_pref(Pref),
+  A=Pref/_,
+  B=Pref/_,!.
+
+nogen_member(A-C, [B|T]):-
+  \+ atomic(B),
+  B=X-Y,
+  nonvar(X),
+  (list(X),
+  list_member(A, C, X, Y)
+  ;
+  atomic(X),
+  (nonvar(A),
+   list(A),
+  alternatemember(A,X)
+  ;
+  atomic(A),
+  A=X),
+  C=Y
+  ;
+  nonvar(Y),
+  C=Y,
+  (list(A),
+  alternatemember(A,X)
+  ;
+  atomic(A),   
+  A=X
+  ;
+  A=X)),!.
+
+nogen_member(A, [B|T]):-
+  nonvar(A),
+  nonvar(B),
+  A=B,!.
+
+% nogen_member(X, []):-fail.
+
+nogen_member(X,[Y|T]) :- 
+    T\=[],
+   nogen_member(X,T),!.
+
+list_member(A, C, [X|Rest], Y):-
+  nonvar(X),
+  (nonvar(A),
+   list(A),
+  alternatemember(A,X)
+  ;
+  atomic(A),
+  A=X),
+  C=Y
+  ;
+  nonvar(Y),
+  C=Y,
+  (list(A),
+  alternatemember(A,X)
+  ;
+  atomic(A),   
+  A=X)
+  ;
+  list_member(A, C, Rest, Y),!.
+  
+sub_member(A, C, X, Y):-
+  (nonvar(A),
+   list(A),
+  alternatemember(A,X)
+  ;
+  atomic(A),
+  A=X),
+  C=Y
+  ;
+  nonvar(Y),
+  C=Y,
+  (list(A),
+  alternatemember(A,X)
+  ;
+  atomic(A),   
+  A=X),
+  !.
+
+onegr(Mc,G):-
+  gr(G),
+  !.
+
+
+find_pos([P,Q|_], I, Z, Si):-
+   findall_poss(Si),
+   findall(I-X, (
+         member(I-X, Si),
+         member(Y-P,X)),Pss),
+   sort(Pss,Ps),
+   length(Ps,L),
+   (L=1, on(I-Z,Ps)
+     ;
+    1<L,
+    nogen_member(I1-X, Si),
+    nogen_member(Y-Q,X),
+    nonvar(I1),
+    I is I1 - 1,
+    nogen_member(I-Z, Si),
+    nogen_member(_-P,Z)
+    ),!.
+
+
+find_pos([P|_], I, Z, Si):-
+   findall_poss(Si),
+   member(I-Z, Si),
+   spy_lower(P,LowP,Pol),
+   (Pol=0,
+   nogen_member(_-P,Z)
+   ;
+   Pol=1,
+   nogen_member(_-P,Z)
+   ;
+   Pol=1,
+   nogen_member(_-LowP,Z)),
+   !.
+
+find_pos(P, I, X, Si):-
+   var(P),
+   findall_poss(Si),
+   member(I-X, Si),
+   member(_Y-P,X).
+
+find_pos([P], I, X, Si):-
+   findall_poss(Si),
+   member(I-X, Si),
+   member(_Y-P,X).
+
+find_pos(P, I, X, Si):-
+   findall_poss(Si),
+   member(I-X, Si),
+   member(_Y-P,X).
+
+find_pos([], I, X, Si):-
+   findall_poss(AllP),
+   reverse(AllP, [O-_|_]),
+    nonvar(O),
+   I is O - 1,
+   !.
+
+find_pos(P, I, X, Si):-
+    (onegr(sp,romance);onegr(sp,deutsch)),
+   findall_poss(Si),
+   (is_list(P), P=[P1|_];atomic(P),P1=P),
+   prep_articolata(P1,[Pre,Art]),
+   on(I-X, Si),
+   nogen_member(_Y-Pre,X),!.
+
+find_pos(P, I, X, Si):-
+    (onegr(sp,romance);onegr(sp,deutsch)),
+   findall_poss(Si),
+   (is_list(P), P=[P1|_];atomic(P),P1=P),
+   vcl(P1,V,Art),
+   on(I-X, Si),
+   nogen_member(_Y-V,X),!.
+
+find_pos(P, I, X, Si):-
+    (onegr(sp,romance);onegr(sp,deutsch)),
+   findall_poss(Si),
+   (is_list(P), P=[P1|_];atomic(P),P1=P),
+   mod_alterato(P1,N,Agg,Gen,Num),
+   on(I-X, Si),
+   nogen_member(_Y-N,X),!.
+
+findall_pos(_P, Si):-
+   findall(I, termin(I-_X), Si),
+   !.
+
+findall_poss(Si):-
+   findall(I-X, termin(I-X), Si),
+   !.
+
+
+/*****************************************************************************/
+/* estrai_st : estrae una struttura in base alla tabella
+   posn(Functor,Struct,SubStruct).                                            */
+
+estrai_st(SubFunctor,Struct,SubStruct) :- Struct\=[],
+                                          functor(Struct,Fun,A),
+                                          posn(SubFunctor,Fun,N),
+                                          (N =< A),
+                                          arg(N,Struct,SubStruct),
+                                          functor(SubStruct,SubFunctor,_).
+
+estrai_st(indice,Struct,indice(SPx)) :- Struct\=[],
+                                        functor(Struct,sp,A),
+                                        estrai_st(sn,Struct,SN),
+                                        estrai_st(indice,SN,indice(SNx)),
+                                        generasp(SNx,SPx).
+
+estrai_stmod(SubFunctor,Struct,SubStruct,Rest) :- Struct\=[],
+                                          functor(Struct,Fun,A),
+                                          posn(SubFunctor,Fun,N),
+                                          (N =< A),
+                                          arg(N,Struct,SubStruct),
+                                          functor(SubStruct,SubFunctor,_).
+estrai_stadj(SubFunctor,mods([]),[]) :-!.
+estrai_stadj(SubFunctor,mods(Struct),SubStruct,Rest) :- 
+                     Struct\=[],
+                     on(SubStruct,Struct),
+                     functor(SubStruct,SubFunctor,_),
+                  elimina(SubStruct, Struct, Rest).
+estrai_stargs(SubFunctor,args(Struct),SubStruct,Rest) :- 
+                     Struct\=[],
+                     on(SubStruct,Struct),
+                     functor(SubStruct,SubFunctor,_),
+                  elimina(SubStruct, Struct, Rest).
+
+/* Specializzata per gli sp! */
+/* Agli sp, che nell'albero sintattico non non hanno un indice,
+   viene assegnato il simbolo spX con X uguale a quello dell'sn che
+   esso controlla. */
+
+genera_sp(SNx,SPx) :- name(SNx,StSNx), /* SPx e' un sp "uguale" all'SNx */
+                      list([S1,N1|LNum],StSNx),
+                      list([S2,P2],"sp"),
+                      list([S2,P2|LNum],StSPx),
+                      name(SPx,StSPx).
+
+generasp(SNx,SPx):-  % SPx e' un sp "uguale" all'SNx
+  name(SNx,StSNx),
+  StSNx = [_,_|LNum],
+  StSPx = [115,112|LNum],
+  name(SPx,StSPx).
+                      
+
+/*********** Tabella per la manipolazione dell'albero sintattico *************/
+
+posn(indice,sn,1). /* cioe' la posizione della struttura indice() in sn e' 1 */
+posn(cat,sn,2).
+posn(possessivo,sn,2).
+posn(coordina,sn,3).
+posn(n,sn,3).
+posn(npro,sn,3).
+posn(pr,sn,3).
+posn(indefinito,sn,3).
+posn(implicito,sn,3).
+posn(prorel,sn,3).
+posn(det,sn,4).
+posn(args,sn,5).
+posn(mods,sn,6).
+posn(adjs,sn,7).
+posn(adj,mods,2).
+
+posn(funzione,arg,1).
+posn(ruolo,arg,2).
+posn(sn,arg,3).
+posn(sa,arg,3).
+posn(sa,arg,3).
+posn(sp,arg,3).
+posn(infinitiva,arg,3).
+posn(inf_con_sub,arg,3).
+posn(infinitive_coordinate,arg,3).
+
+posn(sp,adj,2).
+
+posn(funzione,apposizione,1).
+posn(ruolo,apposizione,2).
+posn(sn,apposizione,3).
+posn(funzione,vocativo,1).
+posn(ruolo,vocativo,2).
+posn(sn,vocativo,3).
+
+posn(funzione,arg,1).
+posn(ruolo,arg,2).
+posn(sn,arg,3).
+
+posn(prep,sp,1).
+posn(sn,sp,2).
+
+posn(cat,sa,1).
+posn(a,sa,2).
+posn(args,sa,3).
+posn(cat,saa,1).
+posn(a,saa,2).
+posn(args,saa,3).
+
+posn(indice,sn_subordinato,1).
+posn(funzione,sn_subordinato,2).
+posn(ruolo,sn_subordinato,3).
+posn(sn,sn_subordinato,4).
+
+posn(indice,infinitiva,1).
+posn(regola,infinitiva,2).
+posn(v,infinitiva,3).
+posn(cat,infinitiva,4).
+posn(args,infinitiva,5).
+posn(adjs,infinitiva,6).
+
+posn(indice,asserzione,1).
+posn(regola,asserzione,2).
+posn(v,asserzione,3).
+posn(appoggio,asserzione,4).
+posn(cat,asserzione,5).
+posn(args,asserzione,6).
+posn(adjs,asserzione,7).
+
+posn(v,ip,2).
+
+posn(indice,infinitive_coordinate,1).
+
+posn(indice,inf_con_sub,1).
+posn(sub,inf_con_sub,2).
+posn(rel,inf_con_sub,3).
+posn(infinitiva,inf_con_sub,4).
+posn(subordinata,inf_con_sub,5).
+
+posn(indice,asserz_coord,1).
+
+posn(indice,asserz_con_sub,1).
+posn(sub,asserz_con_sub,2).
+posn(rel,asserz_con_sub,3).
+posn(principale,asserz_con_sub,4).
+posn(subordinata,asserz_con_sub,5).
+posn(indice,cp_comp,1).
+posn(sub,cp_comp,2).
+posn(rel,cp_comp,3).
+posn(principale,cp_comp,4).
+posn(subordinata,cp_comp,5).
+
+posn(sn,relativa,2).
+
+
+write_diagnosis(_,_):-!.
+  
+assertnp(F,MC,H,Loc,L):-
+  (wfst(on), 
+   find_pos(H, I, X, Si),
+   extract_heads(F, Y-H,Head,Ii),
+   Len is L - Loc,
+   (stackxp(PH-PLen-L-PMC),
+    H=PH,
+    Len=Plen, !
+    ;
+    asserta(stackxp(H-Len-L-MC))), !
+   ;
+   true).
+
+assertpp(F,MC,H,Loc,Fl):-
+  (wfst(on), 
+   find_pos(H, I, X, Si),
+    nonvar(Loc),
+   Len is Fl - Loc,
+   (stackxp(PH-PLen-I-PMC),
+    H = PH,
+    Len = Plen, !
+    ;
+    asserta(stackxp(H-Len-Fl-MC))),!
+   ;
+   true).
+   
+% qread_newfr(NFile, InFile)
+
+qread_newfr(Symb,[], OutFile):-!.
+qread_newfr(Symb,Fras, NFrase):-
+     assert(curr_frase(1)),
+     createter(Fras,Frase),
+     newsuper_reorgs(Frase, NFrase),
+%     assertqsents(Symb,Sent),
+     !.
+
+assertqsents(Symb,Sent):-
+   assert(fq(Symb,Sent)),
+   !.    
+
+createter([],[]):-!.
+createter([W|Fras],[W-Pun-5|Frase]):-
+   grw(W),
+   select_punct(W,K),
+   on(Pun,K),
+   createter(Fras,Frase),
+   !.
+createter([W|Fras],[W-P-T|Frase]):-
+   spy_lower(W,Lw,P),
+   content_funct(W-Lw,J,4,T),
+     createter(Fras,Frase),
+   !.
+   
+parseinput(Symb):-
+  cancella_rete(Symb),
+  fqq(Symb,Frase),
+  write_fraseap(Symb),
+  abolish(termin/1),
+  abolish(stackxp/1),
+  dynamic(termin/1),
+  assert(look(head)),
+  asserta(stackxp(0-0-0-0)),
+   Cont = 0,
+  ncheck_lexs(1,Cont,Frase,NFrase),
+  shallow_parser(1, NFrase, Symb, Out, Tensed, N, Shallow),
+  nl,
+  gen_sym(f,0),
+  gen_sym(sn,0),
+  gen_sym(finf,0),              
+  utterance(Time,Cstr, NFrase, Rest, Altr, H),
+  !,
+  elaborate_output(In, Out, Cstr, NFrase, Symb, Prons),
+  tologf,
+  !.
+
+write_frase(Rete) :-
+   sp(Rete, Frase),
+   writeseqnl(user,Frase),nl.
+
+write_fraseap(Rete) :-
+   fqq(Rete, Frase),
+   writeseqnl(user,Frase),nl.
+
+write_frasea(Rete) :-
+   fq(Rete, Frase),
+   writeseqnl(user,Frase),nl.
+
+parselfg(Symb):-
+  cancella_rete(Symb),
+  init_risolto,
+  init_lexicon,
+  sp(Symb,Frase),
+  write_frase(Symb),
+  abolish(termin/1),
+  abolish(stackxp/1),
+  dynamic(termin/1),
+  assert(look(head)),
+  asserta(stackxp(0-0-0-0)),
+   Cont = 0,
+  ncheck_lexs(1,Cont,Frase,NFrase),
+  shallow_parser(1, NFrase, Symb, Out, Tensed, N, Shallow),
+  nl,
+  gen_sym(f,0),
+  gen_sym(sn,0),
+  gen_sym(finf,0),              
+  utterance(Time,Cstr, NFrase, Rest, Altr, H),
+  !,
+  elaborate_output(In, Out, Cstr, NFrase, Symb, Prons),
+  tologf,
+  !.
+
+%parse(NoFr, Frase,Symb):-
+parse(Symb):-
+  init_lexicon,
+  abolish(termin/1),
+  abolish(stackxp/1),
+  dynamic(termin/1),
+  assert(look(head)),
+  asserta(stackxp(0-0-0-0)),
+  Cont = 0,
+  fq(Symb,Fras),
+  qread_newfr(Symb,Fras,Frase),
+  ncheck_lexs(NoFr,Cont,Frase,NFrase),
+%  abolish(fq/2),
+  findall_poss(Si),
+  writeseq(User,Si),
+  nl,
+  gen_sym(f,0),
+  gen_sym(sn,0),
+  gen_sym(finf,0),  
+  questions(Time,Cstr, NFrase,X,nil),
+  elaborate_output(In, Out, Cstr, NFrase, Symb, Prons),
+  !.
+
+elaborate_output(Out, Out, [], Frase, Symb, Prons):-!.
+elaborate_output(In, Out, Cstr, Frase, Symb, Outs)
+   :-
+  write_c_structure(User,Cstr),
+  converti(Cstr,Symb),
+  quantifiers_raising(Quants),
+  pronomi(Cstr,Symb,Prons, Noms),
+  assert(f(Frase,Symb)),
+  write_f_structure(User,Symb),!.
+
+pronomi([],_Code, _,_) :-!.
+pronomi(Strut,Code,DProns,DNoms) :-
+   pronoun(on),
+   pronome(Code,Prons),
+   describe_prons(Prons,DProns),
+   nomi(Code,Noms),
+   describe_prons(Noms,DNoms),
+   !.
+
+pronomi(_Strut,_Code,_,_) :-!.
+
+describe_prons([],[]):-!.
+describe_prons([Ind/Tab|Prons],[Ind-Pred-FunRole|DProns]):-
+   np_description(Ind, Pred, FunRole),
+   describe_prons(Prons,DProns),
+   !.
+describe_prons([Ind/Tab|Prons],[Ind-Pred-FunRole|DProns]):-
+   describe_prons(Prons,DProns),
+   !.
+
+set_win(Win, NetId) :-
+   tell(Win),
+   write_frase(NetId).
+
+write_c_structure(Win,X):-
+  active_output_win(Win),
+%  tell(Win),
+  nl,
+  ppf(X,0),
+  !.
+write_c_structure(_,_).
+
+write_f_structure(Win,Rete):-
+%  active_output_win(Win),
+%  tell(Win),
+  nl,
+  pp_arc(n1,0,Rete),
+  !.  
+write_f_structure(_,_).
+
+/*
+write_s_structure(Win, NoFr, NoCl, NewNoCl, Loc, Temp, At) :-
+   active_output_win(Win),
+   write(Win, ......),
+   set_win(Win, Rete),
+   nl(Win),
+   fs_to_ss(RevInds, SS, NoFr, NoCl, NewNoCl, Loc, Temp, At),
+   reverse(RevInds, Inds),
+   pp_list(Inds, Win),
+   nl(Win),
+   pp_list([SS], '', '', '', 3, 0, Win),
+   nl(Win),
+   !.
+   */
+write_s_structure(_,_,_,_,_,_,_).
+
+write_l_structure(Win) :-
+   active_output_win(Win),
+   write(Win, ......),
+   set_win(Win, Rete),
+   nl(Win),
+   tologf(Inds),
+   !.
+write_l_structure(_).
+
+
+write_ls_structure(_,_,_).
+write_ls_structure(Win, Lfs, Rels) :-
+%   active_output_win(Win),
+%   tell(Win),
+%   wfront(Win),
+/*   write_frase(NetId), */
+   nl,
+   ppin(Lfs),
+   nl, nl, 
+   ppin(Rels),
+   nl, nl,
+   !.
+
+forma_goal(NonTerm,Frase,X,Goal):-
+  atomic(NonTerm),
+  Goal =.. [NonTerm,X,Frase,[]],
+  !.
+
+forma_goal(NonTerm,Frase,X,Goal):-
+  \+(atomic(NonTerm)),
+  NonTerm =.. [Nome,X|Resto],
+  append_list([Nome,X|Resto],[Frase,[]],Lista),
+  Goal =.. Lista,
+  !.
+
+
+/* gestione liste */
+
+/* controlla liste */
+
+lista_piena([_|_]).
+
+islist([]).
+
+islist([_|L]):-
+  islist(L).
+
+/* cancella */
+
+elimina(A,[A|L],L):-
+  !.
+
+elimina(A,[B|L],[B|M]):-
+  elimina(A,L,M).
+
+cancel(T, [], []).
+
+cancel(T, [T|Id1], Id2):-
+   cancel(T, Id1, Id2),!.
+
+cancel(T, [T|Id1], Id1).
+
+cancel(E, [T|Id1], [T|Id2]):-
+   E\=T, cancel(E, Id1, Id2).
+
+togli_doppi([], []).
+
+togli_doppi([T|Id1], [T|Id2]):-
+       delete_el(T,Id1,Ids),
+       togli_doppi(Ids, Id2).
+
+
+/* delete_el */
+
+delete_el(_,[],[]):-
+  !.
+
+delete_el(Elemnt,[Elemnt|List],List1):-
+  !,
+  delete_el(Elemnt,List,List1).
+
+delete_el(Elemnt,[Elemnt1|List],[Elemnt1|List1]):-
+   delete_el(Elemnt,List,List1).
+
+
+/* efface - rimuove un elemento da una lista 
+             l'ho modificato per il matching della anafora
+              per il classico efface usare ELIMINA */
+
+efface(Element,[Element|Rest],Rest):-
+  !.
+
+efface(Element,[Elmnt|Rest],Rest):-
+  check(Element,Elmnt),
+  !.
+
+efface(Element,[Elmnt|List1],[Elmnt|List2]):-
+  efface(Element,List1,List2).
+
+
+/* membro - member adattato per i matching nell'anafora 
+                cambiare nome !!!!!!!  */
+
+membro(X,[X|_]):- nonvar(X) .
+
+membro(X,[Y|_]):-
+  check(X,Y),  
+  !.
+
+membro(X,[_|Y]):-
+   nonvar(Y),
+   membro(X,Y).
+
+notmembro(A, B):-
+   nonvar(B),
+   findall(A, nogen_member(A, B), As),
+   As=[].
+
+noton(A,B):-
+   nonvar(B),
+   findall(A, nogen_member(A, B), As),
+   As=[].
+
+/* lunghezza */
+
+lunghezza([],0) :- !.
+lunghezza([X|T],L) :- lunghezza(T,L1), L is L1 + 1.
+
+/* append_list */
+
+append_list([],L,L):-
+  !.
+
+append_list([X|L1],L2,[X|L3]):-
+  append_list(L1,L2,L3).
+
+/* append_list_x : attacca due liste, se il primo argomento non e'
+   lista lo trasforma in lista */
+
+append_list_x([],[],[]):-
+  !.
+
+append_list_x([],[H|T],[H|T]):-
+  !.
+
+append_list_x([],L,[L]):-
+  !.
+
+append_list_x(L1,L2,L3):-
+  lista_piena(L1),
+  !,
+  append_list(L1,L2,L3).
+
+append_list_x(X,L2,L3):-
+  append_list([X],L2,L3).
+
+      
+/* Predicato the_list, utile per append_listere tante liste in una sola:
+   es:
+           Lista the_list [a] && [b,c] && d && [] && e(1,2).
+risulta:   Lista = [a,b,c,d,e(1,2)].
+
+richiede le definizioni di operatore :
+:- op(800,xfx,the_list).
+:- op(600,xfy,&&).
+*/
+
+Lista the_list Xhead && Xtail :-
+  Ltail the_list Xtail,
+  append_list_x(Xhead,Ltail,Lista).
+
+Lista the_list X :-
+  X \= _A && _B ,
+  append_list_x(X,[],Lista).
+
+
+/* estrai - testa l'appartenenza di un elemento in una lista e quindi
+            lo rimuove */
+
+estrai([],LIn,_).
+
+estrai(X,LIn,LOut):-
+  member(X,LIn),
+  efface(X,LIn,LOut).
+
+/* elimina_doppi/2 - elimina le successive occorrenze dello stesso elemento
+   da una lista */
+
+elimina_doppi([],[]).
+elimina_doppi([H|T],L) :-
+	  member(H,T),
+	  !,
+	  elimina_doppi(T,L).
+elimina_doppi([H|T],[H|L]) :-
+	  elimina_doppi(T,L).
+
+/* APPIATTISCI/2 - appiattisce una lista che abbia delle sottoliste 
+       come elementi */
+
+appiattisci([],[]):-
+  !.
+
+appiattisci([H|T],[H|T1]):-
+  nonvar(H),
+	 \+ islist(H),    
+	 appiattisci(T,T1),
+  !.
+
+appiattisci([H|T],T1):-
+	 appiattisci(H,L1),    
+	 appiattisci(T,L2),
+	 append_list(L1,L2,T1),
+  !.
+
+
+/* gestione insiemi */
+
+/* intersezione */
+
+intersezione([],X,[]):-
+  !.
+
+intersezione([X|R],Y,[Y1|Z]):- 
+  member(X, Y),
+  Y = [Y1 |_],
+  !,
+  intersezione(R, Y, Z).
+
+intersezione([X|R],Y,[Y1|Z]):- 
+  controlled_cats(X,Y),
+  Y = [Y1|_],
+  !,
+  intersezione(R,Y,Z).
+
+intersezione([_|R],Y,Z):-
+  intersezione(R,Y,Z).
+ 
+intersect([],_):-
+  !.
+
+intersect(_,[]):-
+  !.
+
+intersect(A,B):-
+  intersezione(A,B,I),
+  I \= [].
+
+intersect(Set1, Set2) :-
+	member(Element, Set1),		
+	memberchk(Element, Set2),	
+	!.				
+
+subset([], _).
+subset([Element|Elements], Set) :-
+	memberchk(Element, Set),
+	subset(Elements, Set).
+
+subsetr([],[_|_]).
+subsetr([X1|C1],L2) :- del(X1,L2,L3),
+                      subsetr(C1,L3).
+
+del(X,[X|C],C) :- !.
+del(X,[A|C],[A|C1]) :- del(X,C,C1).
+
+/*
+subset([],_) :-
+  !.
+subset([El|AltriEl],Set1) :-
+  remove(El,Set1,NewSet1),
+  subset(AltriEl,NewSet1).
+*/
+controlled_cats(CatSN,CatGovHead):-
+  nonvar(CatSN),
+  member(collettivo,CatGovHead).
+
+
+/* pretty print */
+
+pr_pr(X,I):-
+  atomic(X),
+  tab(I),
+  write(X),
+  nl,
+  !.
+
+pr_pr([],I):-
+  tab(I),
+  write([]),
+  nl,
+  !.
+
+pr_pr([H|T],I):-
+  !,
+  J is I + 1,
+  pr_pr(H,J),
+  ppx(T,J),
+  !.
+
+pr_pr(Struttura,I):-
+  Struttura =.. [Func|[[]]],
+  tab(I),
+  write(Func),
+  tab(1),
+  write([]),
+  nl,
+  !.
+
+pr_pr(Struttura,I):-
+  Struttura =.. [Func|Args],
+  member(Func,[regola,indice,n,npro,pr,cl,prorel,a,v,aux,supporto,pp,def,part,
+                   card,prep,cat,sub,controllore,ruolo,implicito,possessivo]),
+  tab(I),
+  write(Struttura),
+  nl,
+  !.
+
+pr_pr(Struttura,I):-
+  Struttura =.. [Func|Args],
+  tab(I),
+  write(Func),
+  nl,
+  J is I + 1,
+  pr_pr(Args,J),
+  !.
+
+ppx([],_):-
+  !.
+
+ppx([H|T],I):-
+  pr_pr(H,I),
+  ppx(T,I),
+  !.
+
+
+/* pretty print su file - pp della struttura originale */
+
+ppf(X,I):-
+  atomic(X),
+  nl,
+  tab(I),
+  write(X),
+  !.
+
+ppf([],I):-
+  nl,
+  tab(I),
+  write([]),
+  !.
+
+ppf([H|T],I):-
+  !,
+  J is I + 1,
+  ppf('[',J),
+  ppfx([H|T],J),
+  ppf(']',J),
+  !.
+
+ppf(Struttura,I):-
+  Struttura =.. [Func|[[]]],
+  nl,
+  tab(I),
+  write(Func),
+  write('([])'),
+  !.
+
+ppf(Struttura,I):-
+  Struttura =.. [Func|Args],
+  member(Func,[regola,indice,n,npro,pr,cl,prorel,a,v,appoggio,aux,avv,
+               supporto,pp,def,part,card,prep,rifl,cat,sub,controllore,
+               ruolo,implicito, possessivo,rel,funzione]),
+  nl,
+  tab(I),
+  write(Struttura),
+  !.
+
+ppf(Struttura,I):-
+  Struttura =.. [Func|Args],
+  nl,
+  tab(I),
+  write(Func),
+  write('('),
+  J is I + 1,
+  ppfx(Args,J),
+  ppf(')',J),
+  !.
+
+ppfx([X|[]],I):-
+  ppf(X,I),
+  !.
+
+ppfx([X,Y|T],I):-
+  ppf(X,I),
+  write(','),
+  ppfx([Y|T],I),
+  !.
+
+
+pretty_print(X):-
+  tell(printer),
+  pr_pr(X,0),
+  told,
+  !.
+
+
+/* varie */
+
+/* trova(X,S)  cerca nella struttura S la sottostruttura X */
+
+/*
+((trova(Z,Fcomp),
+trova(cat(CatController),ArgInfo),
+trova(cat(CatNome),ArgInfo),
+trova(cat(ListaCat),SN1),
+trova(cl(_,_,_,_,_,_,_),ArgInfo).
+trova(indice(Contr),Sogg),
+trova(indice(Controllore),ArgInfo),
+trova(indice(Controllore),ArgInfo).
+trova(indice(Controllore),Strutt),
+trova(indice(Controllore),Strutt).
+trova(n(_,Gen,Num),ArgInfo).
+trova(npro(_,Gen,Num),ArgInfo).
+trova(pr(_,_,_,_,Gen,Num,_),ArgInfo).
+trova(pr(deittico,Testa,3,_,_,Caso),SN1),
+
+trova(X,Y):-
+  nonvar(Y),
+  Y\=[],
+  X = Y,!.
+
+trova(_,Y):- 
+   Y\=[],!.
+
+trova(X,L):-
+  lista_piena(L) ,
+  nonvar_member(S1,L),
+  trova(X,S1),!.
+
+trova(X,S):-
+  \+ atomic(S) ,
+  \+ lista_piena(S) ,
+  S =.. [_|L] ,
+  trova(X,L),!.
+*/
+
+trova(X,Y):-
+  nonvar(X),
+  nonvar(Y),
+   findall(X, (
+          (N=1;N=2;N=3;N=4;N=5),
+          arg(N,Y,X)
+          ),
+          X1),
+   X1\=[],
+   on(X,X1),
+          !.
+          
+trova(X,Y/_):-
+  nonvar(X),
+  nonvar(Y),
+   findall(X, (
+          (N=1;N=2;N=3;N=4;N=5),
+          arg(N,Y,X)
+          ),
+          X1),
+   X1\=[],
+   on(X,X1),
+          !.
+          
+
+nonvar_member(El,[El|Resto]):-
+  var(Resto),
+  !.
+
+nonvar_member(El,[El|Resto]).
+
+nonvar_member(El,[_|Resto]):-
+  nonvar_member(El,Resto).
+
+/* findall_q: tratto da I. Bratko */
+findall_q(X, Goal, Xlist) :- call(Goal),
+                           assertz(queue(X)),
+                           fail;
+                           assertz(queue(bottom)),
+                           collect(Xlist).
+
+collect(L) :- retract(queue(X)),!,
+              ( X == bottom,!, L=[]
+              ;
+                L = [X|Rest], collect(Rest)).
+
+
+feature_on(F,F):-
+  !.
+
+feature_on(F,[F]):-
+  !.
+
+feature_on(F,List):-
+  nogen_member(F,List),
+  !.
+feature_on(F,List):-
+  nogen_member(mas,List),
+  !.
+
+
+/* BUBBLESORT/2 - per ordinare i possibili antecedenti e secondo il punteggio
+    attribuito loro */
+
+bubblesort(List,Sorted):-
+  swap(List,List1),
+  !,
+  bubblesort(List1,Sorted).
+
+bubblesort(Sorted,Sorted).
+
+swap([X,Y|Rest],[Y,X|Rest]):-
+  md(X,Y).
+
+swap([Z|Rest],[Z|Rest1]):-
+  swap(Rest,Rest1).
+
+md(N1/P1,N2/P2):-
+  P2 < P1.
+
+
+zero(0).
+
+zero('0').
+
+
+dot:-
+  write('.').
+
+separa(S1,_,_):-
+  var(S1),
+  !.
+
+separa(S1,S2,S3):- 
+  nonvar(S1),
+  name(S1,L1),
+  separa_x(L1,L2,L3),
+  name(S2,L2),
+  name(S3,L3),
+  !.
+
+separa_x([95|L3],[],L3):-
+  !.   
+separa_x([X|R],[X|Lx],L3):-
+  separa_x(R,Lx,L3).
+
+
+
+/* cancella una rete dal database */
+
+cancella_rete(Rete) :- 
+         retractall(rete(Rete)),
+         retractall(arco(_,_,_,Rete)),
+         retractall(foglia(_,_,Rete)).
+
+
+/* salva il pretty print di una rete su file */
+
+salva_pp_rete(Rete, File) :-
+   crea_path(ppn,File,EFileName),
+   tell(EFileName),
+   fp(Rete,Frase),
+   write_wrap(Frase,60),nl,
+   write(rete(Rete)),nl,
+   pp_arc(n1,0,Rete),
+   told,
+   write('Pretty printing saved in : '),
+   write(EFileName),nl.
+     
+
+pp_arc_file :-
+tell(grafo),pp_arc(n1,0,r),told.
+
+
+/* ppin(X) pretty print della struttura di input  X  */
+
+
+ppin(X) :- ppin(X,0), !.
+
+ppin(X,I) :- atomic(X),write(X), !.
+ppin([H|T],I) :- !,
+         ppin(H,I), ppinx(T,I),
+         !.
+
+ppin(and(X,Y),I) :-
+         write('and('),
+         J is I + 4,
+         ppin([X,Y],J), write(')').
+
+ppin(term(Quant,Var,Res),I) :-
+         write('< '),write(Quant),write(' : '),
+         write(Var),write(' :'),
+         J is I + 4,
+         nl,tab(J),
+         ppin(Res,J), write(' >>'),
+         !.
+
+
+ppin(S,I) :- S =..[Func|Args],
+            write(Func),write('('),
+            term_length(LF,Func),
+            J is I + LF + 1,
+            ppin(Args,J),
+            write(')'), !.
+
+
+
+ppinx([],_) :- !.
+ppinx([H|T],I) :- write(','),nl,tab(I),ppin(H,I), ppinx(T,I), !.
+
+
+
+/* ppout(X) pretty print della struttura di output (X)  */
+
+
+ppout(X) :- ppout(X,0), !.
+
+ppout(X,I) :- atomic(X),write(X), !.
+ppout([H|T],I) :- !,
+         ppout(H,I), ppoutx(T,I),
+         !.
+
+ppout(wff(and,[X,Y]),I) :-
+         write('and('),
+         J is I + 4,
+         ppout([X,Y],J), write(')'), !.
+
+ppout(wff(not,[X]),I) :-
+         write('not('),
+         J is I + 4,
+         ppout(X,J), write(')'), !.
+
+ppout(wff(Pred,Args),I) :-
+         \+ quantifier(Pred),
+         member(wff(_,_),Args), !,
+         write(Pred),
+         write('('),
+         term_length(LP,Pred),
+         J is I + LP + 1 ,
+         ppout(Args,J), write(')'), !.
+
+ppout(wff(Quant,[Var,Res,Body]),I) :-
+         quantifier(Quant), !,
+         write(Quant),write('('),
+         write(Var),write(','),
+         term_length(LQ,Quant),
+         term_length(LV,Var), J is I + LQ + LV + 2,
+         ppout([Res,Body],J), write(')').
+
+ppout(wff(Pred,ListaArgs),I) :-
+         atomic(Pred),
+         S =.. [Pred|ListaArgs],
+         write(S).
+
+ppout(wff(Pred,ListaArgs),I) :-
+         list(Pred),
+         write(Pred),write(','),
+         write(ListaArgs).
+
+
+ppoutx([],_) :- !.
+ppoutx([H|T],I) :- write(','),nl,tab(I),ppout(H,I), ppoutx(T,I), !.
+
+
+/* pretty print del grafo generato da toarc(Infile,Radice). */
+
+/* pp_arc/1 */
+
+pp_arc(Radice) :-
+  rete(Radice),
+  nl,write('Rete '),write(Radice),nl,
+  pp_arc(n1,0,Radice).
+
+
+/* pp_arc/2 */
+
+pp_arc(Radice,Rete) :-
+  nl,write('Nodo '),write(Radice),nl,
+  pp_arc(Radice,0,Rete).
+
+
+/* pp_arc/3 */
+
+pp_arc(Nodo,Col,Rete) :-
+  foglia(Nodo,Val,Rete),
+  writeq(Val),nl,!.
+
+pp_arc(Nodo,Col,Rete) :-
+  bagof(ToNodo,pp_arco(Nodo,ToNodo,Rete),[Primo|Altri]),
+  arco(Nodo,Primo,Attr,Rete),
+  writeq(Attr),write(':'),
+  term_length(W,Attr), 
+  NewCol is Col + W + 1,
+  pp_arc(Primo,NewCol,Rete),
+  pp_arc(Nodo,Altri,Col,Rete),!.
+
+
+/* pp_arc/4 */
+
+pp_arc(_,[],_,_) :- !.
+
+pp_arc(Nodo,[Primo|Altri],Col,Rete) :-
+  arco(Nodo,Primo,Attr,Rete),
+  tab(Col),
+  writeq(Attr),write(':'),
+  term_length(W,Attr),
+  NewCol is Col + W + 1,
+  pp_arc(Primo,NewCol,Rete),
+  pp_arc(Nodo,Altri,Col,Rete),!.
+
+pp_arco(Nodo,ToNodo,Rete) :- arco(Nodo,ToNodo,_,Rete).
+
+     
+map_subcat_list(
+   [[vcomp-[F=C], Prep, Role, Sem] | RestNorm ],
+   ArgN,
+   [vcomp/Role/Prep/[F1=C1]| RestList])
+   :-
+   !,
+   map_control([F=C], [F1=C1]),
+   NextArgN is ArgN+1,
+   map_subcat_list(RestNorm, NextArgN, RestList).
+
+ 
+/* fcomp controllati */
+map_subcat_list(
+   [[fcomp-Control, [nn], Role, Sem] | RestNorm ],
+   ArgN,
+   [f/fcomp/Role/Control1| RestList])
+   :-
+   !,
+   map_control(Control, Control1),
+   NextArgN is ArgN+1,
+   map_subcat_list(RestNorm, NextArgN, RestList).
+ 
+
+/* obliqui  */
+map_subcat_list(
+   [[Cstr-Fun, Prep, Role, Sem] | RestNorm ],
+   ArgN,
+   [Cstr/Fun/Role/Prep/Sem | RestList])
+   :-
+   atomic(Fun),
+   atomic(Cstr),
+   Prep\=[nn],
+   !,
+   NextArgN is ArgN+1,
+   map_subcat_list(RestNorm, NextArgN, RestList).
+
+/* sogg */
+map_subcat_list(
+   [[Cstr-Fun, Role, Sems] | RestNorm ],
+   ArgN,
+   [Cstr/Fun/Role/Sems | RestList])
+   :-
+   atomic(Fun),
+   atomic(Cstr),
+   isa_sem_cat_list(Sems),
+   !,
+   NextArgN is ArgN+1,
+   map_subcat_list(RestNorm, NextArgN, RestList).
+ 
+/* ogg */
+map_subcat_list(
+   [[Cstr-Fun, [nn], Role, Sems] | RestNorm ],
+   ArgN,
+   [Cstr/Fun/Role/Sems | RestList])
+   :-
+   atomic(Fun),
+   atomic(Cstr),
+   isa_sem_cat_list(Sems),
+   !,
+   NextArgN is ArgN+1,
+   map_subcat_list(RestNorm, NextArgN, RestList).
+ 
+/* soggetti inf controllato*/
+map_subcat_list(
+   [[Fun-[F=C], Role, Sems] | RestNorm ],
+   ArgN,
+   [Fun/Role/[F1=C1] | RestList])
+   :-
+   atomic(Fun),
+   isa_sem_cat_list(Sems),
+   !,
+   map_control([F=C], [F1=C1]),
+   NextArgN is ArgN+1,
+   map_subcat_list(RestNorm, NextArgN, RestList).
+
+/* soggetti inf */
+map_subcat_list(
+   [[Fun, Role, Sem] | RestNorm ],
+   ArgN,
+   [Fun/Role/Sem | RestList])
+   :-
+   atomic(Fun),
+   isa_sem_cat_list(Sem),
+   !,
+   NextArgN is ArgN+1,
+   map_subcat_list(RestNorm, NextArgN, RestList).
+ 
+ 
+/* xcomp */
+map_subcat_list(
+   [[Fun, [nn], Role, Sem] | RestNorm ],
+   ArgN,
+   [Fun/Role/Sem | RestList])
+   :-
+   atomic(Fun),
+   isa_sem_cat_list(Sem),
+   !,
+   NextArgN is ArgN+1,
+   map_subcat_list(RestNorm, NextArgN, RestList).
+ 
+
+/* Terzo arg nullo  */
+map_subcat_list(
+   [[nn, [nn], nn, nn]], 
+   2, 
+   []).
+ 
+
+/* Secondo e Terzo arg nullo  */
+map_subcat_list(
+   [
+   [nn, [nn], nn, nn],
+   [nn, [nn], nn, nn]],
+   1,
+   []).
+ 
+
+/* Primo Secondo e Terzo arg nullo  */
+map_subcat_list(
+   [
+   [nn, nn, nn],
+   [nn, [nn], nn, nn],
+   [nn, [nn], nn, nn]],
+   0,
+   []).
+ 
+
+map_subcat_list([], 3, []).
+ 
+map_control(
+   [Fun1=Fun2 | Control],
+   [Fun1=Fun2/Role | NewControl])
+   :-
+   !,
+   map_control(Control, NewControl).
+
+map_control(Control, Control).
+
+isa_sem_cat_list([]).
+isa_sem_cat_list([Sem | _]) :-
+   atom(Sem),
+   !.
+isa_sem_cat_list([Sem | _]) :-
+   var(Sem),
+   !.
+
+/* chiamata di Analyse and Summarize closed_domain*/
+
+sommar(Input,Out):-
+   init_lexicon,
+   newtager(Input,Out),
+   findall(Code,fp(Code,_), Codes),
+   retractall(current_num(_,_)),
+   nstart,
+   start,
+   init_tops,
+   nl, nl,
+   writeq('**************************'),
+   writeq('ANALYSING INPUT TEXT'),
+   nresolve_discourse(Codes, 1, 1, Out),
+   makeframe2(Str), 
+   write_model(T,C),
+   told,
+   qwrite_model.
+
+/* chiamata di Analyse and Summarize open_domain*/
+
+opensommar(Input,Out):-
+   init_lexicon,
+   newtager(Input,Out),
+   findall(Code,fp(Code,_), Codes),
+   retractall(current_num(_,_)),
+   nstart,
+   start,
+   init_tops,
+   nl, nl,
+   writeq('**************************'),
+   writeq('ANALYSING INPUT TEXT'),
+   openresolve_discourse(Codes, 1, 1, Out),
+   makeframe2(Str), 
+   write_model(T,C),
+   told,
+   qwrite_model.
+
+rtnew(NFile, InFile,  Parse):-
+   read_newfr(NFile, InFile),
+   !.
+
+read_newfr([], OutFile):-!.
+read_newfr(File, OutFile):-
+   read_nfr(File, Frase, Fra, Rest),
+   (Frase\=[],
+    (Frase\=[A];Frase=[A], A\=_-_-5),
+     newsuper_reorgs(Frase, NFrase),
+     assertsents(OutFile,NFrase),
+     (Rest=[end_of_file],!
+     ;
+     read_newfr(Rest, OutFile)
+    )
+     ;
+    Frase=[],Rest=[]
+    ;
+    Rest\=[],
+    read_newfr(Rest, OutFile)
+    ),
+   !.
+
+read_nfr([], [P-punto-5],Frase, []):-!.
+read_nfr([Out|Rest], [Out],Frase, Rest):-
+     nonvar(Out),
+     (Out=P-punto-5;Out=P-puntint-5),
+     !.
+read_nfr([Out|File], Frase, Frase, File):-
+     nonvar(Out),
+     Out=P-parag-_,
+     !.
+read_nfr([Out|File], [], [end_of_file], Rest):-
+     nonvar(Out),
+     Out=end_of_file,
+     !.
+read_nfr([Out|File], [Out|Frase], T, Rest):-
+     Out\=end_of_file, 
+     read_nfr(File, Frase, T, Rest),
+     !.
+read_nfr([Out|File], Frase, T, Rest):-
+     Out=end_of_file, 
+     read_nfr(File, Frase, T, Rest),
+     !.
+
+newtager(Tokens,Output):-
+   init,
+    tokenizer(Tokens,Output),
+    recovertokens(Outs),
+   rtnew(Outs, Tokens,  Parse),
+   !.
+
+recovertokens(Outs):-
+   bagof(T-C-P,(
+                  ts(T,C,P),T\=nil),
+                  Outs),
+   indicizzawrds(1,Outs),
+   !.
+
+indicizzawrds(N,[]):-!.
+indicizzawrds(N,[T-parag-P|Outs]):-
+   indicizzawrds(N,Outs),
+   !.
+indicizzawrds(N,[T-C-P|Outs]):-
+    list(C),
+    C=[F|_],
+    (atomic(F),W=F;F=W-_),
+    spy_lower(W,Low,Pol),
+    indicizzamws(N,C,T,P,N1),
+    assert(idmw(N, T, Pol, C, P)),
+   indicizzawrds(N1,Outs),
+   !.
+indicizzawrds(N,[T-C-P|Outs]):-
+    (atomic(T),W=T;T=W-_),
+    assert(idx(N, W, T, C, P)),
+    N1 is N + 1,
+   indicizzawrds(N1,Outs),
+   !.
+indicizzamws(N,[],T1,P,N):-!.
+indicizzamws(N,[T|C],T1,P,N2):-
+    (atomic(T),W=T;T=W-_),
+    assert(idx(N, W, T, C, P)),
+    N1 is N + 1,
+    indicizzamws(N1,C,T,P,N2),
+    !.
+    
+getcfilename(Text,Outs,File):-
+   concat_atom(K,/,Text),
+   reverse(K,[File|Rev]),
+%   concat(cstructure,'_',Logfil),
+%   concat(Logfil, File, Logfile),
+   term_to_atom(outs/File,Outs),
+   !.
+
+
+getcfilename(Text,Outs,File):-
+   concat_atom(K,/,Text),
+   reverse(K,[File|Rev]),
+   !.
+
+assertsents(Text,Sent):-
+   mcon(Text,'_',Txt),
+   getcfilename(Text,Outs,File),
+   gen_sym(File,E),
+   assert(fp(E,Sent)),
+   !.    
+
+readsent([],[]):-!.
+readsent([T-C-P|Frase],[W|Sent]):-
+    (atomic(T),W=T;T=W-_),
+    readsent(Frase,Sent),
+   !.    
+
+assert_sents(Text,InFile):-
+   repeat,
+   see(InFile),
+   read(T), 
+  (T=end_of_file,!
+   ;
+   T\=end_of_file,
+%   T=f(N,Sentence),
+   T=f(N,_,Sentence),
+   nchecklex(Sentence,LFrase),
+%   lowcase_all(Sentence, LowSentence),
+   mcon(Text,'_',Txt),
+   gen_sym(Text,E),
+   assert(fp(E,LFrase)),
+   fail
+   ),
+   seen.
+
+
+totsommar(NInput,Output):-
+   init,
+   nl, nl,
+   writeq('**************************'),
+   writeq('TOKENIZING INPUT TEXT'),
+   open(NInput, read,_),
+   open(tokens, write,_),
+   tokenizer(NInput,tokens), 
+   told,
+   open(tokens,read,_),
+   open(riass, write,_),
+   nl, nl,
+   writeq('**************************'),
+   writeq('MULTIWORDS CREATION FROM INPUT TEXT'),
+   rtn(tokens, riass,  Parse),
+   told,
+   open(riass,read,_),
+   retractall(current_num(_,_)),
+   init_gen_sym(_,0),
+   assert_sentences(NInput,riass),
+%   init_model(NInput,Output),
+   !.
+
+nresolve_discourse([],_, _, _) :-
+   !.
+nresolve_discourse([Code | Codes], NoFr, NoCl, Output) :-
+  init_lexicon,
+  makeframe1(Str),  
+  supervisor(Str,NoFr, Code, NoCl, NewNoCl, Output),
+  told,
+  !,
+  nonvar(NoFr),  
+  NewNoFr is NoFr+1,
+  init_risolto,
+  nresolve_discourse(Codes, NewNoFr, NewNoCl, Output).
+
+nresolve_discourse([Code | Codes], NoFr, NoCl, Output) :-
+  nresolve_discourse(Codes, NoFr, NoCl, Output).
+
+openresolve_discourse([],_, _, _) :-
+   !.
+openresolve_discourse([Code | Codes], NoFr, NoCl, Output) :-
+  init_lexicon,
+  makeframe1(Str),  
+  opensupervisor(Str,NoFr, Code, NoCl, NewNoCl, Output),
+  told,
+  !,
+  nonvar(NoFr),  
+  NewNoFr is NoFr+1,
+  init_risolto,
+  openresolve_discourse(Codes, NewNoFr, NewNoCl, Output).
+
+openresolve_discourse([Code | Codes], NoFr, NoCl, Output) :-
+  openresolve_discourse(Codes, NoFr, NoCl, Output).
+
+dump_write_world(Output):-
+  tell(Output),
+  write_world,
+  told.
+  
+qanswering(Str,Symb,Text):-
+%   parse(1,Text,Symb),
+%qanswerings(Str,Symb):-
+   see(conv),
+   consult(conv),
+   seen,
+   parse(Symb),
+   retractall(current_num(_,_)),
+   qstart,
+%   nstart,
+%   start,
+   in_question(Symb, 1, 1, NewNoCl),
+    tell(Str),
+   nl(Str),nl(Str),
+   writenl(Str,'###############################################################'),
+   writenl(Str,Text),
+   reply_user(Str,Phrase, D),
+   nl(Str),nl(Str),
+   !.
+
+happenqanswering(Str,Symb,Text):-
+   see(conv),
+   consult(conv),
+   seen,
+   userparse(1,Text,Symb),
+   retractall(current_num(_,_)),
+   qstart,
+%   nstart,
+%   start,
+   in_question(Symb, 1, 1, NewNoCl),
+    tell(Str),
+   nl(Str),nl(Str),
+   writenl(Str,'###############################################################'),
+   writenl(Str,Text),
+   reply_happen(Str,Phrase, [True,Form]),
+   nl(Str),nl(Str),
+   !.
+
+
+userqanswering(Str,Symb,Text):-
+   see(conv),
+   consult(conv),
+   seen,
+   userparse(1,Text,Symb),
+   retractall(current_num(_,_)),
+   qstart,
+%   nstart,
+%   start,
+   in_question(Symb, 1, 1, NewNoCl),
+%    tell(Str),
+   nl(Str),nl(Str),
+   writenl(Str,'###############################################################'),
+   writenl(Str,Text),
+   reply_user(Str,Phrase, D),
+   nl(Str),nl(Str),
+   !.
+
+userparse(NoFr, Frase, Symb):-
+  abolish(termin/1),
+  abolish(stackxp/1),
+  dynamic(termin/1),
+  assert(look(head)),
+  asserta(stackxp(0-0-0-0)),
+  Cont = 0,
+  itacheck_lex(Cont,Frase),
+%  abolish(fq/2),
+%  qread_newfr(Symb,Frase,NFrase),
+  findall_poss(Si),
+  writeseq(User,Si),
+  nl,
+  gen_sym(f,0),
+  gen_sym(sn,0),
+  gen_sym(finf,0),  
+  questions(Cstr, Frase,X,nil),
+  itelaborate_output(Cstr, Frase, Symb),
+  !.
+
+questions(Cstr, Frase,X,nil) 
+   :- 
+   (reverse(Frase,[?|_])
+     ;
+    onelook(Frase,standard_utterance, w,nil),
+    Frase=[Word|_],
+    Word=come    
+    ),
+   inter_dir(Main,Frase,F1, Sc, nil, C),
+   continua_inter(Main,F1,X,Cstr),
+   !.
+questions(Cstr, Frase,X, nil) :- 
+   reverse(Frase,[?|_]),
+   yes_no_question(Main,Frase,F1, nil),
+   continua_inter(Main,F1,X,Cstr),
+   !.
+
+parsit(Symb):-
+  fp(Symb,Frase),
+  writeseq(user,Frase),
+  abolish(termin/1),
+  abolish(stackxp/1),
+  dynamic(termin/1),
+  assert(look(head)),
+  asserta(stackxp(0-0-0-0)),
+  Cont = 0,
+  itacheck_lex(Cont,Frase,NFrase),
+  nl,
+  gen_sym(f,0),
+  gen_sym(sn,0),
+  gen_sym(finf,0),              
+%  utterance(Time,Cstr, Frase, H, Rest,Rej),
+  utterance(Cstr, NFrase,H),
+  itelaborate_output(Cstr, NFrase, Symb),
+  !.
+
+itsommar(InputFile):-
+   abolish(fp/2),
+   consult(InputFile),
+   retractall(current_num(_,_)),
+   findall(Code,fp(Code,_), Codes),
+   nstart,
+   start,
+   resolve_discourse(Codes, 1, 0),
+   makeframe2(Str), 
+   write_model,
+   told,
+   qwrite_model.
+   
+   
+resolve_discourse([],_, _) :-
+   !.
+resolve_discourse([Code | Codes], NoFr, NoCl) :-
+  makeframe1(Str),  
+  parsit(Code),
+  in_frase(Code, NoFr, NoCl, NewNoCl),
+  told,
+  !,
+  nonvar(NoFr),  
+  NewNoFr is NoFr+1,
+  resolve_discourse(Codes, NewNoFr, NewNoCl).
+
+
+itelaborate_output(Cstr, Frase, Symb)
+   :-
+  write_c_structure(User,Cstr),
+  converti(Cstr,Symb),
+  quantifiers_raising(Quants),
+  pronomi(Cstr,Symb,Prons, Noms),
+  assert(f(Frase,Symb)),
+  write_f_structure(User,Symb),!.
+
+/** gr(+grammarType) **/
+
+gr(Gr):-
+  active_grammar(Gr).
+
+gr(SuperGr):-
+  active_grammar(Gr),
+  gram_isa(Gr,SuperGr).
+
+gram_isa(Gr,SuperGr):-
+  gr_isa(Gr,SuperGr).
+
+gram_isa(Gr,SuperGr):-
+  gr_isa(Gr, MidGr),
+  gram_isa(MidGr, SuperGr).
+
+gr_isa(english,germanic).
+gr_isa(deutsch,germanic).
+gr_isa('français',romance).
+gr_isa(italiano,romance).
+gr_isa(romance,universal).
+gr_isa(germanic,universal).
+
+%make_ita:- [parser,sems,newReason,newGen,itlexicon].
+
+make_ita:- [anaphoric,binding,interpret,itlexicon,main_parse,newGen,newReason,reference,semantic,standardutt,tagging,temp_space,tokeniz,writemodel].
+
+make_all:- [tagger,parser,ninterf,lexicon,sems,engldiz,reason,'dictionaries/dict-old','dictionaries/hyp-eng','dictionaries/wn-n'].
+
+make_demo:- [anaphoric,binding,clitsmorph,interpret,itlexicon,main_parse,newGen,newReason,reference,semantic,standardutt,tagger,tagging,temp_space,tokeniz,writemodel,parsecs,itaLex0,infls,'dizionari/matrall', 'dizionari/trigramsdis', 'dizionari/alldiss', 
+'dizionari/vitlems_lowre', 'dizionari/invars','dizionari/itallem', 'dizionari/newsemparav','dizionari/indexili', 'dizionari/newpar','dizionari/vits', 'dizionari/types_it', 'dizionari/verbrootit', 'dizionari/italdict1', 'dizionari/jrcentss', 'dizionari/italdict','dizionari/nomiwiki','dizionari/roots8','dizionari/iwl8','dizionari/pisalexic','dizionari/dict_old','dizionari/geoitt','dizionari/itwnpl','dizionari/tokssortall','dizionari/freqss','dizionari/allsynscontrs'].
+
+make_parse:- [tagger,bottomupp,parser_new1,sems,newLexFat,'dictionaries/dict-old','dictionaries/wn-verbs'].

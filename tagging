@@ -1,0 +1,1278 @@
+﻿:- style_check(-singleton).
+
+
+grw(',').
+grw('.').
+grw('"').
+grw(':').
+grw(';').
+grw('!').
+grw(?).
+
+extract_head(Y-P,Head,I):-
+  find_pos(P, I, X, AllP),
+  nogen_member(Y-Head, X). 
+
+
+itacheck_lex(Cont,Lexs,NFrase):- 
+  mults(Lexs,NuovaFrase),
+  itacheck_lexs(Cont,NuovaFrase,NFrase),
+  !.
+
+itacheck_lexs(_,[],[]).
+
+itacheck_lexs(Cont,[Lex|RestoF],[Nlex|Rest]):-
+  (gr(romance);
+   gr(deutsch)),
+  (alterato(Lex,Nlex,ExtrW,_,_),
+   Slist=[n-Nlex],
+   append([ExtrW],RestoF,Resto)
+   ;
+   prepart(Nlex,Lex,ExtrW),
+   quant(Lex, _, _, _, _),
+   Slist=[p-Lex, d-Nlex],
+   append([ExtrW],RestoF,Resto)
+   ;
+   prepart(Nlex,Lex,ExtrW),
+   Slist=[p-Nlex],
+   append([ExtrW],RestoF,Resto)
+   ;
+   vcl(Lex,Nlexx,Extr),Nlex=Lex,
+   Slist=[vc-Nlex],Resto=RestoF
+   ),
+  Cont1 is Cont+1,
+%  append([ExtrW],RestoF,Resto), 
+  assertz(termin(Cont-Slist)),
+  itacheck_lexs(Cont1,Resto,Rest),
+  !.      
+itacheck_lexs(Cont,[Lex1|RestoFrase],[Lex1|Rest]):- 
+  bagof(S-Lex1,itacheck_form(Lex1,S),Lists),
+  Cont1 is Cont+1,
+  sort(Lists,Slists),
+  assertz(termin(Cont-Slists)),
+  itacheck_lexs(Cont1,RestoFrase,Rest),
+  !.
+itacheck_lexs(Cont,[Lex1|RestoFrase],[Lex|Rest]):-
+  stringof(List,Lex1),
+  member(I,List),integer(I),
+  term_to_atom(Lex,Lex1),
+  bagof(S-Lex,itacheck_form(Lex,S),Lists),
+  Cont1 is Cont+1,
+  sort(Lists,Slists),
+  assertz(termin(Cont-Slists)),
+  itacheck_lexs(Cont1,RestoFrase,Rest),
+  !.
+itacheck_lexs(Cont,[Lex1|RestoFrase],[W|Rest]):-
+   downcase_atom(Lex1,W),Lex1\=W,
+  bagof(S-W,itacheck_form(W,S),Lists),
+  Cont1 is Cont+1,
+  sort(Lists,Slists),
+  assertz(termin(Cont-Slists)),
+  itacheck_lexs(Cont1,RestoFrase,Rest),
+  !.
+itacheck_lexs(Cont,[Lex1|RestoFrase],[Lex1|Rest]):- 
+  ttgtext(Cont,Lex1,0,Lex1,Tag),
+  (is_list(Tag),member(W-T,Tag)
+    ; Tag=W-T),
+  Cont1 is Cont+1,
+  assertz(termin(Cont-[T-W])),
+  itacheck_lexs(Cont1,RestoFrase,Rest),
+  !.
+itacheck_lexs(Cont,[Lex1|RestoFrase],[Lex1|Rest]):-
+   downcase_atom(Lex1,W),Lex1=W,
+  Cont1 is Cont+1,
+  assertz(termin(Cont-[n-W])),
+  itacheck_lexs(Cont1,RestoFrase,Rest),
+  !.
+
+
+itacheck_form(Lex1,S):- 
+  (v(Lex1,_,_,_,_,_),S=v;
+   aux(Lex1,_,_,_,_,_),S=v;
+   cardin(Lex1,_,_),S=d;
+   npro(Lex1,_,_),S=n;
+   pr(_,_,Lex1,_,_,_,_),S=r;
+   compl(Lex1),S=c;
+   partic(Lex1),S=p;
+   sub_w(Lex1),S=s;
+   sub_w_dir(Lex1),S=s;
+   sub_w_sn(Lex1,_),S=s;
+   sub_w_inf(Lex1),S=s;
+   avv(Lex1,_),S=av;
+   nega(Lex1),S=g;
+   Lex1='"',S=s;
+   inten(Lex1),S=d;
+   interjc(Lex1),S=i;
+   conju(Lex1),S=e;
+   prepos(Lex1),S=p;
+   ord(Lex1,_,_,_),S=d;
+   quant(Lex1,_,_,_,_), 
+    \+ prepart(_,Lex1,_)
+    ;
+   integer(Lex1),S=d;
+   grw(Lex1),S=x;
+   check_lex_r(romance, S, Lex1)).
+
+         
+check_lex_r(romance,S,Lex1):-
+  (n(Lex1,_,_),S=n;
+   n(_,Lex1,_),S=n;
+   mod_ex(Lex1,_,_),S=d;
+   relp(Lex1,_),S=w;
+   a_rom(Lex1,_,_,_),S=a;
+   a_rom(_,Lex1,_,_),S=a;
+   a_rom(_,_,Lex1,_),S=a;
+   a_rom(_,_,_,Lex1),S=a;
+   ap_rom(Lex1,_,_,_),S=a;
+   ap_rom(_,Lex1,_,_),S=a;
+   ap_rom(_,_,Lex1,_),S=a;
+   ap_rom(_,_,_,Lex1),S=a;
+   pp_rom(Lex1,_,_,_,_),S=q;
+   pp_rom(_,Lex1,_,_,_),S=q;
+   pp_rom(_,_,Lex1,_,_),S=q;
+   pp_rom(_,_,_,Lex1,_),S=q;
+   quant_int(Lex1,_,_,_,_),S=w;
+   art_det_rom(Lex1,_,_),S=d;
+   cl(_,_,Lex1,_,_,_,_),S=v;
+   art_ndet_rom(Lex1,_,_),S=d).
+
+check_lex_r(deutsch,S,Lex1):-
+  (alterato(Lex1,_,_,_,_),S=n;
+   a_ger(Lex1),S=q;
+   prepart(_,Lex1,_),S=p;
+   modal(Lex1,_,_,_,_,_),S=v;
+   relp_d(Lex1,_),S=w;
+   ap_ger(Lex1,_,_),S=a;
+   art_det(Lex1,_,_,_),S=d;
+   nd(Lex1,_,_,_,_),S=n;
+   quant_int(Lex1,_,_,_,_),S=w;
+   cl(_,_,Lex1,_,_,_,_),S=v;
+   art_ndet(Lex1),S=n).
+
+check_lex_r(germanic,S,Lex1):-
+  (pp_ger(Lex1,_),S=q;
+   tren(Lex1),S=p).
+
+/*
+vmf(nil,nil,nil).
+v(nil,nil).
+tml(nil,nil).
+dc(nil,nil).
+pvm(nil,nil,nil,nil,nil).
+coml(nil,nil).
+intn(nil).
+qq(nil).
+ht(nil,nil).
+j(nil).
+fct(nil).
+r(nil).
+lc3(nil,nil).
+lc4(nil,nil).
+arb(nil,nil,nil).
+nt(nil).
+k(nil).
+inf_v(nil,nil).
+n_wn(nil,nil).
+nwn(nil,nil).
+wsu(nil,nil,nil).
+coml_n(nil,nil).
+ntt(nil).
+avvl3(nil,nil).
+vsp(nil,nil).
+modspp(nil,nil).
+ap_engl(nil,nil,nil).
+wsd(nil,nil,nil).
+pp_ger(nil,nil).
+tpl(nil,nil).
+rj(nil,nil,nil).
+a_engl(nil).
+ad_engl(nil,nil).
+cconju(nil).
+art_det_engl(nil).
+art_ndet_engl(nil).
+lc1(nil,nil).
+lc2(nil,nil).
+sbcn(nil).
+sbn(nil,nil).
+*/
+
+
+proproot(N1-(coord/prop)) :-
+   nodo(N1)::adj::sub/prop::coord::nodo(N).
+
+/* principale vuota, gerundiva di una subordinata-"principale" */
+proproot(N1-(adj/gerund)) :-
+   nodo(N1)::adj::sub/prop::adjs::adj/gerund::nodo(N).
+
+/* principale report */
+proproot(N1-(main/advers)) :-
+   nodo(N1)::adv_main /prop::nodo(N).
+
+proproot(N1-(report/prop)) :-
+   nodo(N1)::report/prop::nodo(N).
+
+/* coordinate principali */
+proproot(N1-(coord/prop)) :-
+   nodo(N1)::main/prop::main/prop::coord::nodo(N).
+
+/* coordinate principali */
+proproot(N1-(coord/prop)) :-
+   nodo(N1)::main/prop::coord::nodo(N).
+
+/* discorso diretto */
+proproot(N1-(dir_speech/prop)) :-
+   nodo(N1)::dir_speech/prop::nodo(N).
+
+/* principale */
+proproot(N1-(main/prop)) :-
+   nodo(N1)::main/prop::nodo(N).
+
+proproot(N-(main/prop)) :-
+    nodo(N1)::adj::sub/prop::main/prop::nodo(N).
+
+/* gerundiva argomento della principale */
+proproot(N1-(adv/modal)) :-
+   nodo(N1)::adv/modal::coord::nodo(N).
+
+/* participiale aggiunta alla principale */
+proproot(N1-(adj/particip)) :-
+   nodo(N1)::adj/particip::nodo(N).
+
+/* subordinata aggiunta alla principale */
+proproot(N1-(adj/Role)) :-
+   nodo(N2)::adjs::adj::sub/prop::nodo(N),
+   nodo(N2)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* subordinata coordinata aggiunta alla principale */
+proproot(N1-(coord/Role)) :-
+   nodo(N1)::sub/prop::main/prop::coord::nodo(N),
+   nodo(N1)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+/* subordinata aggiunta alla principale */
+proproot(N1-(coord/Role)) :-
+   nodo(N1)::sub/prop::coord::nodo(N),
+   nodo(N1)::sem_mark::Subord,
+   subord_role(Subord, Role).
+
+
+/* gerundive coordinate aggiunte alla principale */
+proproot(N-(adj/gerund)) :-
+   nodo(N)::adjs::gerundive_coordinate::adj/gerund::nodo(N1).
+
+
+/* gerundiva dentro una coordinata */
+proproot(N2-(adj/gerund)) :-
+   nodo(N2)::adjs::adj/gerund::nodo(N1).
+
+/* gerundiva dentro una coordinata */
+proproot(N1-(sub/prop)) :-
+   nodo(N1)::sub/prop::nodo(N3).
+
+proproot(N-(mod/predic)) :-
+   nodo(N)::mods::relativa::topic::nodo(N1).
+
+proproot(N-(adj/predic)) :-
+   nodo(N)::adjs::adj/predic::nodo(N1).
+
+proproot(N-(focus/quest)) :-
+   nodo(N)::focus::tipo_focus::interrogativo.
+
+/*
+<frase init="mw_030" end="mw_044"><nodo type= "FC" ><nodo type= "F3" ><foglia (> </foglia><nodo type= " SPDA" ><foglia DAL> </foglia><nodo type= " SN" ><foglia NOSTRO> </foglia><foglia INVIATO> </foglia></nodo></nodo><foglia )> </foglia></nodo><nodo type= "F3" ><nodo type= "SN" ><foglia MARANELLO> </foglia></nodo><foglia &&> </foglia><nodo type= " SN" ><foglia RIPRESA> </foglia><nodo type= " SPDA" ><foglia DA> </foglia><nodo type= " SN" ><foglia FORMULA> </foglia><foglia 1> </foglia></nodo></nodo><nodo type= " SP" ><foglia PER> </foglia><nodo type= " SN" ><foglia LA> </foglia><foglia FERRARI> </foglia></nodo></nodo></nodo></nodo><foglia .> </foglia></nodo></frase>
+*/
+
+cat_gramm(Vinf, CatGr, CatV, LArgsV) :-
+   pred_vv(Vinf,CatGr,CatVv,LArgsV),
+   atomic(CatGr),
+   check_catv(CatVv,CatV). 
+
+cat_gramm(Vinf, CatGr, CatV, LArgsV) :-
+   pred_vv(Vinf,CatGrs,CatVv,LArgsV),
+   list(CatGrs),
+   check_catv(CatVv,CatV),
+       on(CatGr,CatGrs). 
+
+cat_gramm(Vinf, CatGr, CatV, LArgsV) :-
+   pred_vv(Vinf,CatGr,CatVs,LArgsV),
+   list(CatVs), atomic(CatGr),
+      on(CatV,CatVs),!. 
+
+cat_gramm(Vinf, CatGr, CatV, LArgsV) :-
+   pred_vv(Vinf,CatGrs,CatVs,LArgsV),
+   list(CatGrs), list(CatVs), 
+       on(CatGr,CatGrs), 
+       on(CatV,CatVs),!. 
+
+check_catv(CatVv,CatV):-
+    atomic(CatVv),
+    CatV=CatVv,!.
+
+check_catv(CatVv,CatV):-
+   transcatV(CatVv,CatV).
+
+transcatV(camb-att,cambiamento).
+transcatV(camb-att,attivita).
+
+pred_vv(Pred, Synt, Sem, SubCat) :- 
+   pred_vs(
+      Pred, Synt, Sem, 
+      Arg1, Role1, Sem1,
+      Arg2, Prep2, Role2, Sem2,
+      Arg3, Prep3, Role3, Sem3),
+   map_subcat_list(
+      [
+      [Arg1, Role1, Sem1],
+      [Arg2, Prep2, Role2, Sem2],
+      [Arg3, Prep3, Role3, Sem3]
+      ],
+      0,
+      SubCat).
+
+pred_vv(Pred, Synt, Sem, SubCat) :-
+   pred_vc(Pred, Synt, Sem, SubCat).
+
+mults2(A,B,C):-
+   cconju2([A, B|Rest], Rest, C),
+   !.
+mults2(A,B,C):-
+   subordinatore2([A,B],C),
+   !.
+mults2(A,B,C):-
+   subordinatore_sn2([A,B|F],C,T/F),
+   !.
+mults2(A,B,C):-
+   avvl1([A,B],C).
+
+mults3(A,B,C,D):-
+   cconju3([A, B, C|Rest], Rest, D),
+   !.
+mults3(A,B,C,D):-
+   subordinatore3([A, B, C],D),
+   !.
+mults3(A,B,C,D):-
+   php1([A,B,C],D).
+
+mults3(A,B,C,D):-
+   avvl2([A,B,C],D).
+
+mults4(A,B,C,D,E):-
+   cconju4([A, B, C, D|Rest], Rest, E),
+   !.
+mults4(A,B,C,D,E):-
+   subordinatore4([A, B, C, D],E),
+   !.
+mults4(A,B,C,D,E):-
+   php2([A,B,C,D],E).
+
+mults6(A,B,C,D,E,F,G):-
+   avvl6([A, B, C, D, E, F], G),
+   !.
+
+php1([with, prejudice, to], with_prejudice_to).
+php1([with, regard, to], with_regard_to).
+php1([in, relation, to], in_relation_to).
+php2([as, a, result, of], as_a_result_of).
+
+mults(Frase,Frase):-
+   gr(italiano),!.
+
+mults([],[]):-!.
+mults([Lex1,Lex2|RestoFrase],[C|NuovaFrase]):-
+   mults2(Lex1,Lex2,C),
+   C\=[],
+   mults(RestoFrase,NuovaFrase),
+   !.
+mults([Lex1,Lex2,Lex3|RestoFrase],[D|NuovaFrase]):-
+   mults3(Lex1,Lex2,Lex3,D),
+   D\=[],
+   mults(RestoFrase,NuovaFrase),
+   !.
+mults([Lex1,Lex2,Lex3,Lex4|RestoFrase],[E|NuovaFrase]):-
+   mults4(Lex1,Lex2,Lex3,Lex4,E),
+   E\=[],
+   mults(RestoFrase,NuovaFrase),
+   !.
+mults([Lex1,Lex2,Lex3,Lex4,Lex5,Lex6|RestoFrase],[E|NuovaFrase]):-
+   mults6(Lex1,Lex2,Lex3,Lex4,Lex5,Lex6,E),
+   E\=[],
+   mults(RestoFrase,NuovaFrase),
+   !.
+mults([Lex1|RestoFrase],[Lex1|NuovaFrase]):-
+   mults(RestoFrase,NuovaFrase),
+   !.
+
+pp_y(X,V,_,_) :- onegr(pp_y,germanic),pp_ger(X,V).
+
+pp_x(X,V,G,N):- onegr(pp_x,romance),p_x(X,V,G,N).
+
+p_x(X,V,mas,sing) :- pp_rom(X,_,_,_,V).
+p_x(X,V,mas,plur) :- pp_rom(_,X,_,_,V).
+p_x(X,V,fem,sing) :- pp_rom(_,_,X,_,V).
+p_x(X,V,fem,plur) :- pp_rom(_,_,_,X,V).
+
+intens([X|F], int(I)/F):- inten(X),I=X,retraction(inten,_).
+intens(X, []/X):-!.
+
+trenn([X|F], F, part(T)):- tren(X),T=X,retraction(tren,_).
+trenn(F, F, []):-!.
+
+negaz([X|Rest], neg(N)/Resto):- 
+     (var(N), nega(X), N=X,retraction(nega,g), Resto=Rest
+                  ;
+                  nonvar(N), Resto=[X|Rest]).
+negaz(X, Neg/X).
+
+negaz1([X|Rest], neg(N)/Resto):- 
+     (var(N), nega(X), N=X,retraction(nega,g), Resto=Rest
+                  ;
+                  nonvar(N), Resto=[X|Rest]).
+negaz1(X, []/X).
+
+chiama_conj(X,Cong):- (X=or; X=o;X=oppure), Cong=disj(X),!.
+
+cong([X|F], con(C)/F):- conju(X),C=X,retraction(conju,e).
+cong(F, []/F):-!.
+
+cconju4([in, so, far, as|Rest], Rest, in_so_far_as) :-!.
+cconju4([in, the, case, of|Rest], Rest, in_the_case_of) :-!.
+cconju4([to, the, extent, that|Rest], Rest, to_the_extent_that) :-!.
+cconju2([more, than|Rest], Rest, more_than) :-!.
+cconju2([less, than|Rest], Rest, less_than) :-!.
+cconju2([even, if|Rest], Rest, even_if) :-!.
+cconju2([even, though|Rest], Rest, even_though) :-!.
+cconju2([providing, that|Rest], Rest, providing_that) :-!.
+cconju2([provided, that|Rest], Rest, provided_that) :-!.
+cconju3([in, relation, to|Rest], Rest, in_relation_to) :-!.
+cconju3([in, order, to|Rest], Rest, in_order_to) :-!.
+cconju3([with, regard, to|Rest], Rest, with_regard_to) :-!.
+
+mod_spp([the, course|Rest], Rest, mod(the_course)) :-!.
+mod_spp([the, light|Rest], Rest, mod(the_light)) :-!.
+mod_spp([the, part|Rest], Rest, mod(the_part)) :-!.
+mod_spp([with, regard|Rest], Rest, mod(with_regard)) :-!.
+mod_spp([in, relation|Rest], Rest, mod(in_relation)) :-!.
+mod_spp([X|F], F, mod(C)):- modsp(X),C=X,retraction(conju,e).
+mod_spp(F, F, mod([])):-!.
+
+congg(X):-
+   (X=',' ; X=e; X=ed; X=and),!.
+
+allconjs(Punc):-
+      (Punc=e;Punc=',';Punc=and;Punc=o;Punc=oppure;Punc=or),!.
+
+comp([X|F], com(C)/F):- compl(X),C=X,retraction(compl,c).
+comp(F, []/F):-!.
+
+inter([X|F], interj(I)/F):- interjc(X),I=X,retraction(interjc,i).
+inter(F, interj([])/F):-!.
+
+prorel(X,P,G,N,C):- (onegr(prorel,deutsch),
+                     relp_d(X,G,N,C),P=X,retraction(relp_d,r)
+                     ;
+                    (onegr(prorel,english);onegr(prorel,romance)),
+                     relp(X,C),P=X,retraction(relp,r)).
+
+/* nel caso dell'alterato come per la preposizione articolata, viene costruito un nuovo simbolo in ingresso che è il nome di base che viene passato alla fase successiva di analisi */ 
+mod_alterato(W,Nome,Agg,Gen,Num) :-
+   (onegr(mod_alt,italiano) ; onegr(mod_alt,deutsch)), 
+   alterato(W,Nome,Agg,Gen,Num).
+
+subordinatore(F,S,X):- 
+        F=[F1|X], 
+        subordinatore1(F1,S),retraction(sub_w,s).
+
+subordinatore(F,S,X):- 
+        F=[A,B|X], 
+        subordinatore2([A,B],S),
+        retraction(sub_w,s).
+
+subordinatore(F,S,X):- 
+        F=[A,B,C|X], 
+        subordinatore3([A,B,C],S),
+        retraction(sub_w,s).
+
+subordinatore(F,S,X):- 
+        F=[A,B,C,D|X], 
+        subordinatore4([A,B,C,D],S),
+        retraction(sub_w,s).
+
+subordinatore1(X,S):- sub_w(X),S=X,retraction(sub_w,s).
+
+subordinatore2([even,if],even_if):- onegr(subord,english),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s).
+
+subordinatore2([provided,that],provided_that):- onegr(subord,english),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s).
+
+subordinatore3([in,order,to],in_order_to):- onegr(subord,english),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s).
+
+subordinatore3([in,relation,to],in_relation_to):- onegr(subord,english),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s).
+
+subordinatore3([with,regard,to],with_regard_to):- onegr(subord,english),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s).
+
+subordinatore3([to, the, extent, that],to_the_extent_that):- onegr(subord,english),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s).
+
+subordinatore4([in,so,far,as],in_so_far_as) :-onegr(subord,english),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s),
+                     retraction(sub_w,s).
+
+subordinatore(X,S):- sub_w(X),S=X,retraction(sub_w,s).
+
+subord_inf(X,S):-sub_w_inf(X),S=X,retraction(sub_w,s).
+
+subordin_dir(X,dir_speech(S)):- sub_w_dir(X),S=X,retraction(sub_w,s).
+subordin_dir(X,dir_speech(S)):- X='"',retraction(sub_w,s).
+
+subordinatore_sn([X|F],S,compar/F):- 
+     sub_w_sn(X,_),S=X,retraction(sub_w,s).
+
+subordinatore_sn([X,Y|F],S,compar/F):- 
+   subordinatore_sn2([X,Y|F],S,compar/F).
+
+subordinatore_sn2([as,for|F],as_for,compar/F):- onegr(subord,english),
+                             retraction(sub_w,s),
+                             retraction(sub_w,s).
+
+subordinatore_sn2([as,to|F],as_to,compar/F):- onegr(subord,english),
+                             retraction(sub_w,s),
+                             retraction(sub_w,s).
+
+subordinatore_sn2([come,di|F],come_di,compar/F):- onegr(subord,italiano),
+                             retraction(sub_w,s),
+                             retraction(sub_w,s).
+
+prep(X,P):- prepos(X), P=X, retraction(p,p).
+
+prep(X,[P,Art]):- (onegr(prep,romance) ; onegr(prep,deutsch)),
+              prep_articolata(X,[P,Art]).
+
+/* non si fa alcun retract perché non viene eliminato nessun simbolo in ingresso: viene tolta la preposizione articolata e viene aggiunto un articolo */
+prep_articolata(PrepArt,[Prep,Art]) :-
+   prepart(Prep, PrepArt, Art),
+   retraction(prepart,p).
+
+
+partv([X|R],P/R):- partic(X),
+              (extract_head(Y-X,Z,I),
+              nonvar(Z), 
+              P=Z, retraction(partic,p)
+              ;
+              swap_slot_pds(X),
+              P=X).
+
+partv(R,P/R):-!.
+
+swap_slot_pds(D):-
+              extract_sec_head(Y-D,X,I),
+              asserta(termin(I-[Q-W])).
+
+/* anche in questo caso non viene sottratto un simbolo in ingresso ma viene generato un nuovo simbolo, il clitico */
+vrb_cl(VerboCl,Verbo,Cl) :-
+   onegr(vrb_cl,romance), 
+   vcl(VerboCl,Verbo,Cl).
+
+
+lookart(italiano,Art,'+',Gen,Num,_) :-
+     art_det_rom(Art,Gen,Num),retraction(art,d).
+
+lookart(deutsch,Art,'+',Gen,Num,Caso) :-
+    art_det(Art,Gen,Num,Caso),retraction(art,d).
+ 
+/* articolo  */
+art(X,art(det),'+',Gen,Num):- onegr(art,english), 
+                  art_det_engl(X), 
+                  retraction(art,d).
+        
+/* art. determinativo */
+art(X,art(indef),'-',Gen,Num):- onegr(art,english), 
+                  art_ndet_engl(X),
+                  retraction(art,d).   
+  
+/* art. indet. */
+art(X,art(det),'+',Gen,Num):- onegr(art,romance), 
+                  art_det_rom(X,Gen,Num),
+                  retraction(art,d).        
+
+art(X,art(indef),'-',Gen,Num):- onegr(art,romance),
+                  art_ndet_rom(X,Gen,Num),
+                  retraction(art,d).     
+
+art(X,art(det),'+',Gen,Num,Caso):- onegr(art,deutsch),
+                  art_det(X,Gen,Num,Caso),
+                  retraction(art,d).        
+
+art(X,art(indef),'-',Gen,Num,Caso):- onegr(art,deutsch),
+                  art_ndet(X,Gen,Num,Caso),
+                  retraction(art,d).     
+
+cardinale(X,Card, Gen, Num):- cardin(X,Card,Num),
+                  retraction(cardin,d).
+
+expl_exc(X,A,G,N):- onegr(mod_exc,romance),
+                 mod_ex(X,G,N),
+                 A=X, retraction(mod_ex,d).
+
+/* ordinale */
+
+ordinale(X,Ord,Gen,Num):- ord(X,Ord,Gen,Num),
+                          retraction(ord,d).
+/* nomi comuni */
+
+nome(X,Nome,Gen,Num,Caso):- 
+     gr(deutsch),
+     nome_d(X,Nome,Gen,Num,Caso).
+
+nome(X,Nome,Gen,Num):- 
+     nome_x(X,Nome,Gen,Num).
+
+nome_d(X,X,Gen,sing,Caso) :- 
+              nd(X,_,_,_,Gen),retraction(nd,n).
+nome_d(X,Y,Gen,plur,Caso) :- 
+              nd(X,_,_,_,Gen),retraction(nd,n).
+
+nome_x(X,X,Gen,_) :- n(X,X,Gen).
+nome_x(X,X,Gen,sing) :- n(X,_,Gen).
+nome_x(X,Y,Gen,plur) :- n(Y,X,Gen).
+
+
+/* nomi propri */
+
+nopro(X,Nopro,Gen,Num):- nopro_x(X,Nopro,Gen,Num).
+
+nopro_x(X,X,Gen,sing) :- npro(X,_,Gen), nonvar(X).
+nopro_x(X,Y,Gen,plur) :- npro(nn,X,Gen), nonvar(X).
+nopro_x(X,Y,Gen,plur) :- npro(Y,X,Gen), nonvar(Y).
+
+/* pronominali  */
+
+pro(X,pr(TipoPron,Part,Pro,Pers,Gen,Num,Caso)):-
+                 pr(TipoPron,Part,X,Pers,Gen,Num,Caso),Pro=X.
+
+pro(X,cl(TipoPron,Part,Pro,Pers,Gen,Num,Caso)) :-
+                cl(TipoPron,Part,X,Pers,Gen,Num,Caso),Pro=X.
+
+clit(X,cl(TipoPron,Part,Pro,Pers,Gen,Num,Caso)):-
+    (onegr(cl,romance); onegr(cl,deutsch)),
+     cl(TipoPron,Part,X,Pers,Gen,Num,Caso),Pro=X,retraction(cl, v).
+
+/* aggettivo */
+
+agg(pre,X,Agg,Gen,Num):- 
+    (onegr(agg,romance),
+     agg_x(X,Agg,Gen,Num),
+     ambigu_tok(X,agg,a,[p,c]),
+     retraction(agg_x,a)
+     ;
+     onegr(agg,english), 
+     (agg_y(X,Agg); agg_y(X,Agg,Num)),
+                  retraction(a_rom,a)
+     ;
+     onegr(agg,deutsch), agg_z(X,Agg),
+        retraction(a_engl,a)).
+
+agg(post,X,Agg,Gen,Num):- 
+    (onegr(agg,romance),
+     agg_x(X,Agg,Gen,Num),
+     retraction(agg_x,a)
+     ;
+     onegr(agg,english), 
+     (agg_y(X,Agg); agg_y(X,Agg,Num)),
+                  retraction(a_rom,a)
+     ;
+     onegr(agg,deutsch), agg_z(X,Agg),
+        retraction(a_engl,a)).
+
+agg(X,Agg,Gen,Num):- 
+    (onegr(agg,romance),
+     agg_x(X,Agg,Gen,Num),
+     ambigu_tok(X,agg,a,[p,c]),
+     retraction(agg_x,a)
+     ;
+     onegr(agg,english), 
+     (agg_y(X,Agg); agg_y(X,Agg,Num)),
+                  retraction(a_rom,a)
+     ;
+     onegr(agg,deutsch), agg_z(X,Agg),
+        retraction(a_engl,a)).
+
+agg_x(X,X,mas,sing) :- a_rom(X,_,_,_).
+agg_x(X,Y,mas,plur) :- a_rom(Y,X,_,_).
+agg_x(X,Y,fem,sing) :- a_rom(Y,_,X,_).
+agg_x(X,Y,fem,plur) :- a_rom(Y,_,_,X).
+
+agg_y(X,X) :- a_engl(X).
+agg_y(X,X,sing) :- a_engl(X,_).
+agg_y(X,Y,plur) :- a_engl(Y,X).
+agg_z(X,X) :- a_ger(X).
+
+/* aggettivo possessivo */
+
+possessivo(X/Y,[possessivo(Agg,Gen,Num)],Gen,Num):- 
+         agg_poss(X,Agg,Gen,Num).
+
+possessivo(X/X,[],Gen,Num):- !.
+
+agg_poss(X,Agg,Gen,Num):-
+   onegr(agg_poss,english),
+   ap_engl(X, Gen, Num), Agg=X, retraction(ap_engl,a).
+
+agg_poss(X,Agg,Gen,Num):-
+     onegr(agg_poss,romance),
+   (agg_poss_x(X,Agg,Gen,Num),X\=loro
+     ;
+    X=loro, agg_poss_y(loro,Agg,Gen,Num),
+    retraction(agg_poss_x,a)).
+
+agg_poss_x(X,X,mas,sing) :- ap_rom(X,_,_,_).
+agg_poss_x(X,Y,mas,plur) :- ap_rom(Y,X,_,_).
+agg_poss_x(X,Y,fem,sing) :- ap_rom(Y,_,X,_).
+agg_poss_x(X,Y,fem,plur) :- ap_rom(Y,_,_,X).
+agg_poss_y(X,X,Gen,Num) :- ap_rom(X,_,_,_).
+
+/* quantificatore */
+
+quantif_double([X|F],Quant,Part,Gen,Num,F):- 
+             quant(X,Quant,Part,Gen,Num),retraction(quant,_).
+quantif_double(F,Q1,Part,Gen,Num,F):- !.
+
+quantificatore([X|F],Quant,Part,Gen,Num,F):- 
+             quant(X,Quant,Part,Gen,Num),retraction(quant,_).
+
+quantificatore(F,Quant,Part,Gen,Num,F):-!. 
+
+quantif_int(X,Quant,Part,Gen,Num):-
+    ((onegr(q_int,romance) ; onegr(q_int,deutsch)),
+     quant_int(X,Quant,Part,Gen,Num)
+     ;
+     onegr(q_int,english), relp(X,_), Quant=X),
+      retraction(relp,r).
+
+quant2(W):- (onegr(quant2,romance) ; onegr(quant2,deutsch)),
+            quant_2(W),retraction(quant_2,_).
+
+/* ausiliare */
+
+ausil_comp([Aux,Part],aux(Ainf,Modo,pass/pross/Ainf,Pers,Num1,Gen)):-
+       aux(Aux,Ainf,Modo,_,Pers,Num1), 
+          Ainf\=avere, Ainf\=haben,
+       participio(Part,Vinf,Gen,Num),
+       (Vinf=essere;Vinf=be;Vinf=werden),
+       retraction(pp_y, _),retraction(ausil_comp, _).
+
+ausil_comp([Aux,Aux1],aux(Ainf,Modo,Tempo/Ainf1/Ainf,Pers,Num,Gen)):-
+       gr(germanic), 
+       genre(legal), 
+       (Ainf1=shall, Tempo=pres, Modo=ind,
+        modal(Aux,Ainf1,Modo,Tempo,Pers,Num),
+        (Head=have;Head=be;Head=been),
+        extract_sec_head(v-Aux1, Head, I),
+        retraction(modal, v)
+        ;
+        \+ genre(legal), 
+        modal(Aux,Ainf1,Modo,Tempo,Pers,Num),
+        (Head=have;Head=be;Head=been),
+        extract_sec_head(v-Aux1, Head, I),
+        retraction(modal, v)),
+       aux(Aux1,Ainf,inf,_,Pers,Num).
+
+ausiliare(X,aux(Ainf,Modo,Tempo,Pers,Num)):-
+       aux(X,Ainf,Modo,Tempo,Pers,Num).
+
+ausiliare(X,modal(shall,ind,Tempo,Pers,Num)):-
+        gr(germanic), genre(legal),
+        modal(X,shall,ind,Tempo,Pers,Num),
+        !.
+/*19 dicembre*/
+ausiliare(X,modal(Ainf,Modo,Tempo,Pers,Num)):-
+        gr(germanic), 
+        modal(X,Ainf,Modo,Tempo,Pers,Num).
+
+/* Numero era dummificato ?! */
+
+ausil_comp_supp(Aux,aux(Ainf,Modo,pass/pross/Ainf,Pers,Num,Gen), Supporto) 
+   :-
+    aux(Aux,Ainf,_,_,_,_), Ainf\=avere, Ainf\=haben, Ainf\=have.
+
+/* participio */
+
+participio(X,Verbo,Gen,Num):-
+   (pp_x(X,Verbo,Gen,Num)
+    ;
+    pp_y(X,Verbo,_,_)).
+
+
+/******************
+== Estrae da ogni frase la lista degli argomenti che potrebbero essere ripresi nella frase successiva. La lista e' composta di sintagmi nominali ordinati secondo il peso assegnato loro dalla regola pesa_lista.
+La lista viene asserita nel database insieme all'indice di frase relativo. 
+******************/
+
+tabella_ref(pr_int,chi,[+ref,-pro,-ana,+me]).
+tabella_ref(pr_int,cosa,[+ref,-pro,-ana,+me]).
+tabella_ref(pro_expl,form,[-ref,-pro,-ana,-me]).
+tabella_ref(prorel,pro,[+ref,-pro,-ana,-me]).
+tabella_ref(prorel,quale,[+ref,-pro,-ana,+me]).
+tabella_ref(prorel,pPro,[+ref,-pro,-ana,-me]).
+tabella_ref(prorel,_,[+ref,-pro,-ana,-me]).
+tabella_ref(possessivo,proprio,[-ref,+pro,+ana,+me,-subj]).
+tabella_ref(possessivo,one_s,[-ref,+pro,+ana,+me,-subj]).
+tabella_ref(personale,_,[+ref,+pro,-ana,+me]).                          
+tabella_ref(pro_picc,_,[+ref,+pro,-ana,-me]).
+tabella_ref(pro_grande,_,[+ref,+pro,+ana,-me]).
+tabella_ref(coordinate,_,[+ref,-pro,-ana,+class]).
+tabella_ref(possessivo,Pred,[+ref,+pro,-ana,+me]) :- Pred \= proprio.
+tabella_ref(pr_int,who,[+ref,-pro,-ana,+me]).
+tabella_ref(pr_int,what,[+ref,-pro,-ana,+me]).
+tabella_ref(int,Pro,[+ref,-pro,-ana,+me]).
+tabella_ref(_,it,[-ref,-pro,-ana,-me]).
+tabella_ref(rel,pro,[+ref,-pro,-ana,-me]).
+tabella_ref(pro_n,_,[+ref,-pro,-ana,-me]).
+tabella_ref(rel,which,[+ref,-pro,-ana,+me]).
+tabella_ref(rel,pPro,[+ref,-pro,-ana,-me]).
+tabella_ref(rel,_,[+ref,-pro,-ana,-me]).
+tabella_ref(poss,own,[-ref,+pro,+ana,+me,-subj]).
+tabella_ref(poss,one_s,[-ref,+pro,+ana,+me,-subj]).
+tabella_ref(n,_,[+ref,-pro,-ana,+class]).
+tabella_ref(ng,_,[+ref,-pro,-ana,+class]).
+tabella_ref(noun,_,[+ref,-pro,-ana,+class]).
+tabella_ref(vbl,_,[+ref,-pro,-ana,-me]).
+tabella_ref(nh,_,[+ref,-pro,-ana,-class]).
+tabella_ref(nt,_,[+ref,-pro,-ana,-class]).
+tabella_ref(np,_,[+ref,-pro,-ana,-class]).
+tabella_ref(num,_,[+ref,-pro,-ana,-class]).
+tabella_ref(npro,_,[+ref,-pro,-ana,-class]).
+tabella_ref(dim,_,[+ref,+pro,-ana,+class]).
+tabella_ref(deit,_,[+ref,+pro,-ana,+class]).
+tabella_ref(deittico,_,[+ref,+pro,-ana,+class]).
+tabella_ref(clitico,_,[+ref,+pro,+ana,+me]).
+tabella_ref(enclitico,_,[+ref,+pro,+ana,+me]).
+tabella_ref(pers,_,[+ref,+pro,-ana,+me]).                          
+tabella_ref(rifl_lungo,_,[-ref,+pro,+ana,+me,+subj]).
+tabella_ref(pr_quantif,_,[+ref,-pro,-ana,+me]).
+tabella_ref(quant,_,[+ref,-pro,-ana,+me]).
+tabella_ref(q,_,[+ref,-pro,-ana,+me]).
+tabella_ref(pro_imp,_,[+ref,-pro,-ana,+me]).
+tabella_ref(ana_clit,_,[+ref,+pro,+ana,+me]).
+tabella_ref(enfatico,_,[+ref,+pro,+ana,+me]).
+tabella_ref(pr_int,_,[-ref,-pro,-ana,+me]).
+tabella_ref(poss,Pred,[+ref,+pro,-ana,+me]).
+tabella_ref(ag,_,[-ref,+pro,+ana,+me]).
+tabella_ref(rifl_corto,_,[+ref,-pro,+ana,+me,-subj]) :-
+   gr(english), \+ genre(legal).
+tabella_ref(rifl_corto,_,[-ref,-pro,+ana,+me,-subj]) :-
+   gr(english),genre(legal).
+tabella_ref(rifl_corto,_,[-ref,-pro,+ana,+me,-subj]) :-
+   gr(romance).
+tabella_ref(pron,_,[+ref,+pro,-ana,+me]).                          
+
+toupper(Atom, Atom) :-
+   integer(Atom),!.
+
+toupper(Atom, Atom) :-
+   select_punct(Atom, T),!.
+
+toupper(Atom, Atom) :-
+   stringof([Car|Rest], Atom),
+   name(Car, ASCII),
+   car_num(ASCII),!.
+
+toupper(Atom, UpAtom) :-
+   !,
+   stringof(ListCar, Atom),
+   ListCar=[Car|Rest],
+   name(Car, ASCII),
+   toupper_car(ASCII, UpCar),
+   name(Ucar, UpCar),
+   stringof([Ucar|Rest], UpAtom),
+   !. 
+
+spy_lower(Atom, LowAtom, Pol) :-
+   Atom\=[],
+   atomic(Atom),
+   !,
+   name(Atom, ASCII),
+   lower_lst(ASCII, LowASCII, [Pol|Pols]),
+   name(LowAtom, LowASCII),
+   !.
+
+spy_lower(Atom, LowAtom, Pol) :-
+   Atom\=[],
+   list(Atom),
+   !,
+   lower_lst(Atom, LowASCII, [Pol|Pols]),
+   name(LowAtom, LowASCII),
+   !.
+
+spy_tlower(Atom, LowAtom, Pol) :-
+   Atom\=[],
+   atomic(Atom),
+   !,
+   name(Atom, ASCII),
+   lower_lst(ASCII, LowASCII, [Pol|Pols]),
+   name(LowAtom, LowASCII),
+   !.
+
+spy_tlower(Atom, LowAtom, Pol) :-
+   Atom\=[],
+   list(Atom),
+   !,
+   lower_lst(Atom, LowASCII, [Pol|Pols]),
+   name(LowAtom, LowASCII),
+   !.
+
+spy_tlower(Atom, LowAtom, Pol) :-!.
+
+lower_lst([], [], []) .
+lower_lst([Car | Cars], [LowCar | LowCars], [UPol|Pol]) :-
+   lower_car(Car, LowCar, UPol),
+   lower_lst(Cars, LowCars, Pol).
+
+lower_car(Car, LowCar, 1) :-
+   Car >= 65,
+   Car =< 90,
+   !,
+   LowCar is Car + 32.
+
+lower_car(Car, LowCar, 0) :-
+   Car >= 48,
+   Car =< 64,
+   !,
+   LowCar = Car.
+
+lower_car(Car, Car, 0):-
+   Car >= 91.
+
+tolower(Atom, LowAtom) :-
+   !,
+   name(Atom, ASCII),
+   tolower_lst(ASCII, LowASCII),
+   name(LowAtom, LowASCII).
+
+tolower_lst([], []) .
+tolower_lst([Car | Cars], [LowCar | LowCars]) :-
+   tolower_car(Car, LowCar),
+   tolower_lst(Cars, LowCars).
+
+
+tolower_car(Car, LowCar) :-
+   Car >= 65,
+   Car =< 90,
+   !,
+   LowCar is Car + 32.
+
+tolower_car(Car, Car).
+
+toupper_car([Car], [UpCar]):-
+   lower_car(Car, LowCar, P),
+   UpCar is LowCar - 32,!.
+toupper_car([Car], [Car]):-!.
+
+decompose_underscore_all(MWord, [Lex2]):-
+   reverse(MWord, RWord),
+   RWord=['_',s,'-'|Wor],
+   reverse(Wor, Word),
+   stringof(Word,Lex2),
+   !.
+
+decompose_underscore_all(MWord, [Lex1,Lex2]):-
+   on('_',MWord),on('-',MWord),
+   decompose_secunderscore(MWord, Word),
+   stringof(Word,Lex1),
+   decompose_underscore(MWord, Wor),
+   stringof(Wor,Lex2),
+   !.
+
+decompose_underscore_all(MWord, [Lex1,Lex2]):-
+   on(s,MWord),on('-',MWord),
+   decompose_secunderscore(MWord, Word),
+   stringof(Word,Lex1),
+   decompose_underscore(MWord, Wor),
+   stringof(Wor,Lex2),
+   !.
+
+decompose_underscore_all(MWord, Lexxs):-
+   decompose_underscore(MWord, Word),
+   stringof(Word,Lex1),
+   reverse(MWord, RWord),
+   (Word=[A],
+    RWord=['_'|RWor],
+    decompose_underscore(RWor, Wor),
+    Wor\=[],
+    Wor\=[B],
+    reverse(Wor, Worr),
+    stringof(Worr,Lex2), Lexxs=[Lex1,Lex2]
+         ;
+    Word=[A],
+    RWord=['_'|RWor],
+    decompose_underscore(RWor, Wor),
+    Wor\=[],
+    Wor\=[B],
+    reverse(Wor, Worr),
+    stringof(Worr,Lex2), Lexxs=[Lex1,Lex2]
+         ;
+    decompose_underscore(RWord, Wor),
+    Wor\=[],
+    reverse(Wor, Worr),
+    stringof(Worr,Lex2),
+    findall('_',on('_',RWord),Lis), length(Lis,L),
+    (L=0, Lexxs=[Lex1];
+     L=1, Lexxs=[Lex1,Lex2];
+     1<L,
+     recompose_rest(RWord, Wor,Rest),
+     decompose_underscore(Rest, Worres),
+     Worres\=[],
+     reverse(Worres, Worrs),
+     stringof(Worrs,Lex3), Lexxs=[Lex1,Lex3,Lex2])
+     ),
+   !.
+
+decompose_underscore_all(Word, Lex1):-
+   stringof(Word,Lex1),
+   !.
+
+recompose_rest(['_'|Rest], [],Rest):-!.
+recompose_rest([W|RWord], [W|Wor],Rest):-
+     recompose_rest(RWord, Wor,Rest),
+     !.
+recompose_rest(Rest, Wor,Rest):-!.
+
+fai_words([],[]):-!.
+fai_words([W|Testa],[LowW|Words]):-
+    spy_lower(W, LowW, Pol),
+    fai_words(Testa,Words),
+    !.
+
+concatena_multiword(1,Word,Word):-!.
+concatena_multiword(2,Words,Word):-
+    Words=[W1,W2],
+    concat(W1,'_',Wor),
+    concat(Wor,W2,Word),
+    !.
+
+concatena_multiword(2,Words,Word):-
+    Words=[W1,W2],
+    concat(W1,'-',Wor),
+    concat(Wor,W2,Word),
+    !.
+
+concatena_multiword(3,Words,Word):-
+    Words=[W1,W2,W3],
+    concat(W1,'_',Wor),
+    concat(Wor,W2,Wor1),
+    concat(Wor1,'_',Wor2),
+    concat(Wor2,W3,Word),
+    !.
+
+concatena_multiword(3,Words,Word):-
+    Words=[W1,W2,W3],
+    concat(W1,'-',Wor),
+    concat(Wor,W2,Wor1),
+    concat(Wor1,'_',Wor2),
+    concat(Wor2,W3,Word),
+    !.
+
+concatena_multiword(3,Words,Word):-
+    Words=[W1,W2,W3],
+    concat(W1,'_',Wor),
+    concat(Wor,W2,Wor1),
+    concat(Wor1,'-',Wor2),
+    concat(Wor2,W3,Word),
+    !.
+
+concatena_multiword(3,Words,Word):-
+    Words=[W1,W2,W3],
+    concat(W1,'-',Wor),
+    concat(Wor,W2,Wor1),
+    concat(Wor1,'-',Wor2),
+    concat(Wor2,W3,Word),
+    !.
+
+recover_descs(Sec, PredS):-
+   atomic(Sec),Sec\=[],
+   stringof(MWord,Sec),
+   reverse(MWord,[A,B|_]),
+   A\=s, B\='-',
+   on('-',MWord),
+   decomp_unders_hyph(MWord, Word, Rest),
+   stringof(Word,W1),
+   decompose_underscore_all(Rest, Ws),
+   (atomic(Ws),Wss=[Ws];list(Ws),Wss=Ws),
+   append([W1],Wss,PredS).
+
+recover_descs(Sec, PredS):-
+   atomic(Sec),Sec\=[],
+   stringof([U,Und,S,Un|MWord],Sec),
+   U=u,Un='_',S=s,
+   MWord\=[],
+   decompose_underscore_all(MWord, Pred),
+   append([u_s_],Pred,PredS),
+    !.
+
+recover_descs(Sec, PredS):-
+   atomic(Sec),Sec\=[],
+   stringof(MWord,Sec),
+   on('_',MWord),
+   decompose_underscore_all(MWord, PredS),
+    !.
+recover_descs(Sec, PredS):-
+   atomic(Sec),Sec\=[],
+   stringof(MWord,Sec),
+   on('-',MWord),
+   decompose_underscore_all(MWord, PredS),
+    !.
+recover_descs(Sec, PredS):-
+   atomic(Sec),Sec\=[],
+   stringof(MWord,Sec),
+   on('/',MWord),
+   decompose_underscore_all(MWord, PredS),
+    !.
+recover_descs(Testa, Testa):-
+    atomic(Testa),
+    !.
+recover_descs(Sec, Sec):-
+   integer(Sec),
+   !.
+recover_descs(First, PredS):-
+   s_is_ax(First,PredS),!.
+
+
+
+recover_description(Testa, Pred):-
+    is_list(Testa),
+    length(Testa,L1),
+    1<L1,
+    fai_words(Testa,Words),
+    length(Words,L),
+    concatena_multiword(L,Words,Pred),
+    spy_lower(Pred,Low,Pol),
+%   convalidate_mult_member(Pol,Pred, PredS,ValidM),
+   !.
+
+recover_description(Testa, Pred):-
+    is_list(Testa),
+    length(Testa,L),
+    L=1,
+    remove(Test,Testa,[]),
+    atomic(Test),
+    recover_descriptions(Test, Preds),
+    (list(Preds),
+      remove(Pred,Preds,[]);atomic(Preds),Pred=Preds),
+    !.
+
+recover_description(Testa, Pred):-
+    atomic(Testa),
+    recover_descriptions(Testa, Preds),
+    (list(Preds),
+      remove(Pred,Preds,[]);atomic(Preds),Pred=Preds),
+    !.
+
+recover_description(Testa, Testa):-
+    atomic(Testa),
+    !.
+
+recover_descriptions(Sec, Sec):-
+   integer(Sec),
+   !.
+
+recover_descriptions(First, PredS):-
+   is_ax(First,PredS),!.
+
+recover_descriptions(Sec, PredS):-
+   atomic(Sec),
+   stringof(MWord,Sec),
+   reverse(MWord,[A,B|_]),
+   A\=s, B\='-',
+   on('-',MWord),
+   decomp_unders_hyph(MWord, Word, Rest),
+   stringof(Word,W1),
+   decompose_underscore_all(Rest, Ws),
+   (atomic(Ws),Wss=[Ws];list(Ws),Wss=Ws),
+   append([W1],Wss,PredS).
+
+recover_descriptions(Sec, PredS):-
+   atomic(Sec),
+   stringof([U,Und,S,Un|MWord],Sec),
+   U=u,Un='_',S=s,
+   MWord\=[],
+   decompose_underscore_all(MWord, Pred),
+   append([u_s_],Pred,PredS),
+    !.
+
+recover_descriptions(Sec, PredS):-
+   atomic(Sec),
+   stringof(MWord,Sec),
+   on('_',MWord),
+   decompose_underscore_all(MWord, PredS),
+   spy_lower(Sec,Low,Pol),
+%   convalidate_mult_member(Pol,Sec, PredS,ValidM),
+   !.
+
+recover_descriptions(Testa, Testa):-
+    atomic(Testa),!.
+
+recover_descriptions(Preds, Top):-
+    list(Preds),
+    on(Top, Preds),
+    !.
+
+recover_descriptions(and(Preds), Top):-
+    list(Preds),
+    Preds=[A,A],
+    recover_descriptions(A, Top),
+    !.
+
+recover_descriptions(and(Preds), and(Preds)):-
+    list(Preds),
+    Preds=[A,B],
+    B\=A,
+    !.
+recover_descriptions(or(Preds), Top):-
+    list(Preds),
+    Preds=[A,A],
+    recover_descriptions(A, Top),
+    !.
+
+recover_descriptions(or(Preds), or(Preds)):-
+    list(Preds),
+    Preds=[A,B],
+    B\=A,
+    !.
+decompose_underscore([], []):-!.
+decompose_underscore(['_',s,'-'|MWord], []):-
+%    decompose_underscore(MWord, Word),
+    !.
+decompose_underscore(['-'|MWord], []):-!.
+decompose_underscore(['_'|MWord], []):-!.
+decompose_underscore(['/'|MWord], []):-!.
+decompose_underscore([W|MWord], [W|Word]):-
+    decompose_underscore(MWord, Word),!.
+
+decompose_secunderscore(MWord, Word):-
+   reverse(MWord, RWord),
+   decompose_underscore(RWord, Wor),
+   reverse(Wor, Word),
+   !.
+
+
+sublist(Args, Arg):-
+    Args=[AllArg],
+    AllArg=[First|Arg],!.
+sublist(Arg, Arg):-!.
+

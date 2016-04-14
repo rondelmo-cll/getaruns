@@ -1,0 +1,4404 @@
+﻿:- style_check(-singleton).
+
+search_suffix(L,List,Root-Feats):-
+     ssuf(List,W1,Feats,Code,Root),
+     !.
+     
+get_root(W,Feats,Root-Subs):-
+     stringof(List, W),
+     ssuf(List,W1,Feats,Code,Roo),
+     extrroot(Code,Roo,Root),
+     findall(Sub,v(Root,Cat,Con,Sub),Subs),
+     Subs\=[],
+     !.
+
+get_root_clit(W,Feats,Root-Subs,Clit):-
+     stringof(List, W),
+     ssuf(List,W1,Feats,Code,Roo),
+     extrroot(Code,Roo,Root),
+     (on(encl=Cl,Code),Clit=Cl;Clit=nil),
+     findall(Sub,v(Root,Cat,Con,Sub),Subs),
+     Subs\=[],
+     !.
+
+extrroot(Code,Root,Root):-
+     nonvar(Root),
+     !.
+extrroot(Code,Roo,Root):-
+    var(Roo),
+    \+ on(encl=B,Code),
+    \+ on(vf=D,Code),
+    on(C,Code),
+    concat_atom(X,:,C),
+    length(X,L),
+    (L=4,
+    X=[Ca,S,Root|_]
+    ;
+    L=3,
+    X=[Ca,Root|_]),    
+    Ca=v, \+ integer(Root),
+     !.
+    
+extrroot(Code,Roo,Root):-
+    var(Roo),
+    (on(encl=B,Code)
+     ;on(vf=D,Code)),
+    on(C,Code),
+    term_to_atom(C,C1),
+    concat_atom(X,:,C1),
+    length(X,L),
+    L=3,
+    X=[Ca,Roots|_],
+    Ca=v,
+    stringof(Roo,Roots),
+    (\+ on('-',Roo),Root=Roots
+     ;
+     on('-',Roo),
+     concat_atom(X1,-,Roots),
+     length(X1,L1), L1=5,
+     reverse(X1,[Root|_])
+     ),
+    !.
+     
+pre_leaf(PhraseIn, Code, NRoot) :-
+   nonvar(PhraseIn),
+   pref_name(PhraseIn, Pre+Root),
+   stringof(String, Root),
+   length(String, L),
+   1 < L,
+   (p_lex(Root, Code, All), Morpho=Root
+    ;
+   ana_morpho(Rest, String, TopDown, Morpho, Code, NRoot, Infl)).
+
+spre_parse(cw(_, Feat), Pre, _):-
+   is_pref(Pre, Code),
+   (Code=el1;Code=el1el2),
+   !.
+is_pref(Pre, Code) :-
+   p(Pre, Codes),
+   sort(Codes, SortCodes), 
+   on(CodeAtm, SortCodes),
+%   pname(Code, CodeAtm),
+   is_pr(Pre, CodeAtm).
+
+is_pr(Pre, pre).
+is_pr(Pre, pred).
+is_pr(Pre, pref).
+is_pr(Pre, pren).
+is_pr(Pre, prev).
+is_pr(Pre, el1).
+is_pr(Pre, el1el2).
+   
+choose_p(an).
+choose_p(bi).
+choose_p(co).
+choose_p(di).
+choose_p(de).
+choose_p(es).
+choose_p(eu).
+choose_p(in).
+choose_p(oo).
+choose_p(ra).
+choose_p(re).
+choose_p(ri).
+choose_p(si).
+choose_p(so).
+
+p_lex(W, Tag, Type) :-
+    s(W,Tag,F),
+     !.
+p_lex(W, Tag, Type) :-
+    l(W,Tag),
+     !.
+p_lex(W, Tag, Type) :-
+    t(W,Tag),
+     !.
+p_lex(W, Tag, Type) :-
+    de(W,Tag),
+     !.
+p_lex(W, Tag, tml) :-
+    tml(W,Tag),
+     !.
+p_lex(W, np, Type) :-
+    pw(Words,W),
+     !.
+p_lex(W, nh, Type) :-
+    toupper(W,W1),
+    nmi(W1),
+     !.
+p_lex(W, nh, Type) :-
+    toupper(W,W1),
+    nfi(W1),
+     !.
+p_lex(W, np, Type) :-
+    toupper(W,W1),
+    up(W1),
+     !.
+p_lex(W, Tag, Type) :-
+    wl(W,Tag,F,Gen),
+     !.
+p_lex(W, avv, Type) :-
+    avvs(W),
+     !.
+/*
+p_lex(W, Tag, Type) :-
+    mlt(Pol,W,Tag),!.
+*/    
+getrootword(Word,Roo,Root):-
+   var(Word),
+   (Roo \= A+B, Root=Roo
+     ;
+     Roo=A+B,
+    concat(A,B,Root)),
+   !.
+getrootword(Word,Roo,Root):-
+   nonvar(Word),
+   (Word \= A+B, Root=Word
+     ;
+     Word=A+B,
+    concat(A,B,Root)),
+   !.
+getrootword(Word,Roo,Root):-
+    nonvar(Roo),
+    Root=Roo,
+   !.
+  
+ssuf(Revl,Word,Cat,Code,Roo):-
+    findall(Code-Root,ana_morpho(Rest, Revl, Mid, Word, Code, Root, Infl),Codes),
+    Codes\=[], on(Code-Root,Codes),
+    (is_list(Code), 
+         (Code=[A],Catall=[A];
+          Code\=[A],
+          (
+             findall(Cats,(on(Cod,Code),stringof(List,Cod),
+                           \+ member('=',List),
+                           term_to_atom(Codd,Cod),
+                           sellexcl(Codd,Cats)), Catt), 
+                           sort(Catt,Catr),appiattisci(Catr,Catall),
+                           Catall\=[]
+              ;
+             findall(Cats,(on(Cod,Code),
+                           sellexcl(Cod,Cats)), Catt), 
+                           sort(Catt,Catr),appiattisci(Catr,Catall),
+                           Catall\=[]
+              )),
+    extractcat(Catall,Cat)
+         ;
+     atomic(Code), Cat=Code),
+     getrootword(Word,Root,Roo).
+
+ssuf(Revl,Word,Tags,Code,Root):-
+    anamorpho(Rest, Revl, Mid, Word, Tags, Code).
+%    extractcat(Code,Tags).
+
+ssuf(Revl,Word,Tags,Code,Root):-
+    pre_leaf(Revl, Code, Word),
+    extractcat(Code,Tags),
+    !.
+
+ssuf(Revl,Word,[Cat],Code,Root):-
+    suf_nums(Revl, Feats),
+    (
+     on(type=pro:N,Feats), Cat=n;
+     Cat=num),
+    !.
+        
+
+/************* • 
+ana_morpho(
+   +wordAtom, +wordString, +restIn, +topDown
+   -morphoAtom, -code, -restOut). •• 
+*************/
+
+/* 4 */
+ana_morpho(Morph, MorphoStr, Rest, Morphos, NCode, Morphor, RestOut+Cli) 
+   :-
+   stringof(Clitsuf, Rest),
+    length(Clitsuf, N),
+   look_ahead3(N, TopDown, Rest, ''),
+   stringof(MorphoStr, NewMorpho),
+   (ana_cli(Rest, NewMorpho, MorphoStr, '', Cat, Morpho, Code, NCli),
+    define_cat(Cat, CCat),
+    stringof(MorphoSt, Morpho), Morphon=Morpho
+    ;
+    MorphoSt=MorphoStr,
+    Morphon=NewMorpho,
+    NCli=Rest,
+    Cli=Rest,
+    en_cli(Cli, ['clit:proenc']),
+    CCat='clit:proenc'
+   ),
+   (search_inter(Morphon, Cli, Morpho, NCode, RestOut),!
+    ;
+    nonrecursive(Morphon, MorphoSt, NCli, Morphor, NCode, CCat, RestOut+Cli)
+    ).
+
+
+ana_morpho(Morpho, MorphoStr, TopDown, Morphos, Tg, NMorpho, TopDown) :-
+   nonvar(TopDown),
+   slook_ahead(TopDown, Code),
+   stringof(Clitsuf, TopDown),
+   length(Clitsuf, N),
+   lex_lookup(N, Code, Ds, Morpho, NMorpho, Tags),
+   (on(av,Code), Tg=Code;Tg=Tags).
+   
+/* 1 */
+ana_morpho(Morpho, MorphoStr, TopDown, Rest, Code, NMorpho, Rest) :-
+   var(TopDown),
+   nonvar(MorphoStr),
+   stringof(MorphoStr,Clitsuf),
+   look_ahead2(N, Ds, Clitsuf, Rest),
+   lex_lookup(N, nil, Ds, Clitsuf, NMorpho, Code).
+
+/* 2 */
+ana_morpho(Morph, MorphoStr, TopDown, Rest, Code, Root, Rest1) :-
+   nonvar(TopDown),
+   stringof(Clitsuf, TopDown),
+   length(Clitsuf, N),
+   look_ahead4(N, TopDown, Rest, Root, Rest1),
+   mcon(Morph, Root, NewRoot),
+   lex_lookup(N, nil, _, NewRoot, NewRoot, Code).
+
+ana_morpho(Morph, MorphoStr, TopDown, Morphos, Code, NewRoot, Rest1) :-
+   nonvar(TopDown),
+   stringof(Clitsuf, TopDown),
+   length(Clitsuf, N),
+   look_ahead4(N, Rest, TopDown, Root, Rest1),
+   mcon(Morph, Root, NewRoot),
+   lex_lookup(N, nil, _, NewRoot, NewRoot, Code).
+
+
+ana_morpho(Morpho, MorphoStr, TopDown, Rest, Codes, NMorpho, TopDown) :-
+   nonvar(TopDown),
+   nonvar(Morpho),
+   stringof(Clitsuf, TopDown),
+   length(Clitsuf, N),
+   pro_lex(N, Ds, Morpho, NMorpho, Code), Code\=[],
+   matchcheckcats(Types,Code,Codes).
+
+/* 3
+ana_morpho(Morpho, MorphoStr, TopDown, Rest, Code, Morpho, Rest) :-
+   nonvar(TopDown),
+   stringof(Clitsuf, TopDown),
+   length(Clitsuf, N),
+   look_ahead2(N, Ds, TopDown, Rest),
+   lex_lookup(N, nil, Ds, Morpho, NMorpho, Code).
+
+ana_morpho(Morph, MorphoStr, mente, TopDown, Morph1, SCode, Rest1) :-
+    stringof(MorphoStr, Morpho),
+    ana_morpho(Morpho, MorphoStr, '', TopDown, Morphos, SCode, Rest),
+    Rest=issima,
+    Rest1=issima+mente,
+    Morph1=Morphos.
+
+ana_morpho(Morpho, MorphoStr, TopDown, Morphos, Code, NewRoot, Rest1) :-
+   nonvar(TopDown),
+   stringof(Clitsuf, TopDown),
+   length(Clitsuf, N),
+   look_ahead4(N, H, TopDown, Root, Rest1),
+   mcon(Morpho, Root, NewRoot),
+   lex_lookup(N, nil, _, NewRoot, NewRoot, Code).
+ */
+
+ana_morpho(_, String, RestIn, Morpho, Code, Root, RestOut) :-
+   append(Prefix,  [Car], String),
+   stringof(Prefix, Word),
+   (var(RestIn),RestMid=Car;
+    nonvar(RestIn),
+   concat(Car, RestIn, RestMid)),
+   stringof(Pr, RestMid),
+   length(Pr, N),
+   N < 10,
+   ana_morpho(Word, Prefix, RestMid, Morpho, Code, Root, RestOut).
+
+anamorpho(Morpho, MorphoStr, TopDown, Morph, Codes, Tag) :-
+   nonvar(TopDown),
+   lookahead(TopDown, Code),
+   dr(Morpho,Tag),
+   extractcat(Code,Tags),
+   extractcat(Tag,T),
+   (subtract(T,[C],Res),subtract(Tags,[C],Code), Codes=C
+   ;
+   Tags\=[], Codes=Tags
+   ;
+   Codes=T),
+   !.
+anamorpho(_, String, RestIn, Morpho, Code, Tag) :-
+   append(Prefix,  [Car], String),
+   stringof(Prefix, Word),
+   (var(RestIn),RestMid=Car;
+    nonvar(RestIn),
+   concat(Car, RestIn, RestMid)),
+   stringof(Pr, RestMid),
+   length(Pr, N),
+   N < 10,
+   anamorpho(Word, Prefix, RestMid, Morpho, Code, Tag).
+
+slook_ahead(Flex, Ts):-
+      plx(L,Flex, Tag),
+      findall(T,
+           (member(dv,Tag),T=v;
+            member(dn,Tag),T=n;
+            member(dadv,Tag),T=av;
+             member(dadj,Tag),T=ag), Ts),!.
+
+slook_ahead(Flex, [v]):-
+     fd(Cl, Ty, Con, Flex,     Mode,   Temp,  G,  N),
+     !.
+     
+look(Flex, T):-
+      clx(L,Flex, Tag),
+      (member('clit:proenc',Tag);member('clit:enc',Tag);
+        member('clit:pro',Tag);member('clit:double',Tag);
+         member('clit:r_enc',Tag)),
+     !.
+
+lookahead(TopDown, Code):-
+    sf(TopDown, Code),
+    !.
+/* 1a */
+fd(1, a, 2, a,     part,   pass,  f,  s).
+fd(1, a, 2, e,     part,   pass,  f,  p).
+fd(1, a, 2, i,     part,   pass,  m,  p).
+fd(1, a, 2, o,     part,   pass,  m,  s).
+
+/* 1b */
+fd(1, b, 2, a,     part,   pass,  f,  s).
+fd(1, b, 2, e,     indic,  pass,  3, s).
+fd(1, b, 2, e,     part,   pass, f,  p).
+fd(1, b, 2, ero,   indic,  pass,  3, p).
+fd(1, b, 2, i,     indic,  pass,  1, s).
+fd(1, b, 2, i,     part,   pass,  m,  p).
+fd(1, b, 2, o,     part,   pass,  m,  s).
+
+
+/* 1c */
+fd(1, c, 2, e,     indic,  pass,  3, s).
+fd(1, c, 2, ero,   indic,  pass,  3, p).
+fd(1, c, 2, i,     indic,  pass,  1, s).
+
+/* 1d */
+fd(1, d, 2, o,     indic,  pres,  1, s). 
+fd(1, d, 2, ono,   indic,  pres,  3, p).
+
+fd(1, d, 2, a,     subj,  pres,  1, s). 
+fd(1, d, 2, a,     subj,  pres,  2, s).
+fd(1, d, 2, a,     subj,  pres,  3, s).
+fd(1, d, 2, ano,   subj,  pres,  3, p).
+
+/* 1e */
+fd(1, e, 2, o,     indic,  pres,  1, s). 
+fd(1, e, 2, i,     indic,  pres,  2, s).
+fd(1, e, 2, i,     imp,  pres,  2, s).
+fd(1, e, 2, e,     indic,  pres,  3, s).
+fd(1, e, 2, ono,   indic,  pres,  3, p).
+
+fd(1, e, 2, a,     subj,  pres,  1, s). 
+fd(1, e, 2, a,     subj,  pres,  2, s).
+fd(1, e, 2, a,     subj,  pres,  3, s).
+fd(1, e, 2, a,     imp,  pres,  3, s).
+fd(1, e, 2, ano,   subj,  pres,  3, p).
+
+/* 1f */
+fd(1, f, 2, o,     indic,  pres,  1, s). 
+fd(1, f, 2, i,     indic,  pres,  2, s).
+fd(1, f, 2, i,     imp,  pres,  2, s).
+fd(1, f, 2, e,     indic,  pres,  3, s).
+fd(1, f, 2, ono,   indic,  pres,  3, p).
+
+fd(1, f, 2, a,     subj,  pres,  1, s). 
+fd(1, f, 2, a,     subj,  pres,  2, s).
+fd(1, f, 2, a,     subj,  pres,  3, s).
+fd(1, f, 2, ano,   subj,  pres,  3, p).
+
+fd(1, f, 3, o,     indic,  pres,  1, s). 
+fd(1, f, 3, ono,   indic,  pres,  3, p).
+
+fd(1, f, 3, a,     subj,  pres,  1, s). 
+fd(1, f, 3, a,     subj,  pres,  2, s).
+fd(1, f, 3, a,     subj,  pres,  3, s).
+fd(1, f, 3, a,     imp,  pres,  3, s).
+fd(1, f, 3, ano,   subj,  pres,  3, p).
+
+fd(1, f, 2, Fles,  Mod, Tem, P, N):-
+   (Mod=indic, Temp=fut; Mod=cond, Tem=pres),
+   rvd(Fles, 2, Mod, Tem, P, N).
+
+fd(1, h, 2, ita,     part,   pass,  f,  s).
+fd(1, h, 2, ite,     part,   pass,  f,  p).
+fd(1, h, 2, iti,     part,   pass,  m,  p).
+fd(1, h, 2, ito,     part,   pass,  m,  s).
+
+fd(1, i, 2, i,       indic, pass, 1, s).
+fd(1, i, 2, e,        indic, pass, 3, s).
+fd(1, i, 2, ero,    indic, pass, 3, p).
+
+/* 2a */
+fd(2, a, 2, e,     indic,  pass,  3, s).
+fd(2, a, 2, ero,   indic,  pass,  3, p).
+fd(2, a, 2, i,     indic,  pass,  1, s).
+
+fd(2, a, 3, a,     part,   pass,  f,  s).
+fd(2, a, 3, e,     part,   pass,  f,  p).
+fd(2, a, 3, i,     part,   pass,  m,  p).
+fd(2, a, 3, o,     part,   pass,  m,  s).
+
+fd(2, a, 3, ta,     part,   pass,  f,  s).
+fd(2, a, 3, te,     part,   pass,  f,  p).
+fd(2, a, 3, ti,     part,   pass,  m,  p).
+fd(2, a, 3, to,     part,   pass,  m,  s).
+
+/* 2b */
+
+fd(2, b, 2, o,     indic,  pres,  1, s). 
+fd(2, b, 3, i,     indic,  pres,  2, s).
+fd(2, b, 3, e,     indic,  pres,  3, s).
+fd(2, b, 2, amo,   indic,  pres,  1, p).
+fd(2, b, 2, ono,   indic,  pres,  3, p).
+
+fd(2, b, 2, a,     subj,  pres,  1, s). 
+fd(2, b, 2, a,     subj,  pres,  2, s).
+fd(2, b, 2, a,     subj,  pres,  3, s).
+fd(2, b, 2, amo,   subj,  pres,  1, p).
+fd(2, b, 2, ate,   subj,  pres,  2, p).
+fd(2, b, 2, ano,   subj,  pres,  3, p).
+
+
+/* 2c */
+fd(2, c, 2, endo, ger,  pres,  _, _).
+fd(2, c, 2, ente, part,  pres,  _, _).
+fd(2, c, 2, enti, part,  pres,  _, _).
+
+fd(2, c, 2, o,     indic,  pres,  1, s). /*bere*/
+fd(2, c, 2, i,     indic,  pres,  2, s).
+fd(2, c, 2, e,     indic,  pres,  3, s).
+fd(2, c, 2, iamo,  indic,  pres,  1, p). 
+fd(2, c, 2, ete,   indic,  pres,  2, p).
+fd(2, c, 2, ono, indic,  pres,  3, p).
+
+fd(2, c, 2, Fles,  indic, imperf, P, N):-
+   rvd(Fles, 2, indic, imperf, P, N).
+
+fd(2, c, 3, i,     indic,  pass,  1, s). 
+fd(2, c, 2, esti,  indic,  pass,  2, s).
+fd(2, c, 3, e,     indic,  pass,  3, s).
+fd(2, c, 2, emmo,  indic,  pass,  1, p). 
+fd(2, c, 2, este,  indic,  pass,  2, p).
+fd(2, c, 3, ero,   indic,  pass,  3, p).
+
+fd(2, c, 2, a,     subj,  pres,  1, s). 
+fd(2, c, 2, a,     subj,  pres,  2, s).
+fd(2, c, 2, a,     subj,  pres,  3, s).
+fd(2, c, 2, iamo,  subj,  pres,  1, p). 
+fd(2, c, 2, iate,  subj,  pres,  2, p).
+fd(2, c, 2, evano, subj,  pres,  3, p).
+
+fd(2, c, 2, Fles,  subj, imperf, P, N):-
+   rvd(Fles, 2, subj, imperf, P, N).
+
+fd(2, c, 2, uta,     part,   pass,  f,  s).
+fd(2, c, 2, ute,     part,   pass,  f,  p).
+fd(2, c, 2, uti,     part,   pass,  m,  p).
+fd(2, c, 2, uto,     part,   pass,  m,  s).
+
+fd(2, c, 4, rà, indic, fut, 3, s).
+fd(2, c, 4, rai, indic, fut, 2, s).
+fd(2, c, 4, ranno, indic, fut, 3, p).
+fd(2, c, 4, rebbe, cond, pres, 3, s).
+fd(2, c, 4, rebbero, cond, pres, 3, p).
+fd(2, c, 4, rei, cond, pres, 1, s).
+fd(2, c, 4, remmo, cond, pres, 1, p).
+fd(2, c, 4, remo, indic, fut, 1, p).
+fd(2, c, 4, reste, cond, pres, 2, p).
+fd(2, c, 4, resti, cond, pres, 2, s).
+fd(2, c, 4, rete, indic, fut, 2, p).
+fd(2, c, 4, rò, indic, fut, 1, s).
+
+/* 3a */
+fd(3, a, 2, ono,   indic,  pres,  3, p).
+fd(3, a, 2, o,     indic,  pres,  1, s).
+fd(3, a, 2, a,  subj,   pres,  3, s).
+fd(3, a, 2, a,  subj,   pres,  1, s).
+fd(3, a, 2, ano,  indic,  pres,  3, p).
+fd(3, a, 2, a,  subj,   pres,  2, s).
+
+fd(3, a, 3, i,  indic,   pass,  1, s).
+fd(3, a, 2, esti,  indic,   pass,  2, s).
+fd(3, a, 3, e,  indic,   pass,  3, s).
+fd(3, a, 3, ero,  indic,   pass,  3, p).
+fd(3, a, 2, emmo,  indic,   pass,  1, p).
+fd(3, a, 2, este,  indic,   pass,  2, p).
+fd(3, a, 4, a,    part,   pass,  f,  s).
+fd(3, a, 4, e,     part,   pass,  f,  p).
+fd(3, a, 4, i,     part,   pass,  m,  p).
+fd(3, a, 4, o,     part,   pass,  m,  s).
+
+fd(3, a, 5, uta,    part,   pass,  f,  s).
+fd(3, a, 5, ute,     part,   pass,  f,  p).
+fd(3, a, 5, uti,     part,   pass,  m,  p).
+fd(3, a, 5, uto,     part,   pass,  m,  s).
+
+/* 3b */
+fd(3, b, 3, e,     indic,  pass,  3, s). 
+fd(3, b, 3, ero,   indic,  pass,  3, p).
+fd(3, b, 3, i,     indic,  pass,  1, s).
+fd(3, b, 2, esti,     indic,  pass,  2, s). 
+fd(3, b, 2, este,   indic,  pass,  2, p).
+fd(3, b, 2, emmo,     indic,  pass,  1, p).
+
+fd(3, b, 2, Fles,  indic, imperf, P, N):-
+   rvd(Fles, 2, indic, imperf, P, N).
+
+fd(3, b, 4, a,     part,   pass,  f,  s).
+fd(3, b, 4, e,     part,   pass,  f,  p).
+fd(3, b, 4, i,     part,   pass,  m,  p).
+fd(3, b, 4, o,     part,   pass,  m,  s).
+
+fd(3, b, 2, a,    subj,  pres,  3, s).
+fd(3, b, 2, a,   subj,  pres,  2, s).
+fd(3, b, 2, a,     subj,  pres,  1, s).
+fd(3, b, 2, e,    indic,  pres,  3, s).
+fd(3, b, 2, i,   indic,  pres,  2, s).
+fd(3, b, 2, ono,   indic,  pres,  3, p).
+fd(3, b, 2, o,     indic,  pres,  1, s).
+fd(3, b, 2, iamo,  subj,   pres,  1, p).
+fd(3, b, 2, iamo,  indic,  pres,  1, p).
+fd(3, b, 2, iate,  subj,   pres,  2, p).
+fd(3, b, 2, ano,  subj,   pres,  3, p).
+
+fd(3, b, 2, endo,  ger,   pres,  _, _).
+fd(3, b, 2, ente, part,  pres,  _, _).
+fd(3, b, 2, enti, part,  pres,  _, _).
+
+fd(3, b, 2, Fles,  subj, imperf, P, N):-
+   rvd(Fles, 2, subj, imperf, P, N).
+
+/* 3c */
+fd(3, c, 2, o,     indic,  pres,  1, s). /*dovere*/
+fd(3, c, 4, o,     indic,  pres,  1, s). /*debbo*/
+fd(3, c, 2, i,     indic,  pres,  2, s).
+fd(3, c, 2, e,     indic,  pres,  3, s).
+fd(3, c, 2, '',     indic,  pres,  3, s).
+fd(3, c, 3, iamo,  indic,  pres,  1, p).
+fd(3, c, 2, ono,   indic,  pres,  3, p).
+fd(3, c, 1, ete,     indic,  pres,  2, p).
+fd(3, c, 4, ono,   indic,  pres,  3, p).
+
+fd(3, c, 4, Fles,  subj, imperf, P, N):-
+   rvd(Fles, 2, subj, imperf, P, N).
+
+fd(3, c, 4, a,     subj,  pres,  1, s). 
+fd(3, c, 4, a,     subj,  pres,  2, s).
+fd(3, c, 4, a,     subj,  pres,  3, s).
+fd(3, c, 3, iamo,  subj,  pres,  1, p).
+fd(3, c, 3, iate,  subj,  pres,  2, p).
+fd(3, c, 4, ano,   subj,  pres,  3, p).
+
+
+/* 3d */
+fd(3, d, 2, o,     indic,  pres,  1, s). /*potere*/
+fd(3, d, 3, oi,    indic,  pres,  2, s).
+fd(3, d, 3, ò,     indic,  pres,  3, s).
+fd(3, d, 2, iamo,  indic,  pres,  1, p).
+fd(3, d, 2, ono,   indic,  pres,  3, p).
+
+fd(3, d, 2, a,     subj,  pres,  1, s). 
+fd(3, d, 2, a,     subj,  pres,  2, s).
+fd(3, d, 2, a,     subj,  pres,  3, s).
+fd(3, d, 2, iamo,  subj,  pres,  1, p).
+fd(3, d, 2, iate,  subj,  pres,  2, p).
+fd(3, d, 2, ano,   subj,  pres,  3, p).
+
+
+/* 3e */
+fd(3, e, 2, o,     ind,  pres,  1, s). /*morire*/
+fd(3, e, 3, i,     ind,  pres,  2, s).
+fd(3, e, 3, e,     ind,  pres,  3, s).
+fd(3, e, 2, ono,   ind,  pres,  3, p).
+
+fd(3, e, 2, a,     subj,  pres,  1, s). 
+fd(3, e, 2, a,     subj,  pres,  2, s).
+fd(3, e, 2, a,     subj,  pres,  3, s).
+fd(3, e, 2, ano,   subj,  pres,  3, p).
+
+fd(3, e, 4, a,     part,   pass,  f,  s). 
+fd(3, e, 4, e,     part,   pass,  f,  p).
+fd(3, e, 4, i,     part,   pass,  m,  p).
+fd(3, e, 4, o,     part,   pass,  m,  s).
+
+
+/* 3f */
+fd(3, f, 2, o,     indic,  pres,  1, s). /*valere*/
+fd(3, f, 2, ono,   indic,  pres,  3, p).
+
+fd(3, f, 2, a,     subj,  pres,  1, s). 
+fd(3, f, 2, a,     subj,  pres,  2, s).
+fd(3, f, 2, a,     subj,  pres,  3, s).
+fd(3, f, 2, ano,   subj,  pres,  3, p).
+
+fd(3, f, 3, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(3, f, 3, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(3, f, 4, i,     indic,  pass,  1, s).
+fd(3, f, 4, e,     indic,  pass,  3, s).
+fd(3, f, 4, ero,   indic,  pass,  3, p).
+
+fd(3, f, 4, a,     part,   pass,  f,  s).
+fd(3, f, 4, e,     part,   pass,  f,  p).
+fd(3, f, 4, i,     part,   pass,  m,  p).
+fd(3, f, 4, o,     part,   pass,  m,  s).
+
+/* 3g */
+fd(3, g, 2, a,     subj,   pres,  1, s).
+fd(3, g, 2, a,     subj,   pres,  2, s).
+fd(3, g, 2, a,     subj,   pres,  3, s).
+
+fd(3, g, 2, ano,   subj,   pres,  3, p).
+fd(3, g, 2, ate,   subj,   pres,  2, p).
+
+fd(3, g, 3, i,     indic,  pass,  1, s).
+fd(3, g, 3, e,     indic,  pass,  3, s).
+fd(3, g, 3, ero,   indic,  pass,  3, p).
+
+/* 3h */
+fd(3, h, 2, o,     indic,  pres,  1, s). /*andare*/
+fd(3, h, 3, ai,     indic,  pres,  2, s).
+fd(3, h, 3, a,     indic,  pres,  3, s).
+fd(3, h, 3, â,     imp,  pres,  2, s).
+fd(3, h, 3, a,     imp,  pres,  2, s).
+fd(3, h, 3, anno,   indic,  pres,  3, p).
+
+fd(3, h, 2, a,     subj,  pres,  1, s). 
+fd(3, h, 2, a,     subj,  pres,  2, s).
+fd(3, h, 2, a,     subj,  pres,  3, s).
+fd(3, h, 2, ano,   subj,  pres,  3, p).
+
+fd(3, h, 2, ada,     subj,  pres,  1, s). 
+fd(3, h, 2, ada,     subj,  pres,  2, s).
+fd(3, h, 2, ada,     subj,  pres,  3, s).
+fd(3, h, 2, adano,   subj,  pres,  3, p).
+
+fd(3, i, 2, o,     indic,  pres,  1, s). /*paio*/
+fd(3, i, 2, iamo,   indic,  pres,  1, p).
+fd(3, i, 2, ono,   indic,  pres,  3, p).
+
+fd(3, i, 2, a,     subj,  pres,  1, s). 
+fd(3, i, 2, a,     subj,  pres,  2, s).
+fd(3, i, 2, a,     subj,  pres,  3, s).
+fd(3, i, 2, iamo,   subj,  pres,  1, p).
+fd(3, i, 2, iate,   subj,  pres,  2, p).
+fd(3, i, 2, ano,   subj,  pres,  3, p).
+
+fd(3, i, 3, i,     indic,  pass,  1, s).
+fd(3, i, 3, e,     indic,  pass,  3, s).
+fd(3, i, 3, ero,   indic,  pass,  3, p).
+fd(3, i, 3, emmo,     indic,  pass,  1, p).
+fd(3, i, 3, este,     indic,  pass,  2, p).
+fd(3, i, 3, esti,   indic,  pass,  3, p).
+
+fd(3, i, 4, a,     part,   pass,  f,  s).
+fd(3, i, 4, e,     part,   pass,  f,  p).
+fd(3, i, 4, i,     part,   pass,  m,  p).
+fd(3, i, 4, o,     part,   pass,  m,  s).
+
+fd(3, l, 2, o,     indic,  pres,  1, s). /*appaio*/
+fd(3, l, 2, ono,   indic,  pres,  3, p).
+
+fd(3, l, 2, a,     subj,  pres,  1, s). 
+fd(3, l, 2, a,     subj,  pres,  2, s).
+fd(3, l, 2, a,     subj,  pres,  3, s).
+fd(3, l, 2, iamo,   subj,  pres,  1, p).
+fd(3, l, 2, ano,   subj,  pres,  3, p).
+
+fd(3, l, 3, i,     indic,  pass,  1, s).
+fd(3, l, 3, e,     indic,  pass,  3, s).
+fd(3, l, 3, ero,   indic,  pass,  3, p).
+
+fd(3, l, 4, a,     part,   pass,  f,  s).
+fd(3, l, 4, e,     part,   pass,  f,  p).
+fd(3, l, 4, i,     part,   pass,  m,  p).
+fd(3, l, 4, o,     part,   pass,  m,  s).
+
+/* 4a */
+fd(4, a, 2, o,     indic,  pres,   1, s). /*ponere*/
+fd(4, a, 2, ono,   indic,  pres,   3, p).
+
+fd(4, a, 2, a,     subj,   pres,   1, s). 
+fd(4, a, 2, a,     subj,   pres,  2, s).
+fd(4, a, 2, a,     subj,   pres,   3, s).
+fd(4, a, 2, ano,   subj,   pres,   3, p).
+
+fd(4, a, 3, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(4, a, 3, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(4, a, 4, i,     indic,  pass,  1, s).
+fd(4, a, 4, e,     indic,  pass,  3, s).
+fd(4, a, 4, ero,   indic,  pass,  3, p).
+
+fd(4, a, 5, a,     part,   pass,  f,  s).
+fd(4, a, 5, e,     part,   pass,  f,  p).
+fd(4, a, 5, i,     part,   pass,  m,  p).
+fd(4, a, 5, o,     part,   pass,  m,  s).
+
+
+/* 4b */
+fd(4, b, 3, o,     indic,  pres,   1, s). /*tenere*/
+fd(4, b, 2, i,     indic,  pres,   2, s).
+fd(4, b, 2, e,     indic,  pres,   3, s).
+fd(4, b, 3, ono,   indic,  pres,   3, p).
+
+fd(4, b, 3, a,     subj,   pres,   1, s). 
+fd(4, b, 3, a,     subj,   pres,   2, s).
+fd(4, b, 3, a,     subj,   pres,   3, s).
+fd(4, b, 3, ano,   subj,   pres,   3, p).
+
+fd(4, b, 4, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(4, b, 4, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(4, b, 5, i,     indic,  pass,  1, s).
+fd(4, b, 5, e,     indic,  pass,  3, s).
+fd(4, b, 5, ero,   indic,  pass,  3, p).
+
+
+/* 4c */
+fd(4, c, 2, o,     indic,  pres,  1, s). /*sapere*/
+fd(4, c, 2, ai,    indic,  pres,  2, s).
+fd(4, c, 2, a,     indic,  pres,  3, s).
+fd(4, c, 3, iamo,  indic,  pres,  1, p). 
+fd(4, c, 2, anno,  indic,  pres,  3, p).
+
+fd(4, c, 3, i,     imp,    pres,  2, s).
+fd(4, c, 4, a,     imp,   pres,  3, s).
+fd(4, c, 3, iamo,  imp,   pres,  1, p).
+fd(4, c, 3, iate,  imp,   pres,  2, p).
+fd(4, c, 4, ano,   imp,   pres,  3, p).
+
+
+fd(4, c, 4, a,     subj,   pres,  1, s).
+fd(4, c, 4, a,     subj,   pres,  2, s).
+fd(4, c, 4, a,     subj,   pres,  3, s).
+fd(4, c, 3, iamo,  subj,   pres,  1, p).
+fd(4, c, 3, iate,  subj,   pres,  2, p).
+fd(4, c, 4, ano,   subj,   pres,  3, p).
+
+fd(4, c, 5, i,     indic,  pass,  1, s).
+fd(4, c, 5, e,     indic,  pass,  3, s).
+fd(4, c, 5, ero,   indic,  pass,  3, p).
+fd(4, c, 5, imo,     indic,  pass,  1, p).
+
+/* 4d */
+fd(4, d, 2, o,     indic,  pres,  1, s). 
+fd(4, d, 2, ono,  indic,  pres,  3, p).
+
+fd(4, d, 3, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(4, d, 3, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(4, d, 2, a,     subj,   pres,  1, s).
+fd(4, d, 2, a,     subj,   pres,  2, s).
+fd(4, d, 2, a,     subj,   pres,  3, s).
+fd(4, d, 2, ano,   subj,   pres,  3, p).
+
+fd(4, d, 4, i,     indic,  pass,  1, s).
+fd(4, d, 4, e,     indic,  pass,  3, s).
+fd(4, d, 4, ero,   indic,  pass,  3, p).
+fd(4, d, 4, esti,     indic,  pass,  2, s).
+fd(4, d, 4, este,     indic,  pass,  2, p).
+fd(4, d, 4, emmo,   indic,  pass,  1, p).
+
+fd(4, d, 5, a,     part,   pass,  f,  s).
+fd(4, d, 5, e,     part,   pass,  f,  p).
+fd(4, d, 5, i,     part,   pass,  m,  p).
+fd(4, d, 5, o,     part,   pass,  m,  s).
+
+/* 4e */
+fd(4, e, 2, o,     indic,  pres,  1, s). /*durre*/
+fd(4, e, 2, i,    indic,  pres,  2, s).
+fd(4, e, 2, e,     indic,  pres,  3, s).
+fd(4, e, 2, ete,    indic,  pres,  2, p).
+fd(4, e, 2, iamo,  indic,  pres,  1, p). 
+fd(4, e, 2, ono,  indic,  pres,  3, p).
+
+fd(4, e, 2, evo,     indic,  imperf,  1, s).
+fd(4, e, 2, evi,    indic,  imperf,  2, s).
+fd(4, e, 2, eva,     indic,  imperf,  3, s).
+fd(4, e, 2, evamo,  indic,  imperf,  1, p). 
+fd(4, e, 2, evate,    indic,  imperf,  2, p).
+fd(4, e, 2, evano,  indic,  imperf,  3, p).
+
+fd(4, e, 2, i,     imp,    pres,  2, s).
+
+fd(4, e, 3, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(4, e, 3, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(4, e, 2, a,     subj,   pres,  1, s).
+fd(4, e, 2, a,     subj,   pres,  2, s).
+fd(4, e, 2, a,     subj,   pres,  3, s).
+fd(4, e, 2, iamo,  subj,   pres,  1, p).
+fd(4, e, 2, iate,  subj,   pres,  2, p).
+fd(4, e, 2, ano,   subj,   pres,  3, p).
+
+fd(4, e, 2, endo,  ger,    pres,  _, _).
+
+fd(4, e, 2, Fles,  subj, imperf, P, N):-
+   rvd(Fles, 2, subj, imperf, P, N).
+
+fd(4, e, 4, i,     indic,  pass,  1, s).
+fd(4, e, 4, e,     indic,  pass,  3, s).
+fd(4, e, 4, ero,   indic,  pass,  3, p).
+fd(4, e, 2, esti,  indic,  pass,  2, s).
+fd(4, e, 2, este,  indic,  pass,  2, p).
+fd(4, e, 2, emmo,  indic,  pass,  1, p).
+
+fd(4, e, 5, a,     part,   pass,  f,  s).
+fd(4, e, 5, e,     part,   pass,  f,  p).
+fd(4, e, 5, i,     part,   pass,  m,  p).
+fd(4, e, 5, o,     part,   pass,  m,  s).
+
+fd(4, f, 2, Fles,  indic, imperf, P, N):-
+   rvd(Fles, 2, indic, imperf, P, N).
+
+fd(4, f, 3, o,    indic,  pres,  1, s).
+fd(4, f, 2, i,    indic,  pres,  2, s).
+fd(4, f, 2, e,    indic,  pres,  3, s).
+fd(4, f, 2, ete,  indic,  pres,  2, p).
+fd(4, f, 2, iamo, indic,  pres,  1, p).
+fd(4, f, 3, ono,  indic,  pres,  3, p).
+
+fd(4, f, 2, i,     imp,    pres,  2, s).
+fd(4, f, 2, endo,  ger,    pres,  _, _).
+
+fd(4, f, 4, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(4, f, 4, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(4, f, 3, a,     subj,   pres,  1, s).
+fd(4, f, 3, a,     subj,   pres,  2, s).
+fd(4, f, 3, a,     subj,   pres,  3, s).
+fd(4, f, 2, iamo,  subj,   pres,  1, p).
+fd(4, f, 2, iate,  subj,   pres,  2, p).
+fd(4, f, 3, ano,   subj,   pres,  3, p).
+
+fd(4, f, 2, Fles,  subj, imperf, P, N):-
+   rvd(Fles, 2, subj, imperf, P, N).
+
+fd(4, f, 5, i,     indic,  pass,  1, s).
+fd(4, f, 5, e,     indic,  pass,  3, s).
+fd(4, f, 5, ero,   indic,  pass,  3, p).
+fd(4, f, 5, esti,     indic,  pass,  2, s).
+fd(4, f, 5, este,     indic,  pass,  2, p).
+fd(4, f, 5, emmo,   indic,  pass,  1, p).
+
+fd(4, f, 6, a,     part,   pass,  f,  s).
+fd(4, f, 6, e,     part,   pass,  f,  p).
+fd(4, f, 6, i,     part,   pass,  m,  p).
+fd(4, f, 6, o,     part,   pass,  m,  s).
+
+fd(4, g, 3, o,     indic,  pres,   1, s). /*venire*/
+fd(4, g, 2, i,     indic,  pres,   2, s).
+fd(4, g, 2, i,     imp,  pres,   2, s).
+fd(4, g, 2, e,     indic,  pres,   3, s).
+fd(4, g, 3, ono,   indic,  pres,   3, p).
+
+fd(4, g, 3, a,     subj,   pres,   1, s). 
+fd(4, g, 3, a,     subj,   pres,   2, s).
+fd(4, g, 3, a,     subj,   pres,   3, s).
+fd(4, g, 3, ano,   subj,   pres,   3, p).
+
+fd(4, g, 4, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(4, g, 4, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(4, g, 5, i,     indic,  pass,  1, s).
+fd(4, g, 5, e,     indic,  pass,  3, s).
+fd(4, g, 5, ero,   indic,  pass,  3, p).
+
+/* 5a */
+fd(5, a, 2, o,    indic,  pres,  1, s).
+fd(5, a, 2, ono,  indic,  pres,  3, p).
+fd(5, a, 2, amo,  indic,  pres,  1, p).
+fd(5, a, 2, amo,  subj,  pres,  1, p).
+fd(5, a, 2, ate,  subj,   pres,  2, p).
+fd(5, a, 2, ano,  subj,   pres,  3, p).
+fd(5, a, 2, a,  subj,   pres,  3, s).
+
+fd(5, a, 3, i,  indic,  pres,  2, s).
+fd(5, a, 4, e,  indic,  pres,  3, s).
+fd(5, a, 4,'',  indic,  pres,  3, s).
+
+fd(5, b, 4, o,    indic,  pres,  1, s).
+fd(5, b, 4, ono,  indic,  pres,  3, p).
+fd(5, b, 1, ete,  indic,  pres,  2, p).
+fd(5, b, 2, iamo, indic,  pres,  1, p).
+fd(5, b, 2, iamo,  subj,  pres,  1, p).
+fd(5, b, 2, iate,  subj,  pres,  2, p).
+fd(5, b, 1, iamo, indic, pres,  1, p).
+fd(5, b, 1, iamo,  subj,  pres,  1, p).
+fd(5, b, 1, iate,  subj,  pres,  2, p).
+fd(5, b, 4, ano,   subj,  pres,  3, p).
+
+fd(5, b, 3, i,  indic,  pres,  2, s).
+fd(5, b, 3, e,  indic,  pres,  3, s).
+fd(5, b, 3,'',  indic,  pres,  3, s).
+
+fd(5, a, 5, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(5, a, 5, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(5, a, 6, e,     indic,  pass,  3, s).
+fd(5, a, 6, ero,   indic,  pass,  3, p).
+fd(5, a, 6, i,     indic,  pass,  1, s).
+fd(5, a, 1, esti,     indic,  pass,  2, s).
+fd(5, a, 1, este,   indic,  pass,  2, p).
+fd(5, a, 1, emmo,     indic,  pass,  1, p).
+
+fd(5, b, 5, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(5, b, 5, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(5, b, 6, e,     indic,  pass,  3, s).
+fd(5, b, 6, ero,   indic,  pass,  3, p).
+fd(5, b, 6, i,     indic,  pass,  1, s).
+fd(5, b, 1, esti,     indic,  pass,  2, s).
+fd(5, b, 1, este,   indic,  pass,  2, p).
+fd(5, b, 1, emmo,     indic,  pass,  1, p).
+
+fd(6, a, 2, Fles,  indic, imperf, P, N):-
+   rvd(Fles, 2, indic, imperf, P, N).
+
+fd(6, a, 2, Fles,  subj, imperf, P, N):-
+   rvd(Fles, 2, subj, imperf, P, N).
+
+fd(6, a, 3, o,     indic,  pres,  1, s).
+fd(6, a, 3, a,     subj,  pres,   1, s).
+fd(6, a, 3, a,     subj,  pres,   2, s). 
+fd(6, a, 3, a,     subj,  pres,   3, s).
+fd(6, a, 3, amo,  indic,  pres,  1, p).
+fd(6, a, 3, amo,   subj,  pres,   1, p).
+fd(6, a, 3, amo,   imp,  pres,   1, p).
+fd(6, a, 3, ate,   subj,  pres,   2, p). 
+fd(6, a, 3, ano,   subj,  pres,   3, p).
+
+fd(6, a, 4, i,     indic,  pass,  1, s).
+fd(6, a, 4, e,     indic,  pass,  3, s).
+fd(6, a, 4, ero,   indic,  pass,  3, p).
+fd(6, a, 4, esti,     indic,  pass,  2, s).
+fd(6, a, 2, este,     indic,  pass,  2, p).
+fd(6, a, 2, emmo,   indic,  pass,  1, p).
+
+fd(6, a, 2, endo,     ger,    pres,  _, _).
+
+fd(6, a, 5, a,     part,   pass,  f,  s).
+fd(6, a, 5, e,     part,   pass,  f,  p).
+fd(6, a, 5, i,     part,   pass,  m,  p).
+fd(6, a, 5, o,     part,   pass,  m,  s).
+
+/* classe 7 verbo essere */
+fd(7, a, 2, o,     indic,  pres,  1, s). 
+fd(7, a, 3, i,    indic,  pres,  2, s).
+fd(7, a, 4, amo,  indic,  pres,  1, p). 
+fd(7, a, 4, ete,    indic,  pres,  2, p).
+fd(7, a, 2, o,  indic,  pres,  3, p).
+
+fd(7, a, 4, i,     imp,    pres,  2, s).
+
+
+fd(7, a, 4, a,     subj,   pres,  1, s).
+fd(7, a, 4, a,     subj,   pres,  2, s).
+fd(7, a, 4, a,     subj,   pres,  3, s).
+fd(7, a, 4, amo,  subj,   pres,  1, p).
+fd(7, a, 4, ate,  subj,   pres,  2, p).
+fd(7, a, 4, ano,   subj,   pres,  3, p).
+
+fd(7, a, 6, o,     indic,  imperf,  1, s).
+fd(7, a, 6, i,    indic,  imperf,  2, s).
+fd(7, a, 6, a,     indic,  imperf,  3, s).
+fd(7, a, 6, avamo,  indic,  imperf,  1, p). 
+fd(7, a, 6, avate,    indic,  imperf,  2, p).
+fd(7, a, 6, ano,  indic,  imperf,  3, p).
+
+fd(7, a,7,'',     indic,  pass,  3, s).
+
+fd(7, a, 7, i,     indic,  pass,  1, s).
+fd(7, a, 8, sti,     indic,  pass,  2, s).
+fd(7, a, 7, mmo,     indic,  pass,  3, p).
+fd(7, a, 8, ste,     indic,  pass,  3, p).
+fd(7, a, 7, rono,   indic,  pass,  3, p).
+
+fd(7, a, 8, ssi,     subj,  imperf,  1, s).
+fd(7, a, 8, ssi,    subj,  imperf,  2, s).
+fd(7, a, 8, sse,     subj,  imperf,  3, s).
+fd(7, a, 8, ssimo,  subj,  imperf,  1, p). 
+fd(7, a, 8, ste,    subj,  imperf,  2, p).
+fd(7, a, 8, ssero,  subj,  imperf,  3, p).
+
+fd(7, a, 9, a,     part,   pass,  f,  s).
+fd(7, a, 9, e,     part,   pass,  f,  p).
+fd(7, a, 9, i,     part,   pass,  m,  p).
+fd(7, a, 9, o,     part,   pass,  m,  s).
+
+fd(7, a, 10, Fles,  indic, fut, P, N):-
+   ivd(Fles, 1, indic, fut, P, N).
+
+fd(7, a, 10, Fles,  cond, pres, P, N):-
+   ivd(Fles, 1, cond, pres, P, N).
+
+fd(7, a, 11, '',     indic,  pres,  3, s).
+
+irv(evolv,    1, a, 1,  evolv,  2).
+irv(evolut,   1, a, 2,  evolv,  2).
+irv(apr,      1, a, 1,  apr,    3).
+irv(apert,    1, a, 2,  apr,    3).
+irv(cern,     1, a, 1,  cern,   2).
+irv(cret,     1, a, 2,  cern,   2).
+irv(copr,     1, a, 1,  copr,   3).
+irv(copert,   1, a, 2,  copr,   3).
+irv(spar,      1, a, 1,  spar,    a3).
+irv(sparit,    1, a, 2,  spar,    a3).
+irv(seppell,  1, a, 1,  seppell,3).
+irv(sepolt,   1, a, 2,  seppell,3).
+irv(sig,      1, a, 1,  sig,    2).
+irv(satt,     1, a, 2,  sig,    2).
+irv(volv,     1, a, 1,  volv,   2).
+irv(volut,    1, a, 2,  volv,   2).
+irv(offr,     1, a, 1,  offr,   3).
+irv(offert,   1, a, 2,  offr,   3).
+
+
+/* classe 1b  */
+irv(accend,   1, b, 1,  accend, 2).
+irv(acces,    1, b, 2,  accend, 2).
+irv(ard,      1, b, 1,  ard,    2).
+irv(ars,      1, b, 2,  ard,    2).
+irv(asperg,   1, b, 1,  asperg, 2).
+irv(aspers,   1, b, 2,  asperg, 2).
+irv(ced,      1, b, 1,  ced,    2).
+irv(cess,     1, b, 2,  ced,    2).
+irv(chiud,    1, b, 1,  chiud,  2).
+irv(chius,    1, b, 2,  chiud,  2).
+irv(cid,      1, b, 1,  cid,    2).
+irv(cis,      1, b, 2,  cid,    2).
+irv(clud,     1, b, 1,  clud,   2).
+irv(clus,     1, b, 2,  clud,   2).
+irv(corr,     1, b, 1,  corr,   2).
+irv(cors,     1, b, 2,  corr,   2).
+irv(cuot,     1, b, 1,  cuot,   2).
+irv(coss,     1, b, 2,  cuot,   2).
+irv(cut,      1, b, 1,  cut,    2).
+irv(cuss,     1, b, 2,  cut,    2).
+irv(divid,    1, b, 1,  divid,  2).
+irv(divis,    1, b, 2,  divid,  2).
+irv(eccell,   1, b, 1,  eccell, 2).
+irv(eccels,   1, b, 2,  eccell, 2).
+irv(emerg,     1, b, 1,  emerg,   2).
+irv(emers,     1, b, 2,  emerg,   2).
+irv(estrus,     1, b, 2,  estrud,   2).
+irv(plod,   1, b, 1,  plod, 2).
+irv(plos,   1, b, 2,  plod, 2).
+irv(fend,     1, b, 1,  fend,   2).
+irv(fes,      1, b, 2,  fend,   2).
+irv(figg,     1, b, 1,  figg,   2).
+irv(fiss,     1, b, 2,  figg,   2).
+irv(flett,    1, b, 1,  flett,  2).
+irv(fless,    1, b, 2,  flett,  2).
+irv(fond,     1, b, 1,  fond,   2).
+irv(fus,      1, b, 2,  fond,   2).
+irv(fulg,     1, b, 1,  fulg,   2).
+irv(fuls,     1, b, 2,  fulg,   2).
+irv(intrid,   1, b, 1,  intrid, 2).
+irv(intrus,   1, b, 2,  intrid, 2).
+irv(led,      1, b, 1,  led,    2).
+irv(les,      1, b, 2,  led,    2).
+irv(lid,      1, b, 1,  lid,    2).
+irv(lis,      1, b, 2,  lid,    2).
+irv(lud,      1, b, 1,  lud,    2).
+irv(lus,      1, b, 2,  lud,    2).
+irv(merg,     1, b, 1,  merg,   2).
+irv(mers,     1, b, 2,  merg,   2).
+irv(mord,     1, b, 1,  mord,   2).
+irv(mors,     1, b, 2,  mord,   2).
+irv(muov,     1, b, 1,  muov,   2).
+irv(moss,     1, b, 2,  muov,   2).
+irv(mov,     1, b, 1,  mov,   2).
+irv(moss,     1, b, 2,  mov,   2).
+irv(nett,     1, b, 1,  nett,   2).
+irv(ness,     1, b, 2,  nett,   2).
+irv(pell,     1, b, 1,  pell,   2).
+irv(puls,     1, b, 2,  pell,   2).
+irv(pend,     1, b, 1,  pend,   2).
+irv(pes,      1, b, 2,  pend,   2).
+irv(perd,     1, b, 1,  perd,   2).
+irv(pers,     1, b, 2,  perd,   2).
+irv(prend,    1, b, 1,  prend,  2).
+irv(pres,     1, b, 2,  prend,  2).
+irv(prim,     1, b, 1,  prim,   2).
+irv(press,    1, b, 2,  prim,   2).
+irv(rad,      1, b, 1,  rad,    2).
+irv(ras,      1, b, 2,  rad,    2).
+irv(rend,     1, b, 1,  rend,   2).
+irv(res,      1, b, 2,  rend,   2).
+irv(rid,      1, b, 1,  rid,    2).
+irv(ris,      1, b, 2,  rid,    2).
+irv(rod,      1, b, 1,  rod,    2).
+irv(ros,      1, b, 2,  rod,    2).
+irv(scend,    1, b, 1,  scend,  2).
+irv(sces,     1, b, 2,  scend,  2).
+irv(ascend,    1, b, 1,  ascend,  2).
+irv(asces,     1, b, 2,  ascend,  2).
+irv(scind,    1, b, 1,  scind,  2).
+irv(sciss,    1, b, 2,  scind,  2).
+irv(spand,    1, b, 1,  spand,  2).
+irv(spans,    1, b, 2,  spand,  2).
+irv(sparg,    1, b, 1,  sparg,  2).
+irv(spars,    1, b, 2,  sparg,  2).
+irv(suad,     1, b, 1,  suad,   2).
+irv(suas,     1, b, 2,  suad,   2).
+irv(tend,     1, b, 1,  tend,   2).
+irv(tes,      1, b, 2,  tend,   2).
+irv(terg,     1, b, 1,  terg,   2).
+irv(ters,     1, b, 2,  terg,   2).
+irv(tund,     1, b, 1,  tund,   2).
+irv(tus,      1, b, 2,  tund,   2).
+irv(vad,      1, b, 1,  vad,    2).
+irv(vas,      1, b, 2,  vad,    2).
+irv(vell,     1, b, 1,  vell,   2).
+irv(vuls,     1, b, 2,  vell,   2).
+
+/* classe 1c  */
+irv(cad,      1, c, 1,  cad,    2).
+irv(cadd,     1, c, 2,  cad,    2).
+irv(piov,     1, c, 1,  piov,   2).
+irv(piovv,    1, c, 2,  piov,   2).
+irv(conosc,   1, c, 1,  conosc, 2).
+irv(conobb,    1, c, 2,  conosc, 2).
+
+irv(god,      1, c, 1,  god,    2).
+
+/* classe 1d  */
+irv(sal,      1, d, 1,  sal,    3).
+irv(salg,     1, d, 2,  sal,    3).
+
+/* classe 1e  */
+irv(ud,      1, e, 1,  ud,    3).
+irv(od,     1, e, 2,  ud,    3).
+
+irv(usc,      1, e, 1,  usc,    3).
+irv(esc,     1, e, 2,  usc,    3).
+
+/* classe 1f  */
+irv(sed,      1, f, 1,  sed,    2).
+irv(sied,     1, f, 2,  sed,    2).
+
+irv(possed,      1, f, 1,  possed,    2).
+irv(possied,     1, f, 2,  possed,    2).
+irv(possegg,     1, f, 3,  possed,    2).
+
+
+irv(st,     1, g, 1,  st,   1).
+irv(sta,     1, g, 2,  st,   1).
+
+
+irv(sist,     1, h, 2,  sist,   2).
+
+irv(offers,     1, i, 2,  offr,   3).
+irv(proffers,     1, i, 2,  proffer,   a3).
+
+/* classe 1i  */
+irv(verg,     1, i, 1,  verg,   2).
+irv(convers,     1, i, 2,  verg,   2).
+
+
+/* classe 2a  */
+irv(cing,     2, a, 1,  cing,     2).
+irv(cins,     2, a, 2,  cing,     2).
+irv(cint,     2, a, 3,  cing,     2).
+irv(corg,     2, a, 1,  corg,     2).
+irv(cors,     2, a, 2,  corg,     2).
+irv(cort,     2, a, 3,  corg,     2).
+irv(dulg,     2, a, 1,  dulg,     2).
+irv(duls,     2, a, 2,  dulg,     2).
+irv(dult,     2, a, 3,  dulg,     2).
+irv(erg,      2, a, 1,  erg ,     2).
+irv(ers,      2, a, 2,  erg,      2).
+irv(ert,      2, a, 3,  erg,      2).
+irv(fing,     2, a, 1,  fing,     2).
+irv(fins,     2, a, 2,  fing,     2).
+irv(fint,     2, a, 3,  fing,     2).
+irv(frang,    2, a, 1,  frang,    2).
+irv(frans,    2, a, 2,  frang,    2).
+irv(frant,    2, a, 3,  frang,    2).
+irv(giung,    2, a, 1,  giung,    2).
+irv(giuns,    2, a, 2,  giung,    2).
+irv(giunt,    2, a, 3,  giung,    2).
+irv(piang,    2, a, 1,  piang,    2).
+irv(pians,    2, a, 2,  piang,    2).
+irv(piant,    2, a, 3,  piang,    2).
+irv(ping,     2, a, 1,  ping,     2).
+irv(pins,     2, a, 2,  ping,     2).
+irv(pint,     2, a, 3,  ping,     2).
+irv(porg,     2, a, 1,  porg,     2).
+irv(pors,     2, a, 2,  porg,     2).
+irv(port,     2, a, 3,  porg,     2).
+irv(solv,     2, a, 1,  solv,     2).
+irv(sols,     2, a, 2,  solv,     2).
+irv(solt,     2, a, 3,  solv,     2).
+irv(sorg,     2, a, 1,  sorg,     2).
+irv(sors,     2, a, 2,  sorg,     2).
+irv(sort,     2, a, 3,  sorg,     2).
+irv(sping,     2, a, 1,  sping,     2).
+irv(spins,     2, a, 2,  sping,     2).
+irv(spint,     2, a, 3,  sping,     2).
+irv(surg,     2, a, 1,  surg,     2).
+irv(surs,     2, a, 2,  surg,     2).
+irv(surt,     2, a, 3,  surg,     2).
+irv(ting,     2, a, 1,  ting,     2).
+irv(tins,     2, a, 2,  ting,     2).
+irv(tint,     2, a, 3,  ting,     2).
+irv(torc,     2, a, 1,  torc,     2).
+irv(tors,     2, a, 2,  torc,     2).
+irv(tort,     2, a, 3,  torc,     2).
+irv(ung,      2, a, 1,  ung,      2).
+irv(uns,      2, a, 2,  ung,      2).
+irv(unt,      2, a, 3,  ung,      2).
+irv(vell,     2, a, 1,  vell,     2).
+irv(vels,     2, a, 2,  vell,     2).
+irv(velt,     2, a, 3,  vell,     2).
+irv(vinc,     2, a, 1,  vinc,     2).
+irv(vins,     2, a, 2,  vinc,     2).
+irv(vint,     2, a, 3,  vinc,     2).
+irv(volg,     2, a, 1,  volg,     2).
+irv(vols,     2, a, 2,  volg,     2).
+irv(volt,     2, a, 3,  volg,     2).
+irv(figg,     2, a, 1,  figg,     2).
+irv(fiss,     2, a, 2,  figg,     2).
+irv(fitt,     2, a, 3,  figg,     2).
+irv(frigg,    2, a, 1,  frigg,    2).
+irv(friss,    2, a, 2,  frigg,    2).
+irv(fritt,    2, a, 3,  frigg,    2).
+irv(fligg,    2, a, 1,  fligg,    2).
+irv(fliss,    2, a, 2,  fligg,    2).
+irv(flitt,    2, a, 3,  fligg,    2).
+irv(legg,     2, a, 1,  legg,     2).
+irv(less,     2, a, 2,  legg,     2).
+irv(lett,     2, a, 3,  legg,     2).
+irv(regg,     2, a, 1,  regg,     2).
+irv(ress,     2, a, 2,  regg,     2).
+irv(rett,     2, a, 3,  regg,     2).
+irv(protegg,  2, a, 1,  protegg,  2).
+irv(protess,  2, a, 2,  protegg,  2).
+irv(protett,  2, a, 3,  protegg,  2).
+irv(string,  2, a, 1,  string,  2).
+irv(strins,  2, a, 2,  string,  2).
+irv(strett,  2, a, 3,  string,  2).
+irv(astring,  2, a, 1,  astring,  2).
+irv(astrins,  2, a, 2,  astring,  2).
+irv(astrett,  2, a, 3,  astring,  2).
+irv(strugg,   2, a, 1,  strugg,   2).
+irv(struss,   2, a, 2,  strugg,   2).
+irv(strutt,   2, a, 3,  strugg,   2).
+irv(dig,      2, a, 1,  dig,      2).
+irv(dass,     2, a, 2,  dig,      2).
+irv(dat,      2, a, 3,  dig,      2).
+irv(redig,      2, a, 1,  dig,      2).
+irv(redass,     2, a, 2,  dig,      2).
+irv(redat,      2, a, 3,  dig,      2).
+irv(dilig,      2, a, 1,  dilig,      2).
+irv(lig,      2, a, 1,  lig,      2).
+irv(diless,     2, a, 2,  dilig,      2).
+irv(less,     2, a, 2,  lig,      2).
+irv(dilett,     2, a, 3,  dilig,      2).
+irv(lett,     2, a, 3,  lig,      2).
+irv(rig,      2, a, 1,  rig,      2).
+irv(ress,     2, a, 2,  rig,      2).
+irv(rett,     2, a, 3,  rig,      2).
+irv(scriv,    2, a, 1,  scriv,    2).
+irv(scriss,   2, a, 2,  scriv,    2).
+irv(scritt,   2, a, 3,  scriv,    2).
+irv(ascriv,    2, a, 1,  ascriv,    2).
+irv(ascriss,   2, a, 2,  ascriv,    2).
+irv(ascritt,   2, a, 3,  ascriv,    2).
+irv(chied,    2, a, 1,  chied,    2).
+irv(chies,    2, a, 2,  chied,    2).
+irv(chiest,   2, a, 3,  chied,    2).
+irv(nascond,  2, a, 1,  nascond,  2).
+irv(nascos,   2, a, 2,  nascond,  2).
+irv(nascost,  2, a, 3,  nascond,  2).
+irv(rispond,  2, a, 1,  rispond,  2).
+irv(rispos,   2, a, 2,  rispond,  2).
+irv(rispost,  2, a, 3,  rispond,  2).
+irv(stingu,   2, a, 1,  stingu,   2).
+irv(stins,    2, a, 2,  stingu,   2).
+irv(stint,    2, a, 3,  stingu,   2).
+irv(ung,      2, a, 1,  ung,      2).
+irv(uns,     2, a, 2,  ung,      2).
+irv(unt,     2, a, 3,  ung,      2).
+irv(mung,      2, a, 1,  mung,      2).
+irv(muns,     2, a, 2,  mung,      2).
+irv(munt,     2, a, 3,  mung,      2).
+irv(fung,      2, a, 1,  fung,      2).
+irv(funs,     2, a, 2,  fung,      2).
+irv(funt,     2, a, 3,  fung,      2).
+irv(pung,      2, a, 1,  pung,      2).
+irv(puns,     2, a, 2,  pung,      2).
+irv(punt,     2, a, 3,  pung,      2).
+irv(sum,      2, a, 1,  sum,      2).
+irv(suns,     2, a, 2,  sum,      2).
+irv(sunt,     2, a, 3,  sum,      2).
+irv(redim,    2, a, 1,  redim,    2).
+irv(redens,   2, a, 2,  redim,    2).
+irv(redent,   2, a, 3,  redim,    2).
+irv(viv,      2, a, 1,  viv,      2).
+irv(viss,     2, a, 2,  viv,      2).
+irv(vissut,   2, a, 3,  viv,      2).
+irv(romp,     2, a, 1,  romp,     2).
+irv(rupp,     2, a, 2,  romp,     2).
+irv(rott,     2, a, 3,  romp,     2).
+irv(nasc,     2, a, 1,  nasc,     2).
+irv(nacqu,    2, a, 2,  nasc,     2).
+irv(nat,      2, a, 3,  nasc,     2).
+irv(ved,      2, a, 1,  ved,      2).
+irv(vid,      2, a, 2,  ved,      2).
+irv(vist,     2, a, 3,  ved,      2).
+irv(cresc,    2, a, 1,  cresc,    2).
+irv(crebb,    2, a, 2,  cresc,    2).
+irv(cresciut, 2, a, 3,  cresc,    2).
+irv(mett,     2, a, 1,  mett,     2).
+irv(mis,      2, a, 2,  mett,     2).
+irv(mess,     2, a, 3,  mett,     2).
+irv(ammett,     2, a, 1,  ammett,     2).
+irv(ammis,      2, a, 2,  ammett,     2).
+irv(ammess,     2, a, 3,  ammett,     2).
+irv(omett,     2, a, 1,  omett,     2).
+irv(omis,      2, a, 2,  omett,     2).
+irv(omess,     2, a, 3,  omett,     2).
+
+/* classe 2b  */
+irv(sol,      2, b, 1,  sol, 2).
+irv(sogli,    2, b, 2,  sol, 2).
+irv(suol,     2, b, 3,  sol, 2).
+
+/* classe 2c  */
+irv(b,        2, c, 1,  b, 2).     /* b(ere)  */
+irv(bev,      2, c, 2,  b, 2).
+irv(bevv,     2, c, 3,  b, 2).
+irv(ber,      2, c, 4,  b, 2).
+
+/* classe 3a  */
+irv(cuoc,       3, a, 1,  cuoc,   2).
+irv(cuoci,      3, a, 2,  cuoc,   2).
+irv(coss,       3, a, 3,  cuoc,   2).
+irv(cott,       3, a, 4,  cuoc,   2).
+irv(cogli,      3, a, 1,  cogli,  2).
+irv(colg,       3, a, 2,  cogli,  2).
+irv(cols,       3, a, 3,  cogli,  2).
+irv(colt,       3, a, 4,  cogli,  2).
+irv(scegli,     3, a, 1,  scegli, 2).
+irv(scelg,      3, a, 2,  scegli, 2).
+irv(scels,      3, a, 3,  scegli, 2).
+irv(scelt,      3, a, 4,  scegli, 2).
+irv(sciogli,    3, a, 1,  sciogli,2).
+irv(sciolg,     3, a, 2,  sciogli,2).
+irv(sciols,     3, a, 3,  sciogli,2).
+irv(sciolt,     3, a, 4,  sciogli,2).
+irv(spegn,      3, a, 1,  spegn,  2).
+irv(speng,      3, a, 2,  spegn,  2).
+irv(spens,      3, a, 3,  spegn,  2).
+irv(spent,      3, a, 4,  spegn,  2).
+irv(togli,      3, a, 1,  togli,  2).
+irv(tolg,       3, a, 2,  togli,  2).
+irv(tols,       3, a, 3,  togli,  2).
+irv(tolt,       3, a, 4,  togli,  2).
+irv(giac,       3, a, 1,  giac,   2).
+irv(giacci,     3, a, 2,  giac,   2).
+irv(giacqu,     3, a, 3,  giac,   2).
+irv(giaci,      3, a, 5,  giac,   2).
+irv(nuoc,       3, a, 1,  nuoc,   2).
+irv(nuocci,     3, a, 2,  nuoc,   2).
+irv(nocqu,      3, a, 3,  nuoc,   2).
+irv(nuoci,      3, a, 5,  nuoc,   2).
+irv(noci,      3, a, 5,  nuoc,   2).
+
+irv(piac,       3, a, 1,  piac,   2).
+irv(piacci,     3, a, 2,  piac,   2).
+irv(piacqu,     3, a, 3,  piac,   2).
+irv(piaci,      3, a, 5,  piac,   2).
+
+irv(tac,        3, a, 1,  tac,    2).
+irv(tacci,      3, a, 2,  tac,    2).
+irv(tacqu,      3, a, 3,  tac,    2).
+irv(taci,       3, a, 5,  tac,    2).
+
+/* classe 3b  */
+irv(di,          3, b, 1,  d,    3). /* d(ire)  */
+irv(dic,        3, b, 2,  d,    3).
+irv(diss,       3, b, 3,  d,    3).
+irv(dett,       3, b, 4,  d,    3).
+
+/* classe 3c  */
+irv(dov,        3, c, 1,  dov,    2).
+irv(dev,        3, c, 2,  dov,    2).
+irv(dobb,       3, c, 3,  dov,    2).
+irv(debb,       3, c, 4,  dov,    2).
+
+/* classe 3d  */
+irv(pot,        3, d, 1,  pot,    2).
+irv(poss,       3, d, 2,  pot,    2).
+irv(pu,         3, d, 3,  pot,    2).
+
+/* classe 3e  */
+irv(mor,        3, e, 1,  mor,    3).
+irv(muoi,       3, e, 2,  mor,    3).
+irv(muor,       3, e, 3,  mor,    3).
+irv(mort,       3, e, 4,  mor,    3).
+
+/* classe 3f  */
+irv(val,        3, f, 1,  val,    2).
+irv(valg,       3, f, 2,  val,    2).
+irv(var,        3, f, 3,  val,    2). /* var ???  */
+irv(vals,       3, f, 4,  val,    2).
+irv(avval,        3, f, 1,  avval,    2).
+irv(avvalg,       3, f, 2,  avval,    2).
+irv(avvar,        3, f, 3,  avval,    2). /* var ???  */
+irv(avvals,       3, f, 4,  avval,    2).
+irv(preval,        3, f, 1,  preval,    2).
+irv(prevalg,       3, f, 2,  preval,    2).
+irv(prevar,        3, f, 3,  preval,    2). /* var ???  */
+irv(prevals,       3, f, 4,  preval,    2).
+
+/* classe 3g  d(are) */
+irv(da,          3, g, 1,  d,     1). 
+irv(di,         3, g, 2,  d,     1).
+irv(died,       3, g, 3,  d,     1).
+
+irv(and,         3, h, 1,  and,     1).
+irv(vad,         3, h, 2,  and,     1). 
+irv(v,         3, h, 3,  and,     1). 
+
+irv(par,        3, i, 1,  par,    2).
+irv(pai,        3, i, 2,  par,    2).
+irv(parv,       3, i, 3,  par,    2).
+irv(pars,       3, i, 4,  par,    2).
+
+irv(appar,        3, l, 1,  appar,    3).
+irv(appai,        3, l, 2,  appar,    3).
+irv(apparv,       3, l, 3,  appar,    3).
+irv(appars,       3, l, 4,  appar,    3).
+
+irv(compar,        3, l, 1,  compar,    3).
+irv(compai,        3, l, 2,  compar,    3).
+irv(comparv,       3, l, 3,  compar,    3).
+irv(compars,       3, l, 4,  compar,    3).
+
+
+/* classe 4a  */
+irv(man,        4, a, 1,  man, 2).
+irv(mang,       4, a, 2,  man, 2).
+irv(mar,        4, a, 3,  man, 2).
+irv(mas,        4, a, 4,  man, 2).
+irv(mast,       4, a, 5,  man, 2).
+
+/* classe 4b  */
+irv(ten,       4, b, 1,  ten, 2).
+irv(tien,      4, b, 2,  ten, 2).
+irv(teng,      4, b, 3,  ten, 2).
+irv(ter,       4, b, 4,  ten, 2).
+irv(tenn,      4, b, 5,  ten, 2).
+irv(otten,       4, b, 1,  otten, 2).
+irv(ottien,      4, b, 2,  otten, 2).
+irv(otteng,      4, b, 3,  otten, 2).
+irv(otter,       4, b, 4,  otten, 2).
+irv(ottenn,      4, b, 5,  otten, 2).
+irv(sosten,       4, b, 1, sosten, 2).
+irv(sostien,      4, b, 2, sosten, 2).
+irv(sosteng,      4, b, 3, sosten, 2).
+irv(soster,       4, b, 4, sosten, 2).
+irv(sostenn,      4, b, 5, sosten, 2).
+
+
+/* classe 4c  */
+irv(av,       4, c, 1,  av,  2).
+irv(h,        4, c, 2,  av,  2).
+irv(abb,      4, c, 3,  av,  2).
+irv(abbi,     4, c, 4,  av,  2).
+irv(ebb,      4, c, 5,  av,  2).
+irv(sap,      4, c, 1,  sap, 2).
+irv(s,        4, c, 2,  sap, 2).
+irv(sapp,     4, c, 3,  sap, 2).
+irv(sappi,    4, c, 4,  sap, 2).
+irv(sepp,     4, c, 5,  sap, 2).
+
+/* classe 4d  */
+irv(tra,        4, d, 1,  tra, 2).  /* trarre  */
+irv(trar,       4, d, 3,  tra, 2).
+irv(tragg,      4, d, 2,  tra, 2).
+irv(trass,      4, d, 4,  tra, 2).
+irv(tratt,      4, d, 5,  tra, 2).
+
+irv(du,         4, e, 1,  du, 2).
+irv(duc,        4, e, 2,  du, 2).
+irv(dur,        4, e, 3,  du, 2).
+irv(duss,       4, e, 4,  du, 2).
+irv(dott,       4, e, 5,  du, 2).
+
+irv(po,         4, f, 1,  po, 2).
+irv(pon,        4, f, 2,  po, 2).
+irv(pong,       4, f, 3,  po, 2).
+irv(por,        4, f, 4,  po, 2).
+irv(pos,        4, f, 5,  po, 2).
+irv(post,       4, f, 6,  po, 2).
+
+irv(compo,         4, f, 1,  compo, 2).
+irv(compon,        4, f, 2,  compo, 2).
+irv(compong,       4, f, 3,  compo, 2).
+irv(compor,        4, f, 4,  compo, 2).
+irv(compos,        4, f, 5,  compo, 2).
+irv(compost,       4, f, 6,  compo, 2).
+
+irv(dispo,         4, f, 1,  dispo, 2).
+irv(dispon,        4, f, 2,  dispo, 2).
+irv(dispong,       4, f, 3,  dispo, 2).
+irv(dispor,        4, f, 4,  dispo, 2).
+irv(dispos,        4, f, 5,  dispo, 2).
+irv(dispost,       4, f, 6,  dispo, 2).
+
+irv(ven,       4, g, 1,  ven, 3).
+irv(vien,      4, g, 2,  ven, 3).
+irv(veng,      4, g, 3,  ven, 3).
+irv(ver,       4, g, 4,  ven, 3).
+irv(venn,      4, g, 5,  ven, 3).
+
+/* classe 5a  */
+irv(vol,       5, a, 1,  vol, 2).
+irv(vogli,     5, a, 2,  vol, 2).
+irv(vuo,       5, a, 3,  vol, 2).
+irv(vuol,      5, a, 4,  vol, 2).
+irv(vor,       5, a, 5,  vol, 2).
+irv(voll,      5, a, 6,  vol, 2).
+
+irv(dol,       5, b, 1,  dol, 2).
+irv(dogl,      5, b, 2,  dol, 2).
+irv(duol,      5, b, 3,  dol, 2).
+irv(dolg,      5, b, 4,  dol, 2).
+irv(dor,       5, b, 5,  dol, 2).
+irv(dols,      5, b, 6,  dol, 2).
+
+/* classe 6a  */
+irv(f,         6, a, 1,  f, 1).
+irv(fac,       6, a, 2,  f, 1). /* f(are)  */
+irv(facci,     6, a, 3,  f, 1).
+irv(fec,       6, a, 4,  f, 1).
+irv(fatt,      6, a, 5,  f, 1).
+
+irv(disf,         6, a, 1,  disf, 1).
+irv(disfac,       6, a, 2,  disf, 1). /* f(are)  */
+irv(disfacci,     6, a, 3,  disf, 1).
+irv(disfec,       6, a, 4,  disf, 1).
+irv(disfatt,      6, a, 5,  disf, 1).
+
+irv(suef,         6, a, 1,  suef, 1).
+irv(suefac,       6, a, 2,  suef, 1). 
+irv(suefacci,     6, a, 3,  suef, 1).
+irv(suefec,       6, a, 4,  suef, 1).
+irv(suefatt,      6, a, 5,  suef, 1).
+
+irv(ess,       7, a, 1,  ess, 2). /* essf(ere)  */
+irv(son,       7, a, 2,  ess, 2). 
+irv(se,         7, a, 3,  ess, 2).
+irv(si,      7, a, 4,  ess, 2).
+irv(er,     7, a, 6,  ess, 2).
+irv(fu,       7, a, 7,  ess, 2).
+irv(fo,      7, a, 8,  ess, 2).
+irv(stat,      7, a, 9,  ess, 2).
+irv(sa,      7, a, 10,  ess, 2).
+irv(è,      7, a, 11,  ess, 2).
+
+clx(1,c, ['clit:pro']).
+clx(2,ce, ['clit:pro']).
+clx(3,cce, ['clit:double']).
+clx(3,cci, ['clit:r_enc']).
+clx(4,cela, ['clit:enc']).
+clx(4,cele, ['clit:enc']).
+clx(4,celi, ['clit:enc']).
+clx(4,celo, ['clit:enc']).
+clx(4,cene, ['clit:enc']).
+clx(4,cisi, ['clit:enc']).
+clx(2,ci, ['clit:proenc']).
+clx(3,gli, ['clit:proenc']).
+clx(6,gliela, ['clit:enc', 'clit:proenc']).
+clx(6,gliele, ['clit:enc', 'clit:proenc']).
+clx(6,glieli, ['clit:enc', 'clit:proenc']).
+clx(6,glielo, ['clit:enc', 'clit:proenc']).
+clx(6,gliene, ['clit:enc', 'clit:proenc']).
+clx(5,glisi, ['clit:enc']).
+clx(1,l, ['clit:proenc']).
+clx(2,la, ['clit:proenc']).
+clx(2,le, ['clit:proenc']).
+clx(2,li, ['clit:proenc']).
+clx(3,lla, ['clit:r_enc']).
+clx(3,lle, ['clit:r_enc']).
+clx(3,lli, ['clit:r_enc']).
+clx(3,llo, ['clit:r_enc']).
+clx(2,lo, ['clit:proenc']).
+clx(4,loro, ['clit:enc']).
+clx(2,me, ['clit:pro']).
+clx(4,mela, ['clit:enc']).
+clx(4,mele, ['clit:enc']).
+clx(4,meli, ['clit:enc']).
+clx(4,melo, ['clit:enc']).
+clx(4,mene, ['clit:enc']).
+clx(2,ne, ['clit:proenc']).
+clx(3,nne, ['clit:r_enc']).
+clx(2,mi, ['clit:proenc']).
+clx(4,mici, ['clit:enc']).
+clx(4,misi, ['clit:enc']).
+clx(4,mivi, ['clit:enc']).
+clx(3,mme, ['clit:double']).
+clx(3,mmi, ['clit:r_enc']).
+clx(2,se, ['clit:pro']).
+clx(4,selo, ['clit:enc']).
+clx(4,sela, ['clit:enc']).
+clx(4,seli, ['clit:enc']).
+clx(4,sele, ['clit:enc']).
+clx(4,sene, ['clit:enc']).
+clx(2,si, ['clit:proenc']).
+clx(2,te, ['clit:pro']).
+clx(4,tela, ['clit:enc']).
+clx(4,teli, ['clit:enc']).
+clx(4,telo, ['clit:enc']).
+clx(4,tele, ['clit:enc']).
+clx(4,tene, ['clit:enc']).
+clx(2,ti, ['clit:proenc']).
+clx(4,tici, ['clit:enc']).
+clx(4,tisi, ['clit:enc']).
+clx(3,tte, ['clit:double']).
+clx(3,tti, ['clit:r_enc']).
+clx(2,ve, ['clit:pro']).
+clx(2,vi, ['clit:proenc']).
+clx(4,velo, ['clit:enc']).
+clx(4,vela, ['clit:enc']).
+clx(4,veli, ['clit:enc']).
+clx(4,vele, ['clit:enc']).
+clx(4,vene, ['clit:enc']).
+clx(4,visi, ['clit:enc']).
+clx(4,vici, ['clit:enc']).
+clx(4,viti, ['clit:enc']).
+
+
+plx(1,a, [dn, dadj, dv]).
+plx(1,â, [dv]).
+plx(5,accio, [dn]).
+plx(4,acci, [dn]).
+plx(5,accia, [dn]).
+plx(4,acce, [dn]).
+plx(2,ai, [dv]).
+plx(6,amente, [dadv]).
+plx(3,am, [dv]).
+plx(3,amo, [dv]).
+plx(4,ammo, [dv]).
+plx(2,an, [dv]).
+plx(4,ando, [dv]).
+plx(3,ano, [dv]).
+plx(4,anno, [dv]). %sanno
+plx(4,ante, [dv]).
+plx(4,anti, [dv]).
+plx(3,are, [dv]).
+plx(2,ar, [dv]).
+plx(5,aron, [dv]).
+plx(5,arono, [dv]).
+plx(4,arai, [dv]).
+plx(3,arà, [dv]).
+plx(6,aranno, [dv]).
+plx(6,arebbe, [dv]).
+plx(5,aremo, [dv]).
+plx(5,arete, [dv]).
+plx(8,arebbero, [dv]).
+plx(4,arei, [dv]).
+plx(6,aremmo, [dv]).
+plx(6,areste, [dv]).
+plx(6,aresti, [dv]).
+plx(3,arò, [dv]).
+plx(4,asse, [dv]).
+plx(6,assero, [dv]).
+plx(4,assi, [dv]).
+plx(6,assimo, [dv]).
+plx(4,aste, [dv]).
+plx(4,asti, [dv]).
+plx(3,ata, [dv]).
+plx(3,ate, [dv]).
+plx(3,ati, [dv]).
+plx(3,ato, [dv]).
+plx(3,ava, [dv]).  
+plx(5,avam, [dv]).
+plx(5,avan, [dv]).
+plx(5,avamo, [dv]).
+plx(5,avano, [dv]).
+plx(5,avate, [dv]).
+plx(3,avi, [dv]).
+plx(3,avo, [dv]).  
+plx(1,à, [dv]).
+plx(1,e, [dn, dadj, dv]).
+plx(1,é, [dv, dn]).
+plx(2,ei, [dv]).
+plx(6,emente, [dadv]).
+plx(4,emmo, [dv]).
+plx(4,endo, [dv]).
+plx(4,ente, [dv]).
+plx(4,enti, [dv]).
+plx(3,erà, [dv]).
+plx(4,erai, [dv]).
+plx(6,eranno, [dv]).
+plx(3,ere, [dv]).
+plx(2,er, [dv]).
+plx(6,erebbe, [dv]).
+plx(8,erebbero, [dv]).
+plx(4,erei, [dv]).
+plx(6,eremmo, [dv]).
+plx(5,erem, [dv]).
+plx(5,eremo, [dv]).
+plx(6,ereste, [dv]).
+plx(6,eresti, [dv]).
+plx(5,erete, [dv]).
+plx(3,erò, [dv]).
+plx(3,ero, [dv]). % accesero
+plx(5,eron, [dv]).
+plx(5,erono, [dv]).
+plx(4,esse, [dv]).
+plx(6,essero, [dv]).
+plx(4,essi, [dv]).
+plx(6,essimo, [dv]).
+plx(4,este, [dv]).
+plx(4,esti, [dv]).
+plx(3,ete, [dv]).
+plx(4,etta, [dn]).
+plx(4,ette, [dv, dn]).
+plx(6,ettero, [dv]).
+plx(4,etti, [dv, dn]).
+plx(4,etto, [dn]).
+plx(3,eva, [dv]).  
+plx(5,evam, [dv]).
+plx(5,evan, [dv]).
+plx(5,evamo, [dv]).
+plx(5,evano, [dv]).
+plx(5,evate, [dv]).
+plx(3,evi, [dv]).
+plx(3,evo, [dv]).  
+plx(5,evon, [dv]).  
+plx(5,evono, [dv]).  
+plx(2,he, [dadj, dn]).
+plx(4,herà, [dv]).
+plx(5,herai, [dv]).
+plx(7,heran, [dv]).
+plx(7,heranno, [dv]).
+plx(7,herebbe, [dv]).
+plx(9,herebbero, [dv]).
+plx(5,herei, [dv]).
+plx(7,heremmo, [dv]).
+plx(6,herem, [dv]).
+plx(6,heremo, [dv]).
+plx(7,hereste, [dv]).
+plx(7,heresti, [dv]).
+plx(6,herete, [dv]).
+plx(4,herò, [dv]).
+plx(4,hetti, [dn]).
+plx(4,hetto, [dn]).
+plx(2,hi, [dadj, dn, dv]).
+plx(5,hiam, [dv]).
+plx(5,hiamo, [dv]).
+plx(5,hiate, [dv]).
+plx(4,hini, [dn]).
+plx(4,hino, [dn,dv]).
+plx(7,hissimo, [dv, dadv, dadj]).
+plx(7,hissima, [dadj]).
+plx(7,hissime, [dadj]).
+plx(7,hissimi, [dadj]).
+plx(1,i, [dn, dv, dadj]).
+plx(1,ì, [dv, dn]).
+plx(2,ia, [dn, dadj]).
+plx(4,iam, [dv]).
+plx(4,iamo, [dv]).
+plx(4,ian, [dv]).
+plx(4,iano, [dv]).
+plx(4,iate, [dv]).
+plx(4,ieri, [avv]).
+plx(2,ii, [dv, dn, dadj]).
+plx(4,immo, [dv]).
+plx(3,imo, [dv]).
+plx(3,ina, [dn]).
+plx(3,ine, [dn]).
+plx(3,ini, [dn]).
+plx(3,ino, [dv, dn]).
+plx(3,irà, [dv]).
+plx(4,irai, [dv]).
+plx(6,iran, [dv]).
+plx(6,iranno, [dv]).
+plx(3,ire, [dv]).
+plx(2,ir, [dv]).
+plx(6,irebbe, [dv]).
+plx(8,irebbero, [dv]).
+plx(4,irei, [dv]).
+plx(6,iremmo, [dv]).
+plx(5,irem, [dv]).
+plx(5,iremo, [dv]).
+plx(6,ireste, [dv]).
+plx(6,iresti, [dv]).
+plx(5,irete, [dv]).
+plx(3,irò, [dv]).
+plx(5,iron, [dv]).
+plx(5,irono, [dv]).
+plx(4,isca, [dv]).
+plx(4,isco, [dv]).
+plx(4,isce, [dv]).
+plx(4,isci, [dv]).
+plx(5,iscan, [dv]).
+plx(5,iscon, [dv]).
+plx(6,iscono, [dv]).
+plx(6,iscano, [dv]).
+plx(4,isse, [dv]).
+plx(6,issero, [dv]).
+plx(4,issi, [dv]).
+plx(6,issimo, [dv, dadv, dadj]).
+plx(6,issima, [dadj]).
+plx(6,issime, [dadj]).
+plx(6,issimi, [dadj]).
+plx(4,iste, [dv]).
+plx(4,isti, [dv]).
+plx(3,ita, [dv]).
+plx(3,ite, [dv]).
+plx(3,iti, [dv]).
+plx(3,ito, [dv]).
+plx(3,iva, [dv]).  
+plx(5,ivam, [dv]).
+plx(5,ivan, [dv]).
+plx(5,ivamo, [dv]).
+plx(5,ivano, [dv]).
+plx(5,ivate, [dv]).
+plx(3,ivi, [dv]).
+plx(3,ivo, [dv]).  
+plx(5,mente, [dadv]).
+plx(3,mmo, [dv]).
+plx(4,nendo, [dv]).
+plx(2,no, [dv]).
+plx(1,o, [dn, dv, dadj]).
+plx(1,ò, [dv, dn]).
+plx(2,oi, [dv]).
+plx(3,one, [dn]).
+plx(3,oni, [dn]).
+plx(3,ono, [dv]).
+plx(2,on, [dv]).
+plx(3,ore, [dn, dadj]).
+plx(3,ori, [dn, dadj]).
+plx(3,rai, [dv]).
+plx(2,rà, [dv]).
+plx(5,ran, [dv]).
+plx(5,ranno, [dv]).
+plx(5,rebbe, [dv]).
+plx(4,rem, [dv]).
+plx(4,remo, [dv]).
+plx(4,rete, [dv]).
+plx(7,rebbero, [dv]).
+plx(1,r, [dv]).
+plx(3,rei, [dv]).
+plx(5,remmo, [dv]).
+plx(5,reste, [dv]).
+plx(5,resti, [dv]).
+plx(4,rice, [dn, dadj]).
+plx(4,rici, [dn, dadj]).
+plx(2,rò, [dv]).
+plx(4,ron, [dv]).
+plx(4,rono, [dv]).
+plx(3,rre, [dv]).
+plx(3,ssi, [dv]).
+plx(3,sse, [dv]).
+plx(5,ssimo, [dv]).
+plx(5,ssero, [dv]).
+plx(3,sti, [dv]).
+plx(3,ste, [dv]).
+plx(5,uccio, [dn]).
+plx(4,ucci, [dn]).
+plx(5,uccia, [dn]).
+plx(4,ucce, [dn]).
+plx(5,ucolo, [dn]).
+plx(5,ucoli, [dn]).
+plx(5,ucola, [dn]).
+plx(5,ucole, [dn]).
+plx(3,uta, [dv]).
+plx(3,ute, [dv]).
+plx(3,uti, [dv]).
+plx(3,uto, [dv]).
+
+p(a, ['pren, pred']).
+p(abbi, ['prev']).
+p(abio, ['el1']).
+p(acanto, ['el1']).
+p(accendi, ['el1']).
+p(accon, ['prev']).
+p(acetil, ['el1']).
+p(acro, ['el1']).
+p(actino, ['el1']).
+p(adeno, ['el1']).
+p(aereo, ['el1']).
+p(aeri, ['el1']).
+p(aero, ['el1']).
+p(afro, ['el1']).
+p(agro, ['el1']).
+p(algo, ['el1']).
+p(allelo, ['el1']).
+p(allergo, ['el1']).
+p(allo, ['el1']).
+p(alo, ['el1']).
+p(am, ['el1']).
+p(ambi, ['el1']).
+p(amino, ['el1']).
+p(ammino, ['el1']).
+p(ampelo, ['el1']).
+p(an, ['pren']).
+p(ana, ['pren']).
+p(andro, ['el1']).
+p(anemo, ['el1']).
+p(anfi, ['el1']).
+p(angio, ['el1']).
+p(anglo, ['el1']).
+p(aniso, ['el1']).
+p(ant, ['el1']).
+p(ante, ['el1']).
+p(antero, ['el1']).
+p(anti, ['el1']).
+p(anto, ['el1']).
+p(antraco, ['el1']).
+p(antropo, ['el1']).
+p(aplo, ['el1']).
+p(apo, ['pref']).
+p(appendi, ['el1']).
+p(appoggia, ['el1']).
+p(appre, ['prev']).
+p(apri, ['el1']).
+p(archeo, ['el1']).
+p(archi, ['el1']).
+p(arci, ['el1']).
+p(arcto, ['el1']).
+p(argiro, ['el1']).
+p(arre, ['prev']).
+p(arseno, ['el1']).
+p(arto, ['el1']).
+p(artro, ['el1']).
+p(asco, ['el1']).
+p(asciuga, ['el1']).
+p(aspira, ['el1']).
+p(asso, ['prev']).
+p(astro, ['el1']).
+p(attacca, ['el1']).
+p(attino, ['el1']).
+p(atto, ['el1']).
+p(attra, ['prev']).
+p(audio, ['el1']).
+p(auri, ['el1']).
+p(austro, ['el1']).
+p(auto, ['el1']).
+p(autobio, ['el1']).
+p(auxo, ['el1']).
+p(avam, ['el1']).
+p(avan, ['el1']).
+p(avanti, ['el1']).
+p(avi, ['el1']).
+p(avio, ['el1']).
+p(azo, ['pren']).
+p(bacia, ['el1']).
+p(balano, ['el1']).
+p(bari, ['el1']).
+p(baro, ['el1']).
+p(bati, ['el1']).
+p(bato, ['el1']).
+p(batti, ['el1']).
+p(ben, ['el1']).
+p(bevi, ['el1']).
+p(bi, ['el1']).
+p(bianco, ['el1']).
+p(biblio, ['el1']).
+p(bio, ['el1']).
+p(bis, ['el1']).
+p(blasto, ['el1']).
+p(blefaro, ['el1']).
+p(bleno, ['el1']).
+p(bocca, ['el1']).
+p(botrio, ['el1']).
+p(botrio, ['el1']).
+p(brachi, ['el1']).
+p(brachio, ['el1']).
+p(bradi, ['el1']).
+p(branchio, ['el1']).
+p(brevi, ['el1']).
+p(brio, ['el1']).
+p(bronto, ['el1']).
+p(buca, ['el1']).
+p(buta, ['pren']).
+p(caco, ['el1']).
+p(calco, ['el1']).
+p(calli, ['el1']).
+p(calo, ['el1']).
+p(cambia, ['el1']).
+p(canta, ['el1']).
+p(capo, ['el1']).
+p(cassa, ['el1']).
+p(carbo, ['el1']).
+p(carcino, ['el1']).
+p(cardio, ['el1']).
+p(cario, ['el1']).
+p(carpo, ['el1']).
+p(cata, ['el1']).
+p(cava, ['el1']).
+p(cefalo, ['el1']).
+p(ceno, ['el1']).
+p(centi, ['el1']).
+p(centro, ['el1']).
+p(cerco, ['el1']).
+p(cerebro, ['el1']).
+p(cheilo, ['el1']).
+p(cheiro, ['el1']).
+p(chemio, ['el1']).
+p(cherato, ['el1']).
+p(cheto, ['el1']).
+p(chilo, ['el1']).
+p(chiro, ['el1']).
+p(ciano, ['el1']).
+p(ciclo, ['el1']).
+p(cine, ['el1']).
+p(cinesi, ['el1']).
+p(cino, ['el1']).
+p(circo, ['pre']).
+p(circom, ['pre']).
+p(circon, ['pre']).
+p(circum, ['prev']).
+p(cis, ['el1']).
+p(cisto, ['el1']).
+p(cito, ['el1']).
+p(clado, ['el1']).
+p(cleisto, ['el1']).
+p(clino, ['el1']).
+p(cloro, ['el1']).
+p(co, ['pre']).
+p(cole, ['el1']).
+p(colpo, ['el1']).
+p(compro, ['prev']).
+p(con, ['pre']).
+p(condi, ['el1']).
+p(condro, ['el1']).
+p(conta, ['el1']).
+p(contra, ['pred']).
+p(contro, ['el1']).
+p(copri, ['el1']).
+p(copro, ['el1']).
+p(cosmo, ['el1']).
+p(crio, ['el1']).
+p(cripto, ['el1']).
+p(criso, ['el1']).
+p(critto, ['el1']).
+p(cromato, ['el1']).
+p(cromo, ['el1']).
+p(crono, ['el1']).
+p(cupro, ['el1']).
+p(cyber, ['el1']).
+p(dacrio, ['el1']).
+p(dattilo, ['el1']).
+p(de, ['prev']).
+p(deca, ['el1']).
+p(deci, ['el1']).
+p(decom, ['prev']).
+p(demo, ['el1']).
+p(dendro, ['el1']).
+p(derma, ['el1']).
+p(dermato, ['el1']).
+p(dermo, ['el1']).
+p(desmo, ['el1']).
+p(deutero, ['el1']).
+p(di, ['pre']).
+p(dia, ['el1']).
+p(diali, ['el1']).
+p(diazo, ['el1']).
+p(dico, ['el1']).
+p(dinamo, ['el1']).
+p(dino, ['el1']).
+p(diplo, ['el1']).
+p(dis, ['pre']).
+p(dodeca, ['el1']).
+p(dolico, ['el1']).
+p(duo, ['el1']).
+p(echino, ['el1']).
+p(eco, ['el1']).
+p(ecto, ['el1']).
+p(ego, ['el1']).
+p(elaio, ['el1']).
+p(elettro, ['el1']).
+p(eli, ['el1']).
+p(elio, ['el1']).
+p(elminto, ['el1']).
+p(emato, ['el1']).
+p(embrio, ['el1']).
+p(emi, ['el1']).
+p(emo, ['el1']).
+p(enantio, ['el1']).
+p(endo, ['el1']).
+p(eno, ['el1']).
+p(entero, ['el1']).
+p(entomo, ['el1']).
+p(entro, ['el1']).
+p(epato, ['el1']).
+p(epi, ['el1']).
+p(epta, ['el1']).
+p(equi, ['el1']).
+p(ergo, ['el1']).
+p(erio, ['el1']).
+p(eritro, ['el1']).
+p(eroto, ['el1']).
+p(es, ['prev']).
+p(esa, ['el1']).
+p(eso, ['el1']).
+p(estesio, ['el1']).
+p(estro, ['pre']).
+p(etero, ['el1']).
+p(etno, ['el1']).
+p(etto, ['pren']).
+p(eu, ['el1']).
+p(euro, ['el1']).
+p(exo, ['el1']).
+p(extra, ['pre']).
+p(ezio, ['el1']).
+p(fago, ['el1']).
+p(fanta, ['el1']).
+p(femto, ['el1']).
+p(feno, ['el1']).
+p(ferma, ['el1']).
+p(ferri, ['el1']).
+p(ferro, ['el1']).
+p(fico, ['el1']).
+p(fillo, ['el1']).
+p(filo, ['el1']).
+p(fisio, ['el1']).
+p(fiso, ['el1']).
+p(fito, ['el1']).
+p(flebo, ['el1']).
+p(fono, ['el1']).
+p(foto, ['el1']).
+p(fotocom, ['el1']).
+p(fra, ['pred']).
+p(franco, ['el1']).
+p(freno, ['el1']).
+p(frigo, ['el1']).
+p(ftalo, ['el1']).
+p(fuori, ['el1']).
+p(galatto, ['el1']).
+p(galvano, ['el1']).
+p(gamo, ['el1']).
+p(gastero, ['el1']).
+p(gastro, ['el1']).
+p(genio, ['el1']).
+p(geo, ['el1']).
+p(germano, ['el1']).
+p(gero, ['el1']).
+p(geronto, ['el1']).
+p(giallo, ['el1']).
+p(giga, ['el1']).
+p(gimno, ['el1']).
+p(gineco, ['el1']).
+p(ginno, ['el1']).
+p(gipso, ['el1']).
+p(gira, ['el1']).
+p(giro, ['el1']).
+p(glicero, ['el1']).
+p(glico, ['el1']).
+p(glitto, ['el1']).
+p(glotto, ['el1']).
+p(gnato, ['el1']).
+p(gonio, ['el1']).
+p(gono, ['el1']).
+p(grafo, ['el1']).
+p(grammo, ['el1']).
+p(greco, ['el1']).
+p(grigio, ['el1']).
+p(guarda, ['el1']).
+p(guasta, ['el1']).
+p(hyper, ['pre']).
+p(ialo, ['el1']).
+p(iatro, ['el1']).
+p(ibero, ['el1']).
+p(icono, ['el1']).
+p(ideo, ['el1']).
+p(idro, ['el1']).
+p(iero, ['el1']).
+p(igro, ['el1']).
+p(immuno, ['el1']).
+p(impre, ['prev']).
+p(in, ['pref']).
+p(inde, ['pre']).
+p(indis, ['pre']).
+p(indo, ['el1']).
+p(infr, ['pred']).
+p(infra, ['pred']).
+p(infrastra, ['pred']).
+p(inter, ['pre']).
+p(intr, ['pre']).
+p(intra, ['pre']).
+p(intro, ['pre']).
+p(iodo, ['el1']).
+p(iper, ['pre']).
+p(ipno, ['el1']).
+p(ipo, ['el1']).
+p(ippo, ['el1']).
+p(ipso, ['el1']).
+p(iso, ['el1']).
+p(istero, ['el1']).
+p(isto, ['el1']).
+p(italo, ['el1']).
+p(ittio, ['el1']).
+p(labio, ['el1']).
+p(lago, ['el1']).
+p(lancia, ['el1']).
+p(laparo, ['el1']).
+p(laringo, ['el1']).
+p(latero, ['el1']).
+p(lava, ['el1']).
+p(lepido, ['el1']).
+p(lepto, ['el1']).
+p(liberal, ['el1']).
+p(limno, ['el1']).
+p(linfo, ['el1']).
+p(lipo, ['el1']).
+p(liso, ['el1']).
+p(lisso, ['el1']).
+p(lito, ['el1']).
+p(lofo, ['el1']).
+p(logo, ['el1']).
+p(longi, ['el1']).
+p(macro, ['el1']).
+p(magneto, ['el1']).
+p(mal, ['el1']).
+p(malaco, ['el1']).
+p(mangia, ['el1']).
+p(mastigo, ['el1']).
+p(masto, ['el1']).
+p(maxi, ['el1']).
+p(maxillo, ['el1']).
+p(meccano, ['el1']).
+p(mega, ['el1']).
+p(megalo, ['el1']).
+p(meio, ['el1']).
+p(melano, ['el1']).
+p(melo, ['el1']).
+p(mero, ['el1']).
+p(meso, ['el1']).
+p(meta, ['pre']).
+p(meteoro, ['el1']).
+p(metil, ['el1']).
+p(metti, ['el1']).
+p(metro, ['el1']).
+p(mezza, ['el1']).
+p(mico, ['el1']).
+p(micro, ['el1']).
+p(midi, ['el1']).
+p(mielo, ['el1']).
+p(milli, ['el1']).
+p(mini, ['el1']).
+p(mio, ['el1']).
+p(miria, ['el1']).
+p(mirmeco, ['el1']).
+p(mis, ['pre']).
+p(miso, ['el1']).
+p(mixo, ['el1']).
+p(mono, ['el1']).
+p(morfo, ['el1']).
+p(moto, ['el1']).
+p(multi, ['el1']).
+p(musico, ['el1']).
+p(nano, ['el1']).
+p(narco, ['el1']).
+p(necro, ['el1']).
+p(nefro, ['el1']).
+p(nemato, ['el1']).
+p(neo, ['el1']).
+p(nero, ['el1']).
+p(neuro, ['el1']).
+p(nevro, ['el1']).
+p(nicti, ['el1']).
+p(nicto, ['el1']).
+p(nipio, ['el1']).
+p(nippo, ['el1']).
+p(nitro, ['el1']).
+p(nitti, ['el1']).
+p(nitto, ['el1']).
+p(nomo, ['el1']).
+p(nord, ['el1']).
+p(normo, ['el1']).
+p(noso, ['el1']).
+p(noto, ['el1']).
+p(oculo, ['el1']).
+p(odino, ['el1']).
+p(odonto, ['el1']).
+p(ofi, ['el1']).
+p(ofio, ['el1']).
+p(oftalmo, ['el1']).
+p(oleo, ['el1']).
+p(oligo, ['el1']).
+p(olo, ['el1']).
+p(oltre, ['pre']).
+p(ombro, ['el1']).
+p(omeo, ['el1']).
+p(omo, ['el1']).
+p(onco, ['el1']).
+p(onfalo, ['el1']).
+p(onico, ['el1']).
+p(oniro, ['el1']).
+p(onni, ['el1']).
+p(onto, ['el1']).
+p(oo, ['el1']).
+p(opisto, ['el1']).
+p(opto, ['el1']).
+p(orchi, ['el1']).
+p(oritto, ['el1']).
+p(ornito, ['el1']).
+p(oro, ['el1']).
+p(orto, ['el1']).
+p(ossi, ['el1']).
+p(osteo, ['el1']).
+p(oto, ['el1']).
+p(otta, ['el1']).
+p(ovi, ['el1']).
+p(ovo, ['el1']).
+p(paleo, ['el1']).
+p(pan, ['el1']).
+p(panto, ['el1']).
+p(para, ['el1']).
+p(passa, ['el1']).
+p(pato, ['el1']).
+p(pecilo, ['el1']).
+p(pelo, ['el1']).
+p(penta, ['el1']).
+p(per, ['pren']).
+p(perdi, ['el1']).
+p(peri, ['pren']).
+p(pesa, ['el1']).
+p(petro, ['el1']).
+p(piano, ['el1']).
+p(picno, ['el1']).
+p(pico, ['el1']).
+p(pielo, ['el1']).
+p(piazzo, ['el1']).
+p(piezo, ['el1']).
+p(pio, ['el1']).
+p(piro, ['el1']).
+p(pirro, ['el1']).
+p(placo, ['el1']).
+p(plagio, ['el1']).
+p(plani, ['el1']).
+p(plano, ['el1']).
+p(pleuro, ['el1']).
+p(pluri, ['el1']).
+p(plus, ['el1']).
+p(pluvio, ['el1']).
+p(pneumato, ['el1']).
+p(pneumo, ['el1']).
+p(podo, ['el1']).
+p(poli, ['el1']).
+p(porno, ['el1']).
+p(poro, ['el1']).
+p(porta, ['el1']).
+p(posa, ['el1']).
+p(post, ['pre']).
+p(postero, ['el1']).
+p(potamo, ['el1']).
+p(pre, ['pre']).
+p(prebio, ['pren']).
+p(precon, ['pren']).
+p(predis, ['prev']).
+p(presu, ['prev']).
+p(preter, ['pren']).
+p(pro, ['pre']).
+p(procto, ['el1']).
+p(protero, ['el1']).
+p(proto, ['el1']).
+p(psammo, ['el1']).
+p(pseudo, ['el1']).
+p(psico, ['el1']).
+p(ptero, ['el1']).
+p(quadri, ['el1']).
+p(ra, ['pred']).
+p(rachi, ['el1']).
+p(radio, ['el1']).
+p(radiotele, ['pren']).
+p(re, ['pre']).
+p(reggi, ['el1']).
+p(reintro, ['pre']).
+p(reo, ['el1']).
+p(retro, ['pre']).
+p(ri, ['pre']).
+p(ricom, ['pre']).
+p(ricon, ['pre']).
+p(ride, ['prev']).
+p(ridi, ['prev']).
+p(rim, ['pre']).
+p(rin, ['pre']).
+p(rino, ['el1']).
+p(ripro, ['prev']).
+p(ritras, ['prev']).
+p(rizo, ['el1']).
+p(rodo, ['el1']).
+p(rompi, ['pren']).
+p(rosso, ['el1']).
+p(roto, ['el1']).
+p(ruba, ['el1']).
+p(russo, ['el1']).
+p(s, ['pre']).
+p(saccari, ['el1']).
+p(saccaro, ['el1']).
+p(salva, ['el1']).
+p(sarco, ['el1']).
+p(scafo, ['el1']).
+p(scalda, ['el1']).
+p(scato, ['el1']).
+p(schiaccia, ['el1']).
+p(schisto, ['el1']).
+p(schizo, ['el1']).
+p(scialo, ['el1']).
+p(scifo, ['el1']).
+p(scler, ['el1']).
+p(sclero, ['el1']).
+p(sco, ['prev']).
+p(scom, ['pre']).
+p(scon, ['prev']).
+p(segna, ['el1']).
+p(seismo, ['el1']).
+p(seleno, ['el1']).
+p(semi, ['el1']).
+p(semio, ['el1']).
+p(seno, ['el1']).
+p(seri, ['el1']).
+p(sero, ['el1']).
+p(servo, ['el1']).
+p(servoauto, ['el1']).
+p(sesqui, ['el1']).
+p(sfigmo, ['el1']).
+p(sidero, ['el1']).
+p(siero, ['el1']).
+p(sifono, ['el1']).
+p(silo, ['el1']).
+p(si, ['pred']).
+p(sil, ['pre']).
+p(sim, ['pre']).
+p(sin, ['pre']).
+p(sino, ['el1']).
+p(sismo, ['el1']).
+p(sito, ['el1']).
+p(slavo, ['el1']).
+p(so, ['pred']).
+p(social, ['el1']).
+p(socio, ['el1']).
+p(soddis, ['prev']).
+p(soleno, ['el1']).
+p(somato, ['el1']).
+p(sopra, ['pref']).
+p(sor, ['pre']).
+p(sotto, ['pref']).
+p(sovra, ['pref']).
+p(sovrin, ['prev']).
+p(speleo, ['el1']).
+p(spermato, ['el1']).
+p(spiro, ['el1']).
+p(sporo, ['el1']).
+p(spremi, ['el1']).
+p(spro, ['prev']).
+p(stafilo, ['el1']).
+p(stato, ['el1']).
+p(stauro, ['el1']).
+p(steato, ['el1']).
+p(steno, ['el1']).
+p(stereo, ['el1']).
+p(stico, ['el1']).
+p(stilo, ['el1']).
+p(stira, ['el1']).
+p(stomato, ['el1']).
+p(stra, ['pre']).
+p(strepto, ['el1']).
+p(sub, ['pre']).
+p(sud, ['el1']).
+p(suddi, ['pre']).
+p(super, ['pre']).
+p(sur, ['pre']).
+p(surri, ['prev']).
+p(tachi, ['el1']).
+p(taglia, ['el1']).
+p(talasso, ['el1']).
+p(tanato, ['el1']).
+p(tappa, ['el1']).
+p(tassi, ['el1']).
+p(tauto, ['el1']).
+p(tecno, ['el1']).
+p(tele, ['el1']).
+p(tendi, ['el1']).
+p(teo, ['el1']).
+p(tera, ['pren']).
+p(terato, ['el1']).
+p(terio, ['el1']).
+p(termo, ['el1']).
+p(tetra, ['el1']).
+p(tiflo, ['el1']).
+p(tio, ['el1']).
+p(tipo, ['el1']).
+p(tira, ['el1']).
+p(tireo, ['el1']).
+p(tono, ['el1']).
+p(topo, ['el1']).
+p(tosco, ['el1']).
+p(toto, ['el1']).
+p(tra, ['pred']).
+p(tracheo, ['el1']).
+p(trans, ['pre']).
+p(tras, ['pre']).
+p(tri, ['el1']).
+p(trico, ['el1']).
+p(trincia, ['el1']).
+p(trofo, ['el1']).
+p(tropo, ['el1']).
+p(turbo, ['el1']).
+p(turco, ['el1']).
+p(ultr, ['el1']).
+p(ultra, ['el1']).
+p(umbro, ['el1']).
+p(uni, ['el1']).
+p(urano, ['el1']).
+p(uro, ['el1']).
+p(verde, ['el1']).
+p(vetero, ['el1']).
+p(vice, ['el1']).
+p(video, ['el1']).
+p(vuota, ['el1']).
+p(xanto, ['el1']).
+p(xeno, ['el1']).
+p(xero, ['el1']).
+p(xilo, ['el1']).
+p(zigo, ['el1']).
+p(zimo, ['el1']).
+p(zoo, ['el1']).
+
+check_rootsf(Root):-
+  on(Root, [flett, riflett, deflett, succed, perd]),!.
+
+pfd(1, b, esti,     indic,  pass,  2, s).
+pfd(1, b, este,   indic,  pass,  2, p).
+pfd(1, b, emmo,     indic,  pass,        1, p).
+
+pfd(1, b, uto, part, pass, m, s).
+pfd(1, b, uta, part, pass, f, s).
+pfd(1, b, uti, part, pass, m, p).
+pfd(1, b, ute, part, pass, f, p).
+
+pfd(1, c, iuta,     part,   pass,  f,  s).
+pfd(1, c, iute,     part,   pass,  f,  p).
+pfd(1, c, iuti,     part,   pass,  m,  p).
+pfd(1, c, iuto,     part,   pass,  m,  s).
+
+pfd(1, c, esti,     indic,  pass,  2, s).
+pfd(1, c, este,   indic,  pass,  2, p).
+pfd(1, c, emmo,     indic,  pass,        1, p).
+
+pfd(1, e, ite,  imp,   pres,  2, p).
+pfd(1, e, iamo,  imp,   pres,  1, p).
+
+pfd(1, f, ete,  imp,   pres,  2, p).
+pfd(1, f, iamo,  imp,   pres,  1, p).
+
+pfd(1, g, Fles,  Mod, Tem, P, N):-
+   (Mod=indic, Temp=fut; Mod=cond, Tem=pres),
+   pfd(6, a, Fles,  Mod, Tem, P, N).
+
+pfd(1, g, Fles,  Mod, Tem, P, N):-
+   (Mod=subj, Temp=pres
+    ; 
+    Mod=indic, Temp=pres
+    ; 
+    Mod=imp, Temp=pres
+    ; 
+    Mod=indic, Temp=pass
+    ; 
+    Mod=subj, Tem=imperf),
+   pfd(3, g, Fles,  Mod, Tem, P, N).
+
+
+pfd(2, b, ete,     indic,  pres,  2, p). /*solere*/
+
+pfd(3, a,'',   indic,  pres,  2, s).
+pfd(3, a, ete,     indic,  pres,  2, p).
+pfd(3, a, e,     indic,  pres,  3, s).
+pfd(3, a, amo,     indic,  pres,  1, p).
+
+pfd(3, f, e,     indic,  pres,  3, s).
+pfd(3, f, ete,     indic,  pres,  2, p).
+pfd(3, f, iamo,  indic,  pres,  1, p). 
+
+pfd(3, b, ite,     indic,  pres,  2, p).
+pfd(3, b, ir,  inf,   pres,  _, _).
+pfd(3, b, ì,  imp,   pres,  2, s).
+pfd(3, b, î,  imp,   pres,  2, s).
+pfd(3, b, ite,  imp,   pres,  2, p).
+
+pfd(3, c, ete,    indic,  pres,  2, p).
+pfd(3, d, ete,    indic,  pres,  2, p).
+pfd(3, c, ete,    subj,  pres,  2, p).
+pfd(3, d, ete,    subj,  pres,  2, p).
+
+pfd(3, g, ar,  inf,   pres,  _, _).
+pfd(3, g, â,  imp,   pres,  2, s).
+pfd(3, g, à,  imp,   pres,  2, s).
+pfd(3, g, ate,  imp,   pres,  2, p).
+pfd(3, g, iamo,  imp,   pres,  1, p).
+pfd(3, g, ai,    imp, pres, 2, s). % dai
+pfd(3, g, ia,    imp, pres, 3, s). % dia
+
+pfd(3, g, etti,     indic,  pass,  1, s).
+pfd(3, g, ette,     indic,  pass,  3, s).
+pfd(3, g, ettero,   indic,  pass,  3, p).
+pfd(3, g, esti,     indic,  pass,  1, s).
+pfd(3, g, este,     indic,  pass,  3, s).
+pfd(3, g, emmo,   indic,  pass,  3, p).
+
+pfd(3, g, o,     indic,  pres,  1, s).
+pfd(3, g, ai,    indic,  pres,  2, s).
+pfd(3, g, 'a’',     indic,  pres,  3, s).
+pfd(3, g, iamo,  indic,  pres,  1, p). 
+pfd(3, g, ate,  indic,   pres,  2, p).
+pfd(3, g, anno,  indic,  pres,  3, p).
+
+pfd(3, g, ia,     subj,  pres,  1, s).
+pfd(3, g, ia,    subj,  pres,  2, s).
+pfd(3, g, ia,     subj,  pres,  3, s).
+pfd(3, g, iano,  subj,  pres,  3, p).
+pfd(3, g, iamo,  subj,   pres,  1, p).
+pfd(3, g, iate,  subj,   pres,  2, p).
+
+pfd(3, g, essi,     subj,  imperf,  1, s).
+pfd(3, g, essi,    subj,  imperf,  2, s).
+pfd(3, g, esse,     subj,  imperf, 3, s).
+pfd(3, g, essimo,  subj,  imperf,  1, p). 
+pfd(3, g, este,  subj,  imperf,  2, p).
+pfd(3, g, essero,  subj,  imperf,  3, p).
+
+pfd(3, g, arò,     indic,  fut,   1, s). 
+pfd(3, g, arai,    indic,  fut,   2, s).
+pfd(3, g, arà,     indic,  fut,   3, s).
+pfd(3, g, aremo,   indic,  fut,   1, p).
+pfd(3, g, arete,   indic,  fut,   2, p). 
+pfd(3, g, aranno,  indic,  fut,   3, p).
+
+pfd(3, g, arei,     cond,  pres,   1, s). 
+pfd(3, g, aresti,   cond,  pres,   2, s).
+pfd(3, g, arebbe,   cond,  pres,   3, s).
+pfd(3, g, aremmo,   cond,  pres,   1, p).
+pfd(3, g, areste,   cond,  pres,   2, p). 
+pfd(3, g, arebbero, cond,  pres,   3, p).
+
+pfd(3, h, iamo,  indic,  pres,  1, p).
+pfd(3, h, ate,     indic,  pres,  2, p).
+pfd(3, h, iamo,  subj,  pres,  1, p).
+pfd(3, h, iate,  subj,  pres,  2, p).
+
+pfd(3, i, i,     indic,  pres,  2, s).
+pfd(3, i, e,     indic,  pres,  3, s).
+pfd(3, i, i,     imp,  pres,  2, s).
+pfd(3, i, ete,     indic,  pres,  2, p).
+
+pfd(3, l, i,     indic,  pres,  2, s).
+pfd(3, l, e,     indic,  pres,  3, s).
+pfd(3, l, i,     imp,  pres,  2, p).
+pfd(3, l, ite,     indic,  pres,  2, p).
+pfd(3, l, iamo,   indic,  pres,  1, p).
+
+pfd(3, l, iate,   subj,  pres,  2, p).
+
+pfd(3, l, immo,     indic,  pass,  1, p).
+pfd(3, l, iste,     indic,  pass,  2, p).
+pfd(3, l, isti,   indic,  pass,  3, p).
+
+pfd(4, a, i,    indic,  pres,  2, s).
+pfd(4, a, e,     indic,  pres,  3, s).
+pfd(4, a, ete,    imp,  pres,  2, p).
+pfd(4, a, iamo,  imp,  pres,  1, p). 
+pfd(4, a, ete,    indic,  pres,  2, p).
+pfd(4, a, iamo,  indic,  pres,  1, p). 
+pfd(4, a, i,     imp,    pres,  2, s).
+pfd(4, a, iamo,  subj,   pres,  1, p).
+pfd(4, a, iate,  subj,   pres,  2, p).
+
+
+pfd(4, b, iamo,     indic,  pres,   1, s). /*tenere*/
+pfd(4, b, ete,     indic,  pres,   2, p).
+pfd(4, b, iamo,     imp,  pres,   1, s). 
+pfd(4, b, ete,     imp,  pres,   2, p).
+
+pfd(4, b, uto, part, pass, m, s).
+pfd(4, b, uta, part, pass, f, s).
+pfd(4, b, uti, part, pass, m, p).
+pfd(4, b, ute, part, pass, f, p).
+
+pfd(4, c, esti,     indic,  pass,  2, s).
+pfd(4, c, emmo,     indic,  pass,  1, s).
+pfd(4, c, este,   indic,  pass,  2, p).
+pfd(4, c, ete,     indic,  pres,  2, p).
+
+
+pfd(4, d, i,    indic,  pres,  2, s).
+pfd(4, d, e,     indic,  pres,  3, s).
+pfd(4, d, ete,    indic,  pres,  2, p).
+pfd(4, d, iamo,  indic,  pres,  1, p). 
+pfd(4, d, ete,    imp,  pres,  2, p).
+pfd(4, d, iamo,  imp,  pres,  1, p). 
+pfd(4, d, i,     imp,    pres,  2, s).
+pfd(4, d, iamo,  subj,   pres,  1, p).
+pfd(4, d, iate,  subj,   pres,  2, p).
+
+pfd(4, d, rre,  inf,   pres,  _, _).
+pfd(4, e, rre,  inf,   pres,  _, _).
+pfd(4, f, rre,  inf,   pres,  _, _).
+
+pfd(4, f, nendo,  ger,   pres,  _, _).
+
+pfd(4, d, r,  inf,   pres,  _, _).
+
+pfd(4, e, r,  inf,   pres,  _, _).
+
+pfd(4, f, r,  inf,   pres,  _, _).
+pfd(4, f, sto, part, pass, m, s).
+pfd(4, f, sta, part, pass, f, s).
+pfd(4, f, sti, part, pass, m, p).
+pfd(4, f, ste, part, pass, f, p).
+
+pfd(4, g, uto, part, pass, m, s).
+pfd(4, g, uta, part, pass, f, s).
+pfd(4, g, uti, part, pass, m, p).
+pfd(4, g, ute, part, pass, f, p).
+pfd(4, g, ite,  imp,  pres,  2, p).
+pfd(4, g, ite,  indic,  pres,  2, p).
+pfd(4, g, iente,  part,  pres,  m, s).
+pfd(4, g, ienti,  part,  pres,  m, p).
+pfd(4, g, iamo,  indic,  pres,  1, p). 
+
+pfd(5, a, ete,  indic,  pres,  2, p).
+
+pfd(6, a, ar,  inf,   pres,  _, _).
+
+pfd(6, a, ate,  indic,   pres,  2, p).
+pfd(6, a, ate,  subj,   pres,  2, p).
+pfd(6, a, a,  indic,   pres,  3, s).
+pfd(6, a, a,  imp,   pres,  3, s).
+pfd(6, a, ate,  imp,   pres,  2, p).
+pfd(6, a, iamo,  imp,   pres,  1, p).
+pfd(6, a, anno,   subj,   pres,  3, p).
+pfd(6, a, anno,   indic,   pres,  3, p).
+pfd(6, a, ai,  indic,   pres,  2, s).
+
+pfd(6, a, â,  imp,   pres,  2, s).
+pfd(6, a, à,  imp,   pres,  2, s).
+
+/* FUTURO INDICATIVO 2 */
+pfd(6, a, arò,  indic, fut, 1, s).
+pfd(6, a, arai, indic, fut, 2, s).
+pfd(6, a, arà,  indic, fut, 3, s).
+pfd(6, a, aremo,indic, fut, 1, p).
+pfd(6, a, arete, indic, fut, 2, p).
+pfd(6, a, aranno, indic, fut, 3, p).
+/* PRESENTE CONDIZIONALE 2 */
+pfd(6, a, arei,    		cond, pres, 1, s).
+pfd(6, a, aresti,    	cond, pres, 2, s).
+pfd(6, a, arebbe,   	cond, pres, 3, s).
+pfd(6, a, aremmo, 		cond, pres, 1, p).
+pfd(6, a, areste,      cond, pres, 2, p).
+pfd(6, a, arebbero,  cond, pres, 3, p).
+
+/* PRESENTE INDICATIVO 1 */
+rvd(o,    1, indic, pres, 1, s).
+rvd(i,    1, indic, pres, 2, s).
+rvd(a,    1, indic, pres, 3, s).
+rvd(iamo, 1, indic, pres, 1, p).
+rvd(ate,  1, indic, pres, 2, p).
+rvd(ano,  1, indic, pres, 3, p).
+rvd(an,  1, indic, pres, 3, p).
+
+/* IMPERFETTO INDICATIVO 1 */
+rvd(avo,    1, indic, imperf, 1, s).
+rvd(avi,    1, indic, imperf, 2, s).
+rvd(ava,    1, indic, imperf, 3, s).
+rvd(avamo,  1, indic, imperf, 1, p).
+rvd(avam,  1, indic, imperf, 1, p).
+rvd(avate,  1, indic, imperf, 2, p).
+rvd(avano,  1, indic, imperf, 3, p).
+rvd(avan,  1, indic, imperf, 3, p).
+
+
+/* PASSATO REMOTO INDICATIVO 1 */
+rvd(ai,    1, indic, pass, 1, s).
+rvd(asti,  1, indic, pass, 2, s).
+rvd(ò,     1, indic, pass, 3, s).
+rvd(ammo,  1, indic, pass, 1, p).
+rvd(aste,  1, indic, pass, 2, p).
+rvd(arono, 1, indic, pass, 3, p).
+rvd(aron, 1, indic, pass, 3, p).
+
+/* FUTURO INDICATIVO 1 */
+rvd(erò,   1, indic, fut, 1, s).
+rvd(erai,  1, indic, fut, 2, s).
+rvd(erà,   1, indic, fut, 3, s).
+rvd(eremo, 1, indic, fut, 1, p).
+rvd(erete, 1, indic, fut, 2, p).
+rvd(eranno,1, indic, fut, 3, p).
+
+/* PRESENTE CONGIUNTIVO 1 */
+rvd(i,    1, subj, pres, 1, s).
+rvd(i,    1, subj, pres, 2, s).
+rvd(i,    1, subj, pres, 3, s).
+rvd(iamo, 1, subj, pres, 1, p).
+rvd(iate, 1, subj, pres, 2, p).
+rvd(ino,  1, subj, pres, 3, p).
+
+
+/* IMPERFETTO CONGIUNTIVO 1 */
+rvd(assi,    1, subj, imperf, 1, s).
+rvd(assi,    1, subj, imperf, 2, s).
+rvd(asse,    1, subj, imperf, 3, s).
+rvd(assimo,  1, subj, imperf, 1, p).
+rvd(aste,    1, subj, imperf, 2, p).
+rvd(assero,  1, subj, imperf, 3, p).
+
+/* PRESENTE CONDIZIONALE 1 */
+rvd(erei,    1, cond, pres, 1, s).
+rvd(eresti,  1, cond, pres, 2, s).
+rvd(erebbe,  1, cond, pres, 3, s).
+rvd(eremmo, 1, cond, pres, 1, p).
+rvd(ereste,  1, cond, pres, 2, p).
+rvd(erebbero,  1, cond, pres, 3, p).
+
+
+/* IMPERATIVO 1 */
+rvd(a,    	1, imp, pres, 2, s).
+rvd(i,   	1, imp, pres, 3, s).
+rvd(iamo, 	1, imp, pres, 1, p).
+rvd(ate,    1, imp, pres, 2, p).
+rvd(ino,    1, imp, pres, 3, p).
+
+
+/* INFINITO 1 */
+rvd(are,    1, inf, pres, _, _).
+rvd(ar,    1, inf, pres, _, _).
+
+/* PARTICIPIO PRESENTE 1 */
+rvd(ante,    		1, part, pres, _, s).
+rvd(anti,    		1, part, pres, _, p).
+
+/* PARTICIPIO PASSATO 1 */
+rvd(ato, 1, part, pass, m, s).
+rvd(ata, 1, part, pass, f, s).
+rvd(ati, 1, part, pass, m, p).
+rvd(ate, 1, part, pass, f, p).
+
+/* GERUNDIO 1 */
+rvd(ando,    	1, ger, pres, _, _).
+
+
+
+/* PRESENTE INDICATIVO 2 */
+rvd(o,    2, indic, pres, 1, s).
+rvd(i,    2, indic, pres, 2, s).
+rvd(e,    2, indic, pres, 3, s).
+rvd(iamo, 2, indic, pres, 1, p).
+rvd(ete,  2, indic, pres, 2, p).
+rvd(ono,  2, indic, pres, 3, p).
+rvd(on,  2, indic, pres, 3, p).
+
+/* IMPERFETTO INDICATIVO 2 */
+rvd(evo,    2, indic, imperf, 1, s).
+rvd(evi,    2, indic, imperf, 2, s).
+rvd(eva,    2, indic, imperf, 3, s).
+rvd(evamo,  2, indic, imperf, 1, p).
+rvd(evam,  2, indic, imperf, 1, p).
+rvd(evate,  2, indic, imperf, 2, p).
+rvd(evano,  2, indic, imperf, 3, p).
+rvd(evan,  2, indic, imperf, 3, p).
+
+/* PASSATO REMOTO INDICATIVO 2 */
+rvd(ei,       2, indic, pass, 1, s).
+rvd(etti,       2, indic, pass, 1, s).
+rvd(esti,     2, indic, pass, 2, s).
+rvd(ette,     2, indic, pass, 3, s).
+rvd(é,     2, indic, pass, 3, s).
+rvd(emmo,     2, indic, pass, 1, p).
+rvd(este,     2, indic, pass, 2, p).
+rvd(ettero, 2, indic, pass, 3, p).
+rvd(erono, 2, indic, pass, 3, p).
+rvd(eron, 2, indic, pass, 3, p).
+
+/* FUTURO INDICATIVO 2 */
+rvd(erò,    2, indic, fut, 1, s).
+rvd(erai,   2, indic, fut, 2, s).
+rvd(erà,    2, indic, fut, 3, s).
+rvd(eremo,  2, indic, fut, 1, p).
+rvd(erete,  2, indic, fut, 2, p).
+rvd(eranno, 2, indic, fut, 3, p).
+
+/* PRESENTE CONGIUNTIVO 2 */
+rvd(a,    2, subj, pres, 1, s).
+rvd(a,    2, subj, pres, 2, s).
+rvd(a,    2, subj, pres, 3, s).
+rvd(iamo, 2, subj, pres, 1, p).
+rvd(iate, 2, subj, pres, 2, p).
+rvd(ano,  2, subj, pres, 3, p).
+
+/* IMPERFETTO CONGIUNTIVO 2 */
+rvd(essi,    2, subj, imperf, 1, s).
+rvd(essi,    2, subj, imperf, 2, s).
+rvd(esse,    2, subj, imperf, 3, s).
+rvd(essimo,  2, subj, imperf, 1, p).
+rvd(este,    2, subj, imperf, 2, p).
+rvd(essero,  2, subj, imperf, 3, p).
+
+/* PRESENTE CONDIZIONALE 2 */
+rvd(erei,    				2, cond, pres, 1, s).
+rvd(eresti,    		2, cond, pres, 2, s).
+rvd(erebbe,   		 2, cond, pres, 3, s).
+rvd(eremmo, 				2, cond, pres, 1, p).
+rvd(ereste,      2, cond, pres, 2, p).
+rvd(erebbero,  2, cond, pres, 3, p).
+
+/* IMPERATIVO 2 */
+rvd(i,    		2, imp, pres, 2, s).
+rvd(a,   		 2, imp, pres, 3, s).
+rvd(iamo, 		2, imp, pres, 1, p).
+rvd(ete,    2, imp, pres, 2, p).
+rvd(ano,    2, imp, pres, 3, p).
+
+/* INFINITO 2 */
+rvd(ere,    				2, inf, pres, _, _).
+rvd(er,    				2, inf, pres, _, _).
+
+/* PARTICIPIO PRESENTE 2 */
+rvd(ente,    				2, part, pres, _, s).
+rvd(enti,    				2, part, pres, _, p).
+
+/* PARTICIPIO PASSATO 2 */
+rvd(uto, 2, part, pass, m, s).
+rvd(uta, 2, part, pass, f, s).
+rvd(uti, 2, part, pass, m, p).
+rvd(ute, 2, part, pass, f, p).
+
+/* GERUNDIO 2 */
+rvd(endo,    				2, ger, pres, _, _).
+
+
+
+
+/* PRESENTE INDICATIVO 3 */
+rvd(o,    3, indic, pres, 1, s).
+rvd(i,    3, indic, pres, 2, s).
+rvd(e,    3, indic, pres, 3, s).
+rvd(iamo, 3, indic, pres, 1, p).
+rvd(ite,  3, indic, pres, 2, p).
+rvd(ono,  3, indic, pres, 3, p).
+rvd(on,  3, indic, pres, 3, p).
+
+/* IMPERFETTO INDICATIVO 3*/
+rvd(ivo,    3, indic, imperf, 1, s).
+rvd(ivi,    3, indic, imperf, 2, s).
+rvd(iva,    3, indic, imperf, 3, s).
+rvd(ivamo,  3, indic, imperf, 1, p).
+rvd(ivate,  3, indic, imperf, 2, p).
+rvd(ivano,  3, indic, imperf, 3, p).
+rvd(ivan,  3, indic, imperf, 3, p).
+
+/* PASSATO REMOTO INDICATIVO 2 */
+rvd(ii,       3, indic, pass, 1, s).
+rvd(isti,     3, indic, pass, 2, s).
+rvd(ì,        3, indic, pass, 3, s).
+rvd(immo,     3, indic, pass, 1, p).
+rvd(iste,     3, indic, pass, 2, p).
+rvd(irono,    3, indic, pass, 3, p).
+rvd(iron,    3, indic, pass, 3, p).
+
+/* FUTURO INDICATIVO 3 */
+rvd(irò,    3, indic, fut, 1, s).
+rvd(irai,   3, indic, fut, 2, s).
+rvd(irà,    3, indic, fut, 3, s).
+rvd(iremo,  3, indic, fut, 1, p).
+rvd(irete,  3, indic, fut, 2, p).
+rvd(iranno, 3, indic, fut, 3, p).
+
+/* PRESENTE CONGIUNTIVO 3 */
+rvd(a,    3, subj, pres, 1, s).
+rvd(a,    3, subj, pres, 2, s).
+rvd(a,    3, subj, pres, 3, s).
+rvd(iamo, 3, subj, pres, 1, p).
+rvd(iate, 3, subj, pres, 2, p).
+rvd(ano,  3, subj, pres, 3, p).
+
+/* IMPERFETTO CONGIUNTIVO 3 */
+rvd(issi,    3, subj, imperf, 1, s).
+rvd(issi,    3, subj, imperf, 2, s).
+rvd(isse,    3, subj, imperf, 3, s).
+rvd(issimo,  3, subj, imperf, 1, p).
+rvd(iste,    3, subj, imperf, 2, p).
+rvd(issero,  3, subj, imperf, 3, p).
+
+/* PRESENTE CONDIZIONALE 3 */
+rvd(irei,    				3, cond, pres, 1, s).
+rvd(iresti,    		3, cond, pres, 2, s).
+rvd(irebbe,   		 3, cond, pres, 3, s).
+rvd(iremmo, 				3, cond, pres, 1, p).
+rvd(ireste,      3, cond, pres, 2, p).
+rvd(irebbero,  3, cond, pres, 3, p).
+
+/* IMPERATIVO 3 */
+rvd(i,    		3, imp, pres, 2, s).
+rvd(a,   		 3, imp, pres, 3, s).
+rvd(iamo, 		3, imp, pres, 1, p).
+rvd(ite,    3, imp, pres, 2, p).
+rvd(ano,    3, imp, pres, 3, p).
+
+/* INFINITO 3 */
+rvd(ire,    				3, inf, pres, _, _).
+rvd(ir,    				3, inf, pres, _, _).
+
+/* PARTICIPIO PRESENTE 3 */
+rvd(ente,    				3, part, pres, _, s).
+rvd(enti,    				3, part, pres, _, p).
+
+/* PARTICIPIO PASSATO 1 */
+rvd(ito, 3, part, pass, m, s).
+rvd(ita, 3, part, pass, f, s).
+rvd(iti, 3, part, pass, m, p).
+rvd(ite, 3, part, pass, f, p).
+
+/* GERUNDIO 3 */
+rvd(endo,  3, ger, pres, _, _).
+
+
+/* PRESENTE INDICATIVO 4 */
+rvd(isco,    a3, indic, pres, 1, s).
+rvd(isci,    a3, indic, pres, 2, s).
+rvd(isce,    a3, indic, pres, 3, s).
+rvd(iamo, a3, indic, pres, 1, p).
+rvd(iam, a3, indic, pres, 1, p).
+rvd(ite,  a3, indic, pres, 2, p).
+rvd(iscono,  a3, indic, pres, 3, p).
+rvd(iscon,  a3, indic, pres, 3, p).
+
+/* IMPERFETTO INDICATIVO 3*/
+rvd(ivo,    a3, indic, imperf, 1, s).
+rvd(ivi,    a3, indic, imperf, 2, s).
+rvd(iva,    a3, indic, imperf, 3, s).
+rvd(ivamo,  a3, indic, imperf, 1, p).
+rvd(ivam,  a3, indic, imperf, 1, p).
+rvd(ivate,  a3, indic, imperf, 2, p).
+rvd(ivano,  a3, indic, imperf, 3, p).
+rvd(ivan,  a3, indic, imperf, 3, p).
+
+/* PASSATO REMOTO INDICATIVO 2 */
+rvd(ii,       a3, indic, pass, 1, s).
+rvd(isti,     a3, indic, pass, 2, s).
+rvd(ì,        a3, indic, pass, 3, s).
+rvd(immo,     a3, indic, pass, 1, p).
+rvd(iste,     a3, indic, pass, 2, p).
+rvd(irono,    a3, indic, pass, 3, p).
+
+/* FUTURO INDICATIVO 3 */
+rvd(irò,    a3, indic, fut, 1, s).
+rvd(irai,   a3, indic, fut, 2, s).
+rvd(irà,    a3, indic, fut, 3, s).
+rvd(iremo,  a3, indic, fut, 1, p).
+rvd(irete,  a3, indic, fut, 2, p).
+rvd(iranno, a3, indic, fut, 3, p).
+
+/* PRESENTE CONGIUNTIVO 3 */
+rvd(isca,    a3, subj, pres, 1, s).
+rvd(isca,    a3, subj, pres, 2, s).
+rvd(isca,    a3, subj, pres, 3, s).
+rvd(iamo, a3, subj, pres, 1, p).
+rvd(iam, a3, subj, pres, 1, p).
+rvd(iate, a3, subj, pres, 2, p).
+rvd(iscano,  a3, subj, pres, 3, p).
+rvd(iscan,  a3, subj, pres, 3, p).
+
+/* IMPERFETTO CONGIUNTIVO 3 */
+rvd(issi,    a3, subj, imperf, 1, s).
+rvd(issi,    a3, subj, imperf, 2, s).
+rvd(isse,    a3, subj, imperf, 3, s).
+rvd(issimo,  a3, subj, imperf, 1, p).
+rvd(iste,    a3, subj, imperf, 2, p).
+rvd(issero,  a3, subj, imperf, 3, p).
+
+/* PRESENTE CONDIZIONALE 3 */
+rvd(irei,    				a3, cond, pres, 1, s).
+rvd(iresti,    		a3, cond, pres, 2, s).
+rvd(irebbe,   		 a3, cond, pres, 3, s).
+rvd(iremmo, 				a3, cond, pres, 1, p).
+rvd(ireste,      a3, cond, pres, 2, p).
+rvd(irebbero,  a3, cond, pres, 3, p).
+
+/* IMPERATIVO 3 */
+rvd(isci,    		a3, imp, pres, 2, s).
+rvd(isca,   		 a3, imp, pres, 3, s).
+rvd(iamo, 		a3, imp, pres, 1, p).
+rvd(iam, 		a3, imp, pres, 1, p).
+rvd(ite,    a3, imp, pres, 2, p).
+rvd(iscano,    a3, imp, pres, 3, p).
+rvd(iscan,    a3, imp, pres, 3, p).
+
+/* INFINITO 3 */
+rvd(ire,    				a3, inf, pres, _, _).
+rvd(ir,    				a3, inf, pres, _, _).
+
+/* PARTICIPIO PRESENTE 3 */
+rvd(ente,    				a3, part, pres, _, s).
+rvd(enti,    				a3, part, pres, _, p).
+
+/* PARTICIPIO PASSATO 1 */
+rvd(ito, a3, part, pass, m, s).
+rvd(ita, a3, part, pass, f, s).
+rvd(iti, a3, part, pass, m, p).
+rvd(ite, a3, part, pass, f, p).
+
+/* GERUNDIO 3 */
+rvd(endo,  a3, ger, pres, _, _).
+
+
+/* INDIC FUTURO irregolare 1 */
+ivd(rò,    	1, indic, fut, 1, s).
+ivd(rai,    1, indic, fut, 2, s).
+ivd(rà,   		1, indic, fut, 3, s).
+ivd(remo, 		1, indic, fut, 1, p).
+ivd(rete,   1, indic, fut, 2, p).
+ivd(ranno,  1, indic, fut, 3, p).
+
+/* Indic Pass */
+ivd(etti,       1, indic, pass, 1, s).
+ivd(esti,     1, indic, pass, 2, s).
+ivd(ette,     1, indic, pass, 3, s).
+ivd(emmo,     1, indic, pass, 1, p).
+ivd(este,     1, indic, pass, 2, p).
+ivd(ettero, 1, indic, pass, 3, p).
+
+/* CONDIZIONALE PRESENTE irregolare 1 */
+ivd(rei,    				1, cond, pres, 1, s).
+ivd(resti,    		1, cond, pres, 2, s).
+ivd(rebbe,   		 1, cond, pres, 3, s).
+ivd(remmo, 				1, cond, pres, 1, p).
+ivd(reste,      1, cond, pres, 2, p).
+ivd(rebbero,  1, cond, pres, 3, p).
+
+/* INDIC PRESENTE irregolare 2 */
+ivd(ai,    2, indic, pres, 2, s). % sai
+ivd(oi,    2, indic, pres, 2, s). % puoi
+ivd(a,     2, indic, pres, 3, s). % sa
+ivd(ò,     2, indic, pres, 3, s). % può
+ivd(amo,  2, indic, pres, 1, p). % vogliamo
+ivd(am,  2, indic, pres, 1, p). % vogliamo
+ivd(ete,  2, indic, pres, 2, p). % volete
+ivd(anno,  2, indic, pres, 3, p). % sanno
+ivd(iamo,  2, indic, pres, 1, p). % siamo
+ivd(iam,  2, indic, pres, 1, p). % siamo
+ivd(iete,  2, indic, pres, 2, p). % siete
+
+/* IMPERATIVO irregolare troncato 1 e 2 */
+ivd(â,    1, imp, pres, 2, s). % da
+ivd(î,    3, imp, pres, 2, s). % di
+
+/* INDIC FUTURO irregolare 2 */
+ivd(rò,    	2, indic, fut, 1, s).
+ivd(rai,    2, indic, fut, 2, s).
+ivd(rà,   		2, indic, fut, 3, s).
+ivd(remo, 		2, indic, fut, 1, p).
+ivd(rete,   2, indic, fut, 2, p).
+ivd(ranno,  2, indic, fut, 3, p).
+
+/* INDIC PASSATO REMOTO irregolare 2 */
+ivd(i,   2, indic, pass, 1, s).   % accesi
+ivd(e,   2, indic, pass, 3, s).   % accese
+ivd(ero, 2, indic, pass, 3, p).   % accesero
+
+ivd(sti,   2, indic, pass, 2, s).   % fosti
+ivd(rono, 2, indic, pass, 3, p).   % furono
+ivd(ste,   2, indic, pass, 2, p).   % foste
+ivd(mmo,   2, indic, pass, 1, p).   % fummo
+
+/* CONG PRESENTE irregolare 2 */
+ivd(ia,    2, subj, pres, _, s). % abbia
+ivd(iano,  2, subj, pres, 3, p). % abbiamo
+
+/* PARTICIPIO PASSATO irregolare 2 */
+ivd(o, 2, part, pass, m, s). % acceso
+ivd(a, 2, part, pass, f, s).  % accesa
+ivd(i, 2, part, pass, m, p).  % accesi
+ivd(e, 2, part, pass, f, p).  % accese
+
+
+/* CONDIZIONALE PRESENTE irregolare 2 */
+ivd(rei,    				2, cond, pres, 1, s).
+ivd(resti,    		2, cond, pres, 2, s).
+ivd(rebbe,   		 2, cond, pres, 3, s).
+ivd(remmo, 				2, cond, pres, 1, p).
+ivd(reste,      2, cond, pres, 2, p).
+ivd(rebbero,  2, cond, pres, 3, p).
+
+/* IMPERATIVO irregolare 2 */
+ivd(ii,    2, imp, pres, 2, s). % sii
+
+/* INFINITO irregolare 2 */
+ivd(er,    2, inf, pres, _, _). % esser
+ivd(r,    2, inf, pres, _, _). % condur
+
+ivd(o,    a3, indic, pres, 1, s).
+ivd(isco,    a3, indic, pres, 1, s).
+ivd(isci,    a3, indic, pres, 2, s).
+ivd(isce,    a3, indic, pres, 3, s).
+ivd(iamo, a3, indic, pres, 1, p).
+ivd(iam, a3, indic, pres, 1, p).
+ivd(ite,  a3, indic, pres, 2, p).
+ivd(iscono,  a3, indic, pres, 3, p).
+ivd(iscon,  a3, indic, pres, 3, p).
+
+/* IMPERFETTO INDICATIVO 3*/
+ivd(ivo,    a3, indic, imperf, 1, s).
+ivd(ivi,    a3, indic, imperf, 2, s).
+ivd(iva,    a3, indic, imperf, 3, s).
+ivd(ivamo,  a3, indic, imperf, 1, p).
+ivd(ivam,  a3, indic, imperf, 1, p).
+ivd(ivate,  a3, indic, imperf, 2, p).
+ivd(ivano,  a3, indic, imperf, 3, p).
+ivd(ivan,  a3, indic, imperf, 3, p).
+
+/* PASSATO REMOTO INDICATIVO 2 */
+ivd(ii,       a3, indic, pass, 1, s).
+ivd(isti,     a3, indic, pass, 2, s).
+ivd(ì,        a3, indic, pass, 3, s).
+ivd(immo,     a3, indic, pass, 1, p).
+ivd(iste,     a3, indic, pass, 2, p).
+ivd(irono,    a3, indic, pass, 3, p).
+ivd(iron,    a3, indic, pass, 3, p).
+
+/* FUTURO INDICATIVO 3 */
+ivd(irò,    a3, indic, fut, 1, s).
+ivd(irai,   a3, indic, fut, 2, s).
+ivd(irà,    a3, indic, fut, 3, s).
+ivd(iremo,  a3, indic, fut, 1, p).
+ivd(irem,  a3, indic, fut, 1, p).
+ivd(irete,  a3, indic, fut, 2, p).
+ivd(iranno, a3, indic, fut, 3, p).
+
+/* FUTURO INDICATIVO 3 */
+ivd(rò,    3, indic, fut, 1, s).
+ivd(rai,   3, indic, fut, 2, s).
+ivd(rà,    3, indic, fut, 3, s).
+ivd(remo,  3, indic, fut, 1, p).
+ivd(rem,  3, indic, fut, 1, p).
+ivd(rete,  3, indic, fut, 2, p).
+ivd(ranno, 3, indic, fut, 3, p).
+
+/* CONDIZIONALE PRESENTE irregolare 1 */
+ivd(rei,    				3, cond, pres, 1, s).
+ivd(resti,    		3, cond, pres, 2, s).
+ivd(rebbe,   		 3, cond, pres, 3, s).
+ivd(remmo, 				3, cond, pres, 1, p).
+ivd(reste,      3, cond, pres, 2, p).
+ivd(rebbero,  3, cond, pres, 3, p).
+
+
+/* PRESENTE CONGIUNTIVO 3 */
+ivd(isca,    a3, subj, pres, 1, s).
+ivd(isca,    a3, subj, pres, 2, s).
+ivd(isca,    a3, subj, pres, 3, s).
+ivd(iamo, a3, subj, pres, 1, p).
+ivd(iam, a3, subj, pres, 1, p).
+ivd(iate, a3, subj, pres, 2, p).
+ivd(iscano,  a3, subj, pres, 3, p).
+ivd(iscan,  a3, subj, pres, 3, p).
+
+/* IMPERFETTO CONGIUNTIVO 3 */
+ivd(issi,    a3, subj, imperf, 1, s).
+ivd(issi,    a3, subj, imperf, 2, s).
+ivd(isse,    a3, subj, imperf, 3, s).
+ivd(issimo,  a3, subj, imperf, 1, p).
+ivd(iste,    a3, subj, imperf, 2, p).
+ivd(issero,  a3, subj, imperf, 3, p).
+
+/* PRESENTE CONDIZIONALE 3 */
+ivd(irei,    				a3, cond, pres, 1, s).
+ivd(iresti,    		a3, cond, pres, 2, s).
+ivd(irebbe,   		 a3, cond, pres, 3, s).
+ivd(iremmo, 				a3, cond, pres, 1, p).
+ivd(ireste,      a3, cond, pres, 2, p).
+ivd(irebbero,  a3, cond, pres, 3, p).
+
+/* IMPERATIVO 3 */
+ivd(isci,    		a3, imp, pres, 2, s).
+ivd(isca,   		 a3, imp, pres, 3, s).
+ivd(iamo, 		a3, imp, pres, 1, p).
+ivd(iam, 		a3, imp, pres, 1, p).
+ivd(ite,    a3, imp, pres, 2, p).
+ivd(iscano,    a3, imp, pres, 3, p).
+ivd(iscan,    a3, imp, pres, 3, p).
+
+/* INFINITO 3 */
+ivd(ire,    				a3, inf, pres, _, _).
+ivd(ir,    				a3, inf, pres, _, _).
+
+/* PARTICIPIO PRESENTE 3 */
+ivd(ente,    				a3, part, pres, _, _).
+
+/* PARTICIPIO PASSATO 1 */
+ivd(ito, a3, part, pass, m, s).
+ivd(ita, a3, part, pass, f, s).
+ivd(iti, a3, part, pass, m, p).
+ivd(ite, a3, part, pass, f, p).
+
+/* GERUNDIO 3 */
+ivd(endo,  a3, ger, pres, _, _).
+
+
+sf(abile,	['suff:v:a','suff:n:a']).
+sf(abilità,	['suff:v:n:f','suff:n:n:f']).
+sf(abili,	['suff:v:a','suff:n:a']).
+sf(acce,	['suff:n:n:f']).
+sf(acchi,	['suff:v:v']).
+sf(acchiare,	['suff:v:v']).
+sf(acchione,	['suff:a:n:m']).
+sf(acchione,	['suff:a:n:f']).
+sf(acchiona,	['suff:a:n:f']).
+sf(acchioni,	['suff:a:n:m']).
+sf(acchiotti,	['suff:n:n:m']).
+sf(acchiotto,	['suff:n:n:m']).
+sf(acchiotte,	['suff:n:n:f']).
+sf(acchiotta,	['suff:n:n:f']).
+sf(acci,	['suff:n:n:m']).
+sf(accia,	['suff:n:n:m']).
+sf(accina,	['suff:n:n:m']).
+sf(accine,	['suff:n:n:m']).
+sf(accini,	['suff:n:n:m']).
+sf(accino,	['suff:n:n:m']).
+sf(accio,	['suff:n:n:m']).
+sf(accione,	['suff:n:n:m']).
+sf(accioni,	['suff:n:n:m']).
+sf(ace,	['suff:n:a']).
+sf(acea,	['suff:n:a']).
+sf(acee,	['suff:n:n:f','suff:n:a']).
+sf(acei,	['suff:n:a']).
+sf(aceo,	['suff:n:a']).
+sf(aci,	['suff:n:a']).
+sf(aggi,	['suff:v:n:m']).
+sf(aggine,	['suff:a:n:f']).
+sf(aggini,	['suff:a:n:f']).
+sf(aggio,	['suff:v:n:m']).
+sf(agle,	['suff:n:n:f']).
+sf(agli,	['suff:n:n:f']).
+sf(aglia,	['suff:n:n:f']).
+sf(aglio,	['suff:n:n:m']).
+sf(agna,	['suff:n:a']).
+sf(agne,	['suff:n:a']).
+sf(agni,	['suff:n:a']).
+sf(agno,	['suff:n:a']).
+sf(ai,	['suff:n:n:m']).
+sf(aia,	['suff:n:n:f']).
+sf(aie,	['suff:n:n:f']).
+sf(aio,	['suff:n:n:m']).
+sf(aioli,	['suff:n:n:m']).
+sf(aiolo,	['suff:n:n:m']).
+sf(aldi,	['suff:n:n:m']).
+sf(aldo,	['suff:n:n:m']).
+sf(ale,	['suff:n:a','suff:n:n:m']).
+sf(algia,	['el2:n:f']).
+sf(algie,	['el2:n:f']).
+sf(ali,	['suff:n:a','suff:n:n:m']).
+sf(aloga,	['el2:n:f']).
+sf(aloghe,	['el2:n:f']).
+sf(aloghi,	['el2:n:m']).
+sf(alogi,	['el2:n:m']).
+sf(alogia,	['el2:n:f']).
+sf(alogie,	['el2:n:f']).
+sf(alogo,	['el2:n:m']).
+sf(ame,	['suff:n:n:m']).
+sf(amentale,	['suff:n:a','suff:v:a']).
+sf(amentali,	['suff:n:a','suff:v:a']).
+sf(amenti,	['suff:v:n:m']).
+sf(amento,	['suff:v:n:m']).
+sf(ametro,	['el2:n:m']).
+sf(ametri,	['el2:n:m']).
+sf(ami,	['suff:n:n:m']).
+sf(ana,	['suff:n:a']).
+sf(anda,	['suff:v:n:f']).
+sf(ande,	['suff:v:n:f']).
+sf(andi,	['suff:v:n:m']).
+sf(ando,	['suff:v:n:m']).
+sf(andri,	['el2:n:m']).
+sf(andrie,	['el2:n:f']).
+sf(andria,	['el2:n:f']).
+sf(andro,	['el2:n:m']).
+sf(ane,	['suff:n:a']).
+sf(anei,	['suff:n:a']).
+sf(aneo,	['suff:n:a']).
+sf(angi,	['el2:n:m']).
+sf(angio,	['el2:n:m']).
+sf(ani,	['suff:n:a','suff:n:n:m']).
+sf(ano,	['suff:n:a','suff:n:n:m','suff:v']).
+sf(ante,	['suff:v:n:m','suff:v:1']).
+sf(anti,	['suff:v:n:m','suff:v:1']).
+sf(antropi,	['el2:n:m']).
+sf(antropo,	['el2:n:m']).
+sf(anza,	['suff:v:n:f','suff:a:n:f']).
+sf(anze,	['suff:v:n:f','suff:a:n:f']).
+sf(ara,	['suff:n:n:f']).
+sf(arca,	['el2:n:mf']).
+sf(arche,	['el2:n:f']).
+sf(archi,	['el2:n:m']).
+sf(archia,	['el2:n:f']).
+sf(archie,	['el2:n:f']).
+sf(arda,	['suff:n:n:f']).
+sf(arde,	['suff:n:n:f']).
+sf(ardi,	['suff:n:n:m']).
+sf(ardo,	['suff:n:n:m']).
+sf(are,	['suff:n:a','suff:v:1']).
+sf(areccia,	['suff:n:a']).
+sf(arecce,	['suff:n:a']).
+sf(arecci,	['suff:n:a']).
+sf(areccio,	['suff:n:a']).
+sf(arell,	['suff:v:v']).
+sf(arellare,	['suff:v:v']).
+sf(ari,	['suff:n:a','suff:n:n:m']).
+sf(aria,	['suff:n:a','suff:n:n:f']).
+sf(ariale,	['suff:n:a','suff:n:n:f']).
+sf(ariali,	['suff:n:a','suff:n:n:f']).
+sf(arie,	['suff:n:a','suff:n:n:f']).
+sf(ario,	['suff:n:a','suff:n:n:m']).
+sf(aro,	['suff:n:n:m']).
+sf(asi,	['suff:n:n:f']).
+sf(astici,	['suff:n:a']).
+sf(astico,	['suff:n:a']).
+sf(astra,	['suff:a:a','suff:n:n:f']).
+sf(astre,	['suff:a:a','suff:n:n:f']).
+sf(astri,	['suff:a:a','suff:n:n:m']).
+sf(astro,	['suff:a:a','suff:n:n:m']).
+sf(ata,	['suff:n:n:mf','suff:a:n:mf','suff:v:1']).
+sf(ate,	['suff:n:n:f','suff:a:n:f','suff:v:1']).
+sf(ati,	['suff:n:a','suff:n:n:m','suff:v:1']).
+sf(atica,	['suff:n:a']).
+sf(atiche,	['suff:n:a']).
+sf(atici,	['suff:n:a']).
+sf(atico,	['suff:n:a']).
+sf(ativa,	['suff:v:a','suff:n:a']).
+sf(ative,	['suff:v:a','suff:n:a']).
+sf(ativi,	['suff:v:a','suff:n:a']).
+sf(ativo,	['suff:v:a','suff:n:a']).
+sf(ato,	['suff:n:a','suff:n:n:m','suff:v:1']).
+sf(atore,	['suff:a:n:m','suff:v:n:m','suff:n:n:m']).
+sf(atori,	['suff:a:n:m','suff:v:n:m','suff:n:n:m']).
+sf(atorio,	['suff:v:n:m','suff:n:n:m']).
+sf(atrice,	['suff:v:n:f','suff:n:n:f']).
+sf(atrici,	['suff:v:n:f','suff:n:n:f']).
+sf(atura,	['suff:v:n:f','suff:a:n:f','suff:n:n:f']).
+sf(ature,	['suff:v:n:f','suff:a:n:f','suff:n:n:f']).
+sf(azione,	['el2:n:f']).
+sf(azioni,	['el2:n:f']).
+sf(azza,	['suff:n:n:f']).
+sf(azz,	['suff:v:v']).
+sf(azze,	['suff:n:n:f']).
+sf(azzi,	['suff:n:n:m']).
+sf(azzo,	['suff:n:n:m']).
+sf(bari,	['el2:n:m']).
+sf(baro,	['el2:n:m']).
+sf(bati,	['el2:n:m']).
+sf(bato,	['el2:n:m']).
+sf(bio,	['el2:n:m']).
+sf(blasti,	['el2:n:m']).
+sf(blasto,	['el2:n:m']).
+sf(boli,	['el2:n:m']).
+sf(bolo,	['el2:n:m']).
+sf(botri,	['el2:n:m']).
+sf(botrio,	['el2:n:m']).
+sf(bus,	['el2:n:m']).
+sf(cardi,	['el2:n:m']).
+sf(cardia,	['el2:n:f']).
+sf(cardie,	['el2:n:f']).
+sf(cardio,	['el2:n:m']).
+sf(carpi,	['el2:n:m']).
+sf(carpo,	['el2:n:m']).
+sf(cefalia,	['el2:n:f']).
+sf(cefalie,	['el2:n:f']).
+sf(cefali,	['el2:n:m']).
+sf(cefalo,	['el2:n:m']).
+sf(cele,	['el2:n:f']).
+sf(cene,	['el2:n:m']).
+sf(cerchi,	['el2:n:m']).
+sf(cerco,	['el2:n:m']).
+sf(ceri,	['el2:n:m']).
+sf(cero,	['el2:n:m']).
+sf(cicli,	['el2:n:m']).
+sf(ciclo,	['el2:n:m']).
+sf(cina,	['suff:n:n:f']).
+sf(cine,	['suff:n:n:f']).
+sf(cinesi,	['el2:n:mf']).
+sf(cini,	['suff:n:n:m']).
+sf(cino,	['suff:n:n:m']).
+sf(citi,	['el2:n:m']).
+sf(cito,	['el2:n:m']).
+sf(clastia,	['el2:n:f']).
+sf(clini,	['el2:n:m']).
+sf(clino,	['el2:n:f']).
+sf(cocco,	['el2:n:m']).
+sf(comi,	['el2:n:m']).
+sf(comio,	['el2:n:m']).
+sf(cosmi,	['el2:n:m']).
+sf(cosmo,	['el2:n:m']).
+sf(crate,	['el2:n:m']).
+sf(crati,	['el2:n:m']).
+sf(cratici,	['el2:n:m']).
+sf(cratico,	['el2:n:m']).
+sf(crazia,	['el2:n:f']).
+sf(crazie,	['el2:n:f']).
+sf(cromia,	['el2:n:f']).
+sf(cromie,	['el2:n:f']).
+sf(croma,	['el2:a']).
+sf(crome,	['el2:a']).
+sf(cromi,	['el2:a']).
+sf(cromo,	['el2:a']).
+sf(crona,	['el2:a']).
+sf(crone,	['el2:a']).
+sf(croni,	['el2:a']).
+sf(crono,	['el2:a']).
+sf(dattili,	['el2:n:m']).
+sf(dattilo,	['el2:n:m']).
+sf(derma,	['el2:n:m']).
+sf(dermi,	['el2:n:m']).
+sf(dermia,	['el2:n:f']).
+sf(dermie,	['el2:n:f']).
+sf(dotti,	['el2:n:m']).
+sf(dotto,	['el2:n:m']).
+sf(dromi,	['el2:n:m']).
+sf(dromo,	['el2:n:m']).
+sf(ectomia,	['el2:n:f']).
+sf(ectomie,	['el2:n:f']).
+sf(edri,	['el2:n:m']).
+sf(edro,	['el2:n:m']).
+sf(efica,	['suff:n:a']).
+sf(efiche,	['suff:n:a']).
+sf(efici,	['suff:n:a']).
+sf(efico,	['suff:n:a']).
+sf(eggi,	['suff:n:n:m','suff:n:v','suff:avv:v']).
+sf(eggiare,	['suff:n:v','suff:avv:v']).
+sf(eggio,	['suff:n:n:m']).
+sf(ei,	['suff:n:a']).
+sf(ell,	['suff:v:v']).
+sf(ella,	['suff:n:n:f']).
+sf(ellare,	['suff:v:v']).
+sf(elle,	['suff:n:n:f']).
+sf(elletta,	['suff:n:n:f']).
+sf(ellette,	['suff:n:n:f']).
+sf(elletti,	['suff:n:n:m']).
+sf(elletto,	['suff:n:n:m']).
+sf(elli,	['suff:n:n:m']).
+sf(ellina,	['suff:n:n:f']).
+sf(elline,	['suff:n:n:f']).
+sf(ellini,	['suff:n:n:m']).
+sf(ellino,	['suff:n:n:m']).
+sf(ello,	['suff:n:n:m']).
+sf(elminti, ['el2:n:m']).
+sf(elminto, ['el2:n:m']).
+sf(ema,	['suff:n:n:m']).
+sf(emi,	['suff:n:n:m']).
+sf(emia,	['el2:n:f']).
+sf(emie,	['el2:n:f']).
+sf(endo,	['suff:v:2','suff:v:3']).
+sf(ene,	['suff:n:m']).
+sf(enne,	['el2:n:mf']).
+sf(enni,	['el2:n:mf']).
+sf(ennio,	['el2:n:m']).
+sf(ense,	['suff:n:a']).
+sf(ensi,	['suff:n:a']).
+sf(ente,	['suff:v:n:m','suff:v:2','suff:v:3']).
+sf(enti,	['suff:v:n:m','suff:v:2','suff:v:3']).
+sf(enza,	['suff:v:n:f','suff:a:n:f']).
+sf(enze,	['suff:v:n:f','suff:a:n:f']).
+sf(ea,	['suff:n:a']).
+sf(ee,	['suff:n:a']).
+sf(ei,	['suff:n:a']).
+sf(eo,	['suff:n:a']).
+sf(era,	['suff:n:n:f']).
+sf(ere,	['suff:v:2','suff:n:n:f']).
+sf(erell,	['suff:v:v']).
+sf(erella,	['suff:n:n:f']).
+sf(erellare,	['suff:v:v']).
+sf(erelle,	['suff:n:n:f']).
+sf(erelli,	['suff:n:n:f']).
+sf(erellina,	['suff:n:n:f']).
+sf(erelline,	['suff:n:n:f']).
+sf(erellini,	['suff:n:n:m']).
+sf(erellino,	['suff:n:n:m']).
+sf(erello,	['suff:n:n:m']).
+sf(erellona,	['suff:n:n:f']).
+sf(erellone,	['suff:n:n:m']).
+sf(erelloni,	['suff:n:n:m']).
+sf(eria,	['suff:v:n:f','suff:a:n:f','suff:n:n:f']).
+sf(erie,	['suff:v:n:f','suff:a:n:f','suff:n:n:f']).
+sf(eri,	['suff:n:n:m']).
+sf(ero,	['suff:n:n:m']).
+sf(esca,	['suff:n:a']).
+sf(esche,	['suff:n:a']).
+sf(eschi,	['suff:n:a']).
+sf(esco,	['suff:n:a']).
+sf(ese,	['suff:n:a']).
+sf(esi,	['suff:n:a']).
+sf(esima,	['suff:a:n:f']).
+sf(esime,	['suff:a:n:f']).
+sf(esimi,	['suff:a:n:m']).
+sf(esimo,	['suff:a:n:m']).
+sf(essa,	['suff:n:n:f']).
+sf(esse,	['suff:n:n:f']).
+sf(estesia,	['el2:n:f']).
+sf(estesie,	['el2:n:f']).
+sf(estre,	['suff:n:a']).
+sf(estri,	['suff:n:a']).
+sf(etana,	['suff:n:a']).
+sf(etane,	['suff:n:a']).
+sf(etani,	['suff:n:a']).
+sf(etano,	['suff:n:a']).
+sf(età,	['suff:a:n:f']).
+sf(eti,	['suff:n:n:m']).
+sf(eto,	['suff:n:n:m']).
+sf(ett,	['suff:v:v']).
+sf(etta,	['suff:n:n:f','suff:a:a']).
+sf(ettacce,	['suff:n:n:f']).
+sf(ettacci,	['suff:n:n:m']).
+sf(ettaccia,	['suff:n:n:f']).
+sf(ettaccio,	['suff:n:n:m']).
+sf(ettara,	['suff:n:n:f']).
+sf(ettare,	['suff:n:n:m','suff:v:v']).
+sf(ettari,	['suff:n:n:m']).
+sf(ettaro,	['suff:n:n:m']).
+sf(ette,	['suff:n:n:f','suff:a:a']).
+sf(etti,	['suff:n:n:m','suff:a:a']).
+sf(ettina,	['suff:n:n:f']).
+sf(ettine,	['suff:n:n:f']).
+sf(ettini,	['suff:n:n:m']).
+sf(ettino,	['suff:n:n:m']).
+sf(etto,	['suff:n:n:m','suff:a:a']).
+sf(evole,	['suff:v:a','suff:n:a']).
+sf(evoli,	['suff:v:a','suff:n:a']).
+sf(ezza,	['suff:a:n:f']).
+sf(ezze,	['suff:a:n:f']).
+sf(faga, ['el2:n:f']).
+sf(faghe, ['el2:n:f']).
+sf(faghi, ['el2:n:m']).
+sf(fagia,	['el2:n:f']).
+sf(fagie,	['el2:n:f']).
+sf(fago, ['el2:n:m']).
+sf(fera,	['el2:a']).
+sf(fere,	['el2:a']).
+sf(feri,	['el2:a']).
+sf(fero,	['el2:a']).
+sf(ficee,	['el2:n:f']).
+sf(fico,	['el2:n:m']).
+sf(fila,	['el2:a']).
+sf(file,	['el2:a']).
+sf(fili,	['el2:a']).
+sf(filia,	['el2:n:f']).
+sf(filie,	['el2:n:f']).
+sf(filli, ['el2:n:m']).
+sf(fillo, ['el2:n:m']).
+sf(filo,	['el2:a']).
+sf(fita,	['el2:n:m']).
+sf(fiti,	['el2:n:m']).
+sf(fito, ['el2:n:m']).
+sf(fobi,	['el2:n:m']).
+sf(fobia,	['el2:n:f']).
+sf(fobie,	['el2:n:f']).
+sf(fobo,	['el2:n:m']).
+sf(foni, ['el2:n:m']).
+sf(fonia,	['el2:n:f']).
+sf(fonica,	['el2:a']).
+sf(foniche,	['el2:a']).
+sf(fonici,	['el2:a']).
+sf(fonico,	['el2:a']).
+sf(fonie,	['el2:n:f']).
+sf(fono, ['el2:n:m']).
+sf(fori,	['el2:n:m']).
+sf(foria,	['el2:n:f']).
+sf(forica,	['el2:a']).
+sf(foriche,	['el2:a']).
+sf(forici,	['el2:a']).
+sf(forico,	['el2:a']).
+sf(forie,	['el2:n:f']).
+sf(forme,	['el2:a']).
+sf(formi,	['el2:a']).
+sf(foro, ['el2:n:m']).
+sf(frenia,	['el2:n:f']).
+sf(frenie,	['el2:n:f']).
+sf(fuga,	['el2:a']).
+sf(fughe,	['el2:a']).
+sf(fughi,	['el2:a']).
+sf(fugo,	['el2:a']).
+sf(gami, ['el2:n:m']).
+sf(gamia,	['el2:n:f']).
+sf(gamie,	['el2:n:f']).
+sf(gamo, ['el2:n:m']).
+sf(gena,	['el2:a']).
+sf(gene,	['el2:a']).
+sf(genia,	['el2:n:f']).
+sf(genica,	['el2:a']).
+sf(geniche,	['el2:a']).
+sf(genici,	['el2:a']).
+sf(genico,	['el2:a']).
+sf(genie,	['el2:n:f']).
+sf(geno,	['el2:a']).
+sf(geno,	['el2:a']).
+sf(geri,	['el2:n:m']).
+sf(gero,	['el2:n:m']).
+sf(gini,	['el2:n:m']).
+sf(gino,	['el2:n:m']).
+sf(giri,	['el2:n:m']).
+sf(giro,	['el2:n:m']).
+sf(glotta, ['el2:n:mf']).
+sf(glotti, ['el2:n:m']).
+sf(glotto, ['el2:n:m']).
+sf(gnata, ['el2:n:f']).
+sf(gnate, ['el2:n:f']).
+sf(gnati, ['el2:n:m']).
+sf(gnato, ['el2:n:m']).
+sf(gnosia,	['el2:n:f']).
+sf(gnosie,	['el2:n:f']).
+sf(goni,	['el2:n:m']).
+sf(gonia,	['el2:n:f']).
+sf(gonie,	['el2:n:f']).
+sf(gono,	['el2:n:m']).
+sf(gradi,	['el2:n:m']).
+sf(grado,	['el2:n:m']).
+sf(grafa,	['el2:n:f']).
+sf(grafe,	['el2:n:f']).
+sf(grafi,	['el2:n:m']).
+sf(grafia,	['el2:n:f']).
+sf(grafica,	['el2:a','el2:n:m']).
+sf(grafiche,	['el2:a','el2:n:m']).
+sf(grafici,	['el2:a','el2:n:m']).
+sf(grafico,	['el2:a','el2:n:m']).
+sf(grafie,	['el2:n:f']).
+sf(grafo,	['el2:n:m']).
+sf(gramma,	['el2:n:m']).
+sf(grammi,	['el2:n:m']).
+sf(grammo,	['el2:n:m']).
+sf(hese,	['suff:n:a']).
+sf(hesi,	['suff:n:a']).
+sf(hetto,	['suff:n:n:m']).
+sf(hetta,	['suff:n:n:f']).
+sf(hette,	['suff:n:n:f']).
+sf(hetti,	['suff:n:n:m']).
+sf(hettino,	['suff:n:n:m', 'suff:a:a']).
+sf(hettina,	['suff:n:n:f']).
+sf(hettine,	['suff:n:n:f']).
+sf(hettini,	['suff:n:n:m']).
+sf(ia,	['suff:a:n:f']).
+sf(iana,	['suff:n:a']).
+sf(iane,	['suff:n:a']).
+sf(iani,	['suff:n:a']).
+sf(iano,	['suff:n:a']).
+sf(iari,	['suff:n:a','suff:n:n:m']).
+sf(iario,	['suff:n:a','suff:n:n:m']).
+sf(iasi,	['suff:n:n:f']).
+sf(iatra,	['el2:n:mf']).
+sf(iatri,	['el2:n:mf']).
+sf(iatria,	['el2:n:f']).
+sf(iatrica,	['el2:n:f']).
+sf(iatriche,	['el2:n:f']).
+sf(iatrici,	['el2:n:m']).
+sf(iatrico,	['el2:n:m']).
+sf(iatrica,	['el2:a']).
+sf(iatriche,	['el2:a']).
+sf(iatrici,	['el2:a']).
+sf(iatrico,	['el2:a']).
+sf(iatrie,	['el2:n:f']).
+sf(ibile,	['suff:v:a']).
+sf(ibili,	['suff:v:a']).
+sf(ibilità,	['suff:v:n:f']).
+sf(ica,	['suff:n:a']).
+sf(ic,	['suff:v:v']).
+sf(icchi,	['suff:v:v','suff:n:n:m']).
+sf(icchiare,	['suff:v:v']).
+sf(icchia,	['suff:n:n:f']).
+sf(icchie,	['suff:n:n:f']).
+sf(icci,	['suff:a:n:m','suff:a:a']).
+sf(iccio,	['suff:a:n:m','suff:a:a']).
+sf(iccioli,	['suff:n:n:m']).
+sf(icciolo,	['suff:n:n:m']).
+sf(icciuoli,	['suff:n:n:m']).
+sf(icciuolo,	['suff:n:n:m']).
+sf(icciole,	['suff:n:n:f']).
+sf(icciola,	['suff:n:n:f']).
+sf(icciuole,	['suff:n:n:f']).
+sf(icciuola,	['suff:n:n:f']).
+sf(icelli,	['suff:n:n:m']).
+sf(icello,	['suff:n:n:m']).
+sf(icelle,	['suff:n:n:f']).
+sf(icella,	['suff:n:n:f']).
+sf(iche,	['suff:n:a']).
+sf(ici,	['suff:n:a']).
+sf(iciattola,	['suff:n:n:f']).
+sf(iciattole,	['suff:n:n:f']).
+sf(iciattoli,	['suff:n:n:m']).
+sf(iciattolo,	['suff:n:n:m']).
+sf(icida,	['el2:n:m']).
+sf(icidi,	['el2:n:m']).
+sf(icidio,	['el2:n:m']).
+sf(icina,	['suff:n:n:f']).
+sf(icine,	['suff:n:n:f']).
+sf(icini,	['suff:n:n:m']).
+sf(icino,	['suff:n:n:m']).
+sf(ico,	['suff:n:a']).
+sf(icoli,	['el2:n:m','suff:n:n:m']).
+sf(icolo,	['el2:n:m','suff:n:n:m']).
+sf(icoltore,	['el2:n:m','suff:n:n:m']).
+sf(icoltori,	['el2:n:m','suff:n:n:m']).
+sf(icoltura,	['el2:n:f','suff:n:n:f']).
+sf(icolture,	['el2:n:f','suff:n:n:f']).
+sf(icultore,	['el2:n:m','suff:n:n:m']).
+sf(icultori,	['el2:n:m','suff:n:n:m']).
+sf(icultura,	['el2:n:f','suff:n:n:f']).
+sf(iculture,	['el2:n:f','suff:n:n:f']).
+sf(ide,	['suff:n:n:m']).
+sf(idi,	['suff:n:n:m']).
+sf(idio,	['suff:n:n:m']).
+sf(ido,	['suff:a:n:m']).
+sf(idri, ['el2:n:m']).
+sf(idrica,	['suff:n:a']).
+sf(idriche,	['suff:n:a']).
+sf(idrici,	['suff:n:a']).
+sf(idrico,	['suff:n:a']).
+sf(idro, ['el2:n:m']).
+sf(ie,	['suff:a:n:f']).
+sf(iera,	['suff:n:n:f']).
+sf(iere,	['suff:n:n:f']).
+sf(ieri,	['suff:n:a','suff:n:n:m']).
+sf(iero,	['suff:n:a','suff:n:n:m']).
+sf(ific,	['suff:a:v']).
+sf(ifica,	['suff:n:a']).
+sf(ificare,	['suff:a:v']).
+sf(ificatore,	['el2:n:m']).
+sf(ificatori,	['el2:n:m']).
+sf(ificatorio,	['el2:n:m']).
+sf(ificazione,	['el2:n:f']).
+sf(ificazioni,	['el2:n:f']).
+sf(ifiche,	['suff:n:a']).
+sf(ifici,	['suff:n:n:m','suff:n:a']).
+sf(ificio,	['suff:n:n:m']).
+sf(ifico,	['suff:n:a']).
+sf(igiana,	['suff:n:n:f']).
+sf(igiane,	['suff:n:n:f']).
+sf(igiani,	['suff:n:n:m']).
+sf(igiano,	['suff:n:n:m']).
+sf(igna,	['suff:n:a','suff:a:a']).
+sf(igne,	['suff:n:a','suff:a:a']).
+sf(igni,	['suff:n:a','suff:a:a']).
+sf(igno,	['suff:n:a','suff:a:a']).
+sf(ii,	['suff:v:n:m']).
+sf(ile,	['suff:n:a','suff:n:n:m']).
+sf(ili,	['suff:n:a','suff:n:n:m']).
+sf(imenti,	['suff:v:n:m']).
+sf(imento,	['suff:v:n:m']).
+sf(ina,	['suff:n:n:f','suff:a:a','suff:v:n:f','suff:n:a']).
+sf(inai,	['suff:n:n:m']).
+sf(inaio,	['suff:n:n:m']).
+sf(inaia,	['suff:n:n:f']).
+sf(inaie,	['suff:n:n:f']).
+sf(ine,	['suff:a:a','suff:n:n:f','suff:v:n:f','suff:n:a']).
+sf(inei,	['suff:n:a']).
+sf(ineo,	['suff:n:a']).
+sf(inga,	['suff:a:a']).
+sf(inghe,	['suff:a:a']).
+sf(inghi,	['suff:a:a']).
+sf(ingo,	['suff:a:a']).
+sf(ini,	['suff:a:a','suff:n:n:m','suff:v:n:m','suff:n:a']).
+sf(ino,	['suff:v:n:m','suff:a:a','suff:n:n:m','suff:n:a']).
+sf(io,	['suff:v:n:m']).
+sf(iola,	['suff:n:a','suff:n:n:f']).
+sf(iole,	['suff:n:a','suff:n:n:f']).
+sf(ioli,	['suff:n:a','suff:n:n:m']).
+sf(iolina,	['suff:n:n:f']).
+sf(ioline,	['suff:n:n:f']).
+sf(iolini,	['suff:n:n:m']).
+sf(iolino,	['suff:n:n:m']).
+sf(iolo,	['suff:n:a','suff:n:n:m']).
+sf(iona,	['suff:a:n:f']).
+sf(ione,	['suff:v:n:f','suff:n:n:f']).
+sf(ioni,	['suff:v:n:m','suff:n:n:m']).
+sf(ire,	['suff:v:3']).
+sf(ismi,	['suff:a:n:m']).
+sf(ismo,	['suff:a:n:m']).
+sf(issima,	['suff:n:n:f']).
+sf(issime,	['suff:n:n:f']).
+sf(issimi,	['suff:n:n:m']).
+sf(issimo,	['suff:n:n:m']).
+sf(ista,	['suff:a:a','suff:n:n:mf']).
+sf(iste,	['suff:a:a','suff:n:n:f']).
+sf(isti,	['suff:a:a','suff:n:n:m']).
+sf(istica,	['suff:n:a']).
+sf(istiche,	['suff:n:a']).
+sf(istici,	['suff:n:a']).
+sf(istico,	['suff:n:a']).
+sf(ita,	['suff:v:n:mf','suff:v:3']).
+sf(itana,	['suff:n:a']).
+sf(itane,	['suff:n:a']).
+sf(itani,	['suff:n:a']).
+sf(itano,	['suff:n:a']).
+sf(ità,	['suff:a:n:f']).
+sf(itare,	['suff:n:v']).
+sf(ite,	['suff:n:n:m','suff:v:n:m','suff:v:3']).
+sf(iti,	['suff:n:n:m','suff:v:n:m','suff:v:3']).
+sf(ito,	['suff:v:n:m','suff:v:3']).
+sf(itore,	['suff:a:n:m','suff:v:n:m']).
+sf(itori,	['suff:a:n:m','suff:v:n:m']).
+sf(itoria,	['suff:v:a']).
+sf(itorie,	['suff:v:a']).
+sf(itorio,	['suff:v:n:m']).
+sf(itrice,	['suff:v:n:f']).
+sf(itrici,	['suff:v:n:f']).
+sf(itudine,	['suff:a:n:f']).
+sf(itudini,	['suff:a:n:f']).
+sf(iva,	['suff:v:a','suff:n:a']).
+sf(ive,	['suff:v:a','suff:n:a']).
+sf(ivi,	['suff:v:a','suff:n:a']).
+sf(ività,	['suff:v:n:f']).
+sf(ivo,	['suff:v:a','suff:n:a','suff:a:a']).
+sf(izi,	['suff:n:a']).
+sf(izia,	['suff:a:n:f','suff:n:a']).
+sf(izie,	['suff:a:n:f','suff:n:a']).
+sf(izio,	['suff:n:a']).
+sf(izione,	['el2:n:m']).
+sf(izioni,	['el2:n:m']).
+sf(izz,	['suff:a:v','suff:v:v','suff:n:v']).
+sf(izzare,	['suff:a:v','suff:v:v','suff:n:v']).
+sf(izzata,	['suff:a:a','suff:v:v','suff:n:a']).
+sf(izzate,	['suff:a:a','suff:v:v','suff:n:a']).
+sf(izzati,	['suff:a:a','suff:v:v','suff:n:a']).
+sf(izzato,	['suff:a:a','suff:v:v','suff:n:a']).
+sf(izzazione,	['suff:a:n:f','el2:n:f']).
+sf(izzazioni,	['suff:a:n:f','el2:n:f']).
+sf(lali,	['el2:n:m']).
+sf(landia,	['el2:n:f']).
+sf(latra,	['el2:n:mf']).
+sf(latri,	['el2:n:mf']).
+sf(latrica,	['el2:a']).
+sf(latriche,	['el2:a']).
+sf(latrici,	['el2:a']).
+sf(latrico,	['el2:a']).
+sf(leuchi,	['el2:n:m']).
+sf(leuco,	['el2:n:m']).
+sf(lisi,	['el2:n:f']).
+sf(lite,	['el2:n:m']).
+sf(liti,	['el2:n:m']).
+sf(litica,	['el2:a']).
+sf(litiche,	['el2:a']).
+sf(litici,	['el2:a']).
+sf(litico,	['el2:a']).
+sf(lito,	['el2:n:m']).
+sf(litri,	['el2:n:m']).
+sf(litro,	['el2:n:m']).
+sf(loga,	['el2:n:f']).
+sf(loghe,	['el2:n:f']).
+sf(loghi,	['el2:n:m']).
+sf(logi,	['el2:n:m']).
+sf(logia,	['el2:n:f']).
+sf(logie,	['el2:n:f']).
+sf(logo,	['el2:n:m']).
+sf(machia,	['el2:n:f']).
+sf(machie,	['el2:n:f']).
+sf(mane,	['el2:n:m']).
+sf(mani,	['el2:n:m']).
+sf(mania,	['el2:n:f']).
+sf(manie,	['el2:n:f']).
+sf(mante,	['el2:n:m']).
+sf(manti,	['el2:n:m']).
+sf(manzia,	['el2:n:f']).
+sf(manzie,	['el2:n:f']).
+sf(megalia,	['el2:n:f']).
+sf(megalie,	['el2:n:f']).
+sf(melia,	['el2:n:f']).
+sf(melie,	['el2:n:f']).
+sf(menti,	['suff:v:n:m']).
+sf(mento,	['suff:v:n:m']).
+sf(meri,	['el2:n:m']).
+sf(meria,	['el2:n:f']).
+sf(merie,	['el2:n:f']).
+sf(mero,	['el2:n:m']).
+sf(metri,	['el2:n:m']).
+sf(metria,	['el2:n:f']).
+sf(metrica,	['el2:a']).
+sf(metriche,	['el2:a']).
+sf(metrici,	['el2:a']).
+sf(metrico,	['el2:a']).
+sf(metrie,	['el2:n:f']).
+sf(metro,	['el2:n:m']).
+sf(metri,	['el2:n:m']).
+sf(morfi,	['el2:n:m']).
+sf(morfismi,	['el2:n:m']).
+sf(morfismo,	['el2:n:m']).
+sf(morfo,	['el2:n:m']).
+sf(nauta,	['el2:n:mf']).
+sf(naute,	['el2:n:f']).
+sf(nauti,	['el2:n:mf']).
+sf(nne,	['el2:n:mf']).
+sf(nni,	['el2:n:mf']).
+sf(nomi,	['el2:n:m']).
+sf(nomia,	['el2:n:f']).
+sf(nomici,	['el2:a']).
+sf(nomico,	['el2:a']).
+sf(nomie,	['el2:n:f']).
+sf(nomo,	['el2:n:m']).
+sf(occe,	['suff:a:a']).
+sf(occi,	['suff:a:a']).
+sf(occia,	['suff:a:a']).
+sf(occio,	['suff:a:a']).
+sf(odinia,	['el2:n:f']).
+sf(odinie,	['el2:n:f']).
+sf(odonte,	['el2:n:m']).
+sf(odonti,	['el2:n:m']).
+sf(oftalmi, ['el2:n:m']).
+sf(oftalmo, ['el2:n:m']).
+sf(ognola,	['suff:a:a']).
+sf(ognole,	['suff:a:a']).
+sf(ognoli,	['suff:a:a']).
+sf(ognolo,	['suff:a:a']).
+sf(oga,	['el2:n:f']).
+sf(oghe,	['el2:n:f']).
+sf(oghi,	['el2:n:m']).
+sf(ogi,	['el2:n:m']).
+sf(ogia,	['el2:n:f']).
+sf(ogie,	['el2:n:f']).
+sf(ogo,	['el2:n:m']).
+sf(ografo,	['el2:n:m']).
+sf(ografa,	['el2:n:f']).
+sf(ografi,	['el2:n:m']).
+sf(ografe,	['el2:n:f']).
+sf(oica,	['suff:a']).
+sf(oiche,	['suff:a']).
+sf(oici,	['suff:a']).
+sf(oico,	['suff:a']).
+sf(oidale,	['suff:n:a','suff:n:n:m']).
+sf(oidali,	['suff:n:a','suff:n:n:m']).
+sf(oide,	['suff:a:a']).
+sf(oidee,	['suff:n:n:f']).
+sf(oidei,	['suff:n:n:m']).
+sf(oideo,	['suff:a:a']).
+sf(oidi,	['suff:a:a']).
+sf(ola,	['suff:n:a','suff:n:n:f']).
+sf(ole,	['suff:n:a','suff:n:n:f']).
+sf(oli,	['suff:n:a','suff:n:n:m']).
+sf(olina,	['suff:n:n:f']).
+sf(oline,	['suff:n:n:f']).
+sf(olini,	['suff:n:n:m']).
+sf(olino,	['suff:n:n:m']).
+sf(olo,	['suff:n:a','suff:n:n:m']).
+sf(ologa,	['el2:n:f']).
+sf(ologhe,	['el2:n:f']).
+sf(ologhi,	['el2:n:m']).
+sf(ologi,	['el2:n:m']).
+sf(ologia,	['el2:n:f']).
+sf(ologie,	['el2:n:f']).
+sf(ologo,	['el2:n:m']).
+sf(oma,	['suff:n:n:m']).
+sf(ometri,	['el2:n:m']).
+sf(ometro,	['el2:n:m']).
+sf(omi,	['suff:n:n:m']).
+sf(ona,	['suff:v:n:f','suff:n:n:f']).
+sf(one,	['suff:v:n:m','suff:n:n:m']).
+sf(oni,	['suff:n:avv','suff:v:n:m','suff:n:n:m']).
+sf(onimi,	['el2:n:m']).
+sf(onimia,	['el2:n:f']).
+sf(onimie,	['el2:n:f']).
+sf(onimo,	['el2:n:m']).
+sf(onzoli,	['suff:n:n:m']).
+sf(onzolo,	['suff:n:n:m']).
+sf(opia,	['el2:n:f']).
+sf(opie,	['el2:n:f']).
+sf(opsia,	['el2:n:f']).
+sf(opsie,	['el2:n:f']).
+sf(ore,	['suff:a:n:m','suff:v:n:m']).
+sf(ori,	['suff:a:n:m','suff:v:n:m']).
+sf(osa,	['suff:n:a']).
+sf(ose,	['suff:n:a']).
+sf(osi,	['suff:n:n:f','suff:n:a']).
+sf(osissima,	['suff:n:a']).
+sf(osissime,	['suff:n:a']).
+sf(osissimi,	['suff:n:a']).
+sf(osissimo,	['suff:n:a']).
+sf(osio,	['suff:n:n:m']).
+sf(oso,	['suff:n:a']).
+sf(otica,	['suff:a:a']).
+sf(otiche,	['suff:a:a']).
+sf(otici,	['suff:a:a']).
+sf(otico,	['suff:a:a']).
+sf(ott,	['suff:v:v']).
+sf(otta,	['suff:a:a','suff:a:n:f','suff:n:n:f']).
+sf(otte,	['suff:a:a','suff:a:n:f','suff:n:n:f']).
+sf(otti,	['suff:a:a','suff:a:n:m','suff:n:n:m']).
+sf(ottina,	['suff:a:a']).
+sf(ottine,	['suff:a:a']).
+sf(ottini,	['suff:a:a']).
+sf(ottino,	['suff:a:a']).
+sf(otto,	['suff:a:a','suff:a:n:m','suff:n:n:m']).
+sf(ozza,	['suff:n:n:f']).
+sf(ozze,	['suff:n:n:f']).
+sf(ozzi,	['suff:n:n:m']).
+sf(ozzo,	['suff:n:n:m']).
+sf(para,	['el2:n:f']).
+sf(pare,	['el2:n:f']).
+sf(pari,	['el2:n:m']).
+sf(paro,	['el2:n:m']).
+sf(patia,	['el2:n:f']).
+sf(patica,	['el2:a']).
+sf(patiche,	['el2:a']).
+sf(patici,	['el2:a']).
+sf(patico,	['el2:a']).
+sf(patie,	['el2:n:f']).
+sf(pausa,	['el2:n:f']).
+sf(pause,	['el2:n:f']).
+sf(peti,	['el2:n:m']).
+sf(peto,	['el2:n:m']).
+sf(pla,	['suff:num']).
+sf(plasia,	['el2:n:f']).
+sf(plasie,	['el2:n:f']).
+sf(plasti,	['el2:n:m']).
+sf(plasto,	['el2:n:m']).
+sf(ple,	['suff:num']).
+sf(plegia,	['el2:n:f']).
+sf(plegica,	['el2:a']).
+sf(plegiche,	['el2:a']).
+sf(plegici,	['el2:a']).
+sf(plegico,	['el2:a']).
+sf(plegie,	['el2:n:f']).
+sf(pli,	['suff:num']).
+sf(plo,	['suff:num']).
+sf(pode,	['el2:n:m']).
+sf(podi,	['el2:n:m']).
+sf(podo,	['el2:n:m']).
+sf(poiesi,	['el2:n:f']).
+sf(poietico,	['el2:a']).
+sf(poli,	['el2:n:m']).
+sf(polo,	['el2:n:m']).
+sf(pori,	['el2:n:m']).
+sf(poro,	['el2:n:m']).
+sf(potami,	['el2:n:m']).
+sf(potamo,	['el2:n:m']).
+sf(pteri,	['el2:n:m']).
+sf(ptero,	['el2:n:m']).
+sf(rafica,	['el2:a','el2:n:m']).
+sf(rafiche,	['el2:a','el2:n:m']).
+sf(rafici,	['el2:a','el2:n:m']).
+sf(rafico,	['el2:a','el2:n:m']).
+sf(ragia,	['el2:n:f']).
+sf(ragie,	['el2:n:f']).
+sf(rea,	['el2:n:f']).
+sf(ree,	['el2:n:f']).
+sf(rina,	['el2:a']).
+sf(rine,	['el2:a']).
+sf(rini,	['el2:a']).
+sf(rino,	['el2:a']).
+sf(rre,	['suff:v:2']).
+sf(russa,	['el2:a']).
+sf(russe,	['el2:a']).
+sf(russi,	['el2:a']).
+sf(russe,	['el2:a']).
+sf(scafi,	['el2:n:m']).
+sf(scafo,	['el2:n:m']).
+sf(scopi,	['el2:n:m']).
+sf(scopia,	['el2:n:f']).
+sf(scopica,	['el2:a']).
+sf(scopiche,	['el2:a']).
+sf(scopici,	['el2:a']).
+sf(scopico,	['el2:a']).
+sf(scopie,	['el2:n:f']).
+sf(scopio,	['el2:n:m']).
+sf(scopo,	['el2:n:m']).
+sf(semia,	['el2:n:f']).
+sf(semie,	['el2:n:f']).
+sf(sismi,	['el2:n:m']).
+sf(sisme,	['el2:n:f']).
+sf(sisma,	['el2:n:f']).
+sf(sismo,	['el2:n:m']).
+sf(slava,	['el2:a']).
+sf(slave,	['el2:a']).
+sf(slavi,	['el2:a']).
+sf(slavo,	['el2:a']).
+sf(sofi,	['el2:n:m']).
+sf(sofia,	['el2:n:f']).
+sf(sofica,	['el2:a']).
+sf(sofiche,	['el2:a']).
+sf(sofici,	['el2:a']).
+sf(sofico,	['el2:a']).
+sf(sofie,	['el2:n:f']).
+sf(sofo,	['el2:n:m']).
+sf(soma,	['el2:n:m']).
+sf(somi,	['el2:n:m']).
+sf(somia,	['el2:n:f']).
+sf(somie,	['el2:n:f']).
+sf(stasi,	['el2:n:f']).
+sf(stati,	['el2:n:m']).
+sf(statica,	['el2:a']).
+sf(statiche,	['el2:a']).
+sf(statici,	['el2:a']).
+sf(statico,	['el2:a']).
+sf(stato,	['el2:n:m']).
+sf(stici,	['el2:a']).
+sf(stico,	['el2:a']).
+sf(stomia,	['el2:n:f']).
+sf(stomie,	['el2:n:f']).
+sf(tà,	['suff:a:n:f']).
+sf(tassi,	['el2:n:f']).
+sf(teca,	['el2:n:f']).
+sf(teche,	['el2:n:f']).
+sf(terapia,	['el2:n:f']).
+sf(terapie,	['el2:n:f']).
+sf(teria,	['el2:a']).
+sf(terie,	['el2:a']).
+sf(terio,	['el2:a']).
+sf(teri,	['el2:a']).
+sf(terma,	['el2:a']).
+sf(terme,	['el2:a']).
+sf(termi,	['el2:a']).
+sf(termia,	['el2:n:f']).
+sf(termica,	['el2:a']).
+sf(termiche,	['el2:a']).
+sf(termici,	['el2:a']).
+sf(termico,	['el2:a']).
+sf(termie,	['el2:n:f']).
+sf(termo,	['el2:a']).
+sf(tipa,	['el2:n:f']).
+sf(tipe,	['el2:n:f']).
+sf(tipi,	['el2:n:m']).
+sf(tipia,	['el2:n:f']).
+sf(tipie,	['el2:n:f']).
+sf(tipo,	['el2:n:m']).
+sf(toi,	['suff:v:n:m']).
+sf(toia,	['suff:v:n:f']).
+sf(toie,	['suff:v:n:f']).
+sf(toio,	['suff:v:n:m']).
+sf(tomi,	['el2:n:m']).
+sf(tomia,	['el2:n:f']).
+sf(tomica,	['el2:a']).
+sf(tomiche,	['el2:a']).
+sf(tomici,	['el2:a']).
+sf(tomico,	['el2:a']).
+sf(tomie,	['el2:n:f']).
+sf(tomo,	['el2:n:m']).
+sf(tona,	['el2:n:f']).
+sf(tone,	['el2:n:f']).
+sf(toni,	['el2:n:m']).
+sf(tonia,	['el2:n:f']).
+sf(tonica,	['el2:a']).
+sf(toniche,	['el2:a']).
+sf(tonici,	['el2:a']).
+sf(tonico,	['el2:a']).
+sf(tonie,	['el2:n:f']).
+sf(tono,	['el2:n:m']).
+sf(tore,	['suff:a:n:m','suff:v:n:m']).
+sf(tori,	['suff:a:n:m','suff:v:n:m']).
+sf(toria,	['suff:v:n:f']).
+sf(torie,	['suff:v:n:f']).
+sf(torio,	['suff:v:n:m']).
+sf(trice,	['suff:v:n:f']).
+sf(trici,	['suff:v:n:f']).
+sf(trofi, ['el2:a']).
+sf(trofia,	['el2:n:f']).
+sf(trofica,	['el2:a']).
+sf(trofiche,	['el2:a']).
+sf(trofici,	['el2:a']).
+sf(trofico,	['el2:a']).
+sf(trofie,	['el2:n:f']).
+sf(trofo, ['el2:a']).
+sf(tropi, ['el2:n:m']).
+sf(tropia,	['el2:n:f']).
+sf(tropica,	['el2:a']).
+sf(tropiche,	['el2:a']).
+sf(tropici,	['el2:a']).
+sf(tropico,	['el2:a']).
+sf(tropie,	['el2:n:f']).
+sf(tropo, ['el2:n:m']).
+sf(tteri,	['el2:n:m']).
+sf(ttero,	['el2:n:m']).
+sf(uale,	['suff:n:a','suff:n:n:m']).
+sf(uali,	['suff:n:a','suff:n:n:m']).
+sf(uaria,	['suff:n:a','suff:n:n:f']).
+sf(uarie,	['suff:n:a','suff:n:n:f']).
+sf(uario,	['suff:n:a','suff:n:n:m']).
+sf(uari,	['suff:n:a','suff:n:n:m']).
+sf(ubile,	['suff:a']).
+sf(ubili,	['suff:a']).
+sf(ucce,	['suff:n:n:f']).
+sf(ucchi,	['suff:v:v']).
+sf(ucci,	['suff:n:n:m']).
+sf(uccia,	['suff:n:n:f']).
+sf(uccio,	['suff:n:n:m']).
+sf(ucola,	['suff:n:n:f']).
+sf(ucole,	['suff:n:n:f']).
+sf(ucoli,	['suff:n:n:m']).
+sf(ucolo,	['suff:n:n:m']).
+sf(ugli,	['suff:n:n:m']).
+sf(uglio,	['suff:n:n:m']).
+sf(ume,	['suff:a:n:m']).
+sf(umi,	['suff:a:n:m']).
+sf(unque,	['suff:ind']).
+sf(ura,	['suff:v:n:f','suff:a:n:f']).
+sf(ure,	['suff:v:n:f','suff:a:n:f']).
+sf(urghi,	['el2:n:m']).
+sf(urgia,	['el2:n:f']).
+sf(urgica,	['el2:a']).
+sf(urgiche,	['el2:a']).
+sf(urgici,	['el2:a']).
+sf(urgico,	['el2:a']).
+sf(urgie,	['el2:n:f']).
+sf(urgo,	['el2:n:m']).
+sf(uri,	['el2:n:m']).
+sf(uria,	['el2:n:f']).
+sf(urie,	['el2:n:f']).
+sf(uro,	['el2:n:m']).
+sf(uta,	['suff:n:a','suff:v:n:f','suff:v:2']).
+sf(ute,	['suff:n:a','suff:v:n:f','suff:v:2']).
+sf(uti,	['suff:n:a','suff:v:n:m','suff:v:2']).
+sf(uto,	['suff:n:a','suff:v:n:m','suff:v:2']).
+sf(uzza,	['suff:n:n:f']).
+sf(uzze,	['suff:n:n:f']).
+sf(uzzi,	['suff:n:n:m']).
+sf(uzzo,	['suff:n:n:m']).
+sf(vendola,	['el2:n:f']).
+sf(vendole,	['el2:n:f']).
+sf(vendoli,	['el2:n:m']).
+sf(vendolo,	['el2:n:m']).
+sf(vori,	['el2:n:m']).
+sf(voro,	['el2:n:m']).
+sf(ware,	['el2:n:m']).
+sf(zione,	['el2:n:f']).
+sf(zioni,	['el2:n:f']).
+sf(zoi, ['el2:n:m']).
+sf(zoica,	['el2:a']).
+sf(zoiche,	['el2:a']).
+sf(zoici,	['el2:a']).
+sf(zoico,	['el2:a']).
+sf(zoo, ['el2:n:m']).
+

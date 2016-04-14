@@ -1,0 +1,5913 @@
+﻿:- style_check(-singleton).
+
+
+/**********
+:-fs_to_ss(Inds, SS, Locs)
+**********/
+fs_to_ss(Inds, SS, NoFr, NoCl, NewNoCl, Loc, Temp, At) :-
+   start_node(Node),
+   sent_smap(Node, NoFr, [NoCl, NewNoCl, Loc, Temp, At], inds([], Out), Sem),
+   toground(Sem-Out, SS-Inds).
+
+
+start_node(Node) :-
+   nodo(n1)::main/prop::nodo(Node).
+start_node(n1).
+
+sent_smap(Node, NoFr, Locs, Inds, Sem) :-
+   funcs_smap(props, NoFr, Node, Locs, Inds, Pars, Facts),
+   Facts=[Ind, Fact, Const],
+   Sem=
+      (desc:
+         [obj:Ind,
+          fact:Fact,
+          constraints:Const]).
+   
+
+
+/*************** 
+Proposition 
+****************/
+/*  interrogativa */
+prop_smap(NoFr,
+   propq-Node-pred(Pred),  Locs, inds(In, Out), 
+   [ask:[ind:Ind, rest:Fact]])
+   :-
+   nodo(Node)::focus::nodo(FocusNode),
+   nodo(FocusNode)::tipo_focus::interrogativo,
+   nodo(FocusNode)::pred::FocusPred,
+   !,
+   index_smap(FocusNode, FocusPred, inds(In, Mid), Ind),
+   prop_smap(NoFr, prop-Node-pred(Pred), Locs, inds(Mid, Out), [_:Fact]).
+
+
+/* copulativa */
+prop_smap(NoFr,
+   Role-Node-pred(CopPred), Locs, inds(In, Out), 
+   [Indet,Fact,Constr])
+   :-
+   Role \= propq,
+   copulative(CopPred, Fun1/Role1, Fun2/Role2,  XcompPred, Rel, IntRole),
+   !,
+   nodo(Node)::Fun1/Role1::nodo(SubjNode),
+   nodo(SubjNode)::pred::SubjPred,
+   arg_smap(NoFr, Role1-SubjNode-SubjPred, Locs, inds(In, Mid1), [T:Arg]),
+   nodo(Node)::Fun2/Role2::pred::XcompPred,
+   second_argument(Fun2/Role2, Node, inds(Mid1, Mid2), Arg2),     
+   pol_smap(Node, Pol),
+   index_smap(Node, event(Rel), inds(Mid2, Mid3), EventInd),
+   event_adjs(NoFr, Locs, Node, EventInd, inds(Mid3, Mid4), Rests, Atts),
+   choose_context(NoFr, Node, Locs, inds(Mid4, Out), CRests, Context),
+   append(Rests, CRests, Allrests),
+   append([T:Arg], Arg2, Args),
+   Indet=[ind:Sit,
+              val:EventInd,
+              type:sit],
+   Fact=[rel:Rel, 
+         args:Args, 
+         Pol],
+   Constr=[rests:Allrests,
+          atts:Atts,
+          context:Context].
+
+/* generica */
+prop_smap(NoFr, Role-Node-pred(Pred), Locs, inds(In, Out), 
+   [Indet,Fact,Constr]) 
+   :-
+   Role \= propq,
+   funcs_smap(funcs, NoFr, Node, Locs, inds(In, Mid1), _, Args),
+   pol_smap(Node, Pol),
+   index_smap(Node, event(Pred), inds(Mid1, Mid2), EventInd),
+   event_adjs(NoFr, Locs, Node, EventInd, inds(Mid2, Mid3), Rests, Atts),
+   choose_context(NoFr, Node, Locs, inds(Mid3, Out), CRests, Context),
+   append(Rests, CRests, Allrests),
+   Indet=[ind:Sit,
+              val:EventInd,
+              type:sit],
+   Fact=[rel:Pred, 
+         args:Args, 
+         Pol],
+   Constr=[rests:Allrests,
+          atts:Atts,
+          context:Context].
+
+second_argument(_/prop, _, inds(In, In), []) .
+second_argument(Fun2/stato, Node, Inds, Arg)  :-
+   nodo(Node)::Fun2/stato::_/Role::nodo(ToNode),
+   nodo(ToNode)::pred::Pred,
+   arg_smap(NoFr, Role-ToNode-pred(Pred), _, Inds, Arg).
+ 
+/* vcomp-propositions */
+vprop_smap(NoFr, Role-Node-pred(Pred), Locs, inds(In, Out), 
+   [Indet,Fact,Constr])
+   :-
+   funcs_smap(funcs, NoFr, Node, Locs, inds(In, Mid1), _, Args),
+   pol_smap(Node, Pol),
+   index_smap(Node, event(Pred), inds(Mid1, Mid2), EventInd),
+   event_adjs(NoFr, Locs, Node, EventInd, inds(Mid2, Mid3), Rests, Atts),
+   predicat_smap(Node, Type, Locs, inds(Mid3, Out), CRests, Context),
+   append(Rests, CRests, Allrests),
+   Indet=[ind:Sit,
+              val:EventInd,
+              type:Type],
+   Fact=[rel:Pred, 
+         args:Args, 
+         Pol],
+   Constr=[rests:Allrests,
+          atts:Atts,
+          context:Context].
+
+event_adjs(NoFr, [_, _, Spaceloc, Temp, _], 
+            Node, EventInd, inds(In, Out), AllRests, Atts) :-
+   tense_smap(
+      Node, EventInd, inds(Mid, Out), Tloc, Tense),
+   funcs_smap(verb_adjs, NoFr, Node, Locs,  
+      inds(In, Mid), pars([EventInd, Tloc]), 
+      Adjs),
+   separate_rests_atts(Adjs, Rests, Atts),
+   append(Tense, Rests, TRests),
+   spac(EventInd, Spaceloc, Space),
+   append(Space, TRests, AllRests).
+
+/* Spatial location */
+spac(EventInd, Scontr, [Spaces]):-
+  Space =..[space_location, EventInd, Scontr],
+  Spaces = rest:['<Space>'].
+
+/* Verbal Pred */
+vpred_smap(Node, rel:Rel, Rel) :-
+   syntactic_verbal_pred(Node, Rel).
+
+/* Generic functions set */
+funcs_smap(Set, NoFr, Node, Locs, Inds, Pars, Funcs) :-
+   function_nodes(Set, Node, FuncsNodes),
+   funcs_list_smap(NoFr, Set, FuncsNodes, Locs, Inds, Pars, Funcs).
+
+funcs_adjs_smap(Set, NoFr, Node, Locs, Inds, Pars, Funcs) :-
+   funcs_smap(FSet, NoFr, Node, Locs, Inds, Pars, Funcs),
+   adjs_smap(ASet, NoFr, Node, Locs, Inds, Pars, Adjs),
+   append(Funcs, Adjs, FuncsAdjs),
+   function_nodes(Set, Node, FuncsNodes),
+   funcs_list_smap(NoFr, Set, FuncsNodes, Locs, Inds, Pars, FuncsAdjs).
+
+
+adjs_smap(Set, NoFr, Node, Locs, Inds, Pars, Funcs) :-
+   function_nodes(Set, Node, FuncsNodes),
+   funcs_list_smap(NoFr, Set, FuncsNodes, Locs, Inds, Pars, Funcs).
+
+funcs_list_smap(NoFr, Set, [], Locs, inds(In, In), _, []).
+funcs_list_smap(NoFr,
+   Set, [Func| Funcs], Locs,
+   inds(In, Out), Pars,  
+   Args) 
+   :-
+   function_smap(NoFr,
+      Set, Func, Locs, inds(In, Mid), Pars, Args1),
+   funcs_list_smap(NoFr,
+      Set, Funcs, Locs, inds(Mid, Out), Pars,  Args2),
+   append(Args1, Args2, Args).
+
+function_smap(NoFr, props, Func, Locs, Inds, _, Arg) :-
+   prop_smap(NoFr, Func, Locs, Inds, Arg).
+   
+function_smap(NoFr, funcs, Func, Locs, Inds, _, Arg) :-
+   arg_smap(NoFr, Func, Locs, Inds, Arg).
+   
+function_smap(_, nom_adjs, Func, Locs, Inds, Pars, Arg) :-
+   nadj_smap(Func, Inds, Pars, Arg).
+
+function_smap(_, verb_adjs, Func, Locs, Inds, Pars, Arg) :-
+   vadj_smap(Func, Locs, Inds, Pars, Arg).
+
+function_smap(_, mods, Func, Locs, Inds, Pars, Arg) :-
+   mod_smap(Func, Inds, Pars, Arg).
+   
+
+
+function_nodes(Set, Node, Roles) :-
+   findall(Role, fun_node(Set, Node, Role), Roles),
+   writenl(user, Set-Roles).
+
+adjs_nodes(Set, Node, Roles) :-
+   findall(Role, adj_node(Set, Node, Role), Roles),
+   writenl(user, Set-Roles).
+
+fun_node(Set, Node, Role-NodeTo-SemHead) :-
+   isa_fun_node(Set, Node, Role, NodeTo, SemHead).
+ 
+adj_node(Set, Node, Role-NodeTo-SemHead) :-
+   isa_fun_node(Set, Node, Role, NodeTo, pred(SemHead)).
+
+/***********
+funzioni  proposizionali
+************/
+isa_fun_node(props, n1, prop, n1, pred(SemHead)) :-
+   nodo(n1)::pred::SemHead.
+isa_fun_node(props, Node, Role, Node, pred(SemHead)) :-
+   Node \= n1,
+   nodo(Node)::pred::SemHead,
+   nodo(_)::_/Role::nodo(Node).
+isa_fun_node(props, Node, Role, NodeTo, pred(SemHead)) :-
+   Node \= n1,
+   nodo(Node)::coord::nodo(NodeTo),
+   nodo(NodeTo)::pred::SemHead,
+   nodo(_)::_/Role::nodo(Node).
+
+
+/************ 
+funzioni argomentali 
+***********/
+isa_fun_node(funcs, Node, Fun/Role, NodeTo, SemHead) :-
+   nodo(Node)::Fun/Role::nodo(NodeTo),
+   sem_head(NodeTo, SemHead).    
+
+/************ 
+aggiunti verbali 
+*************/
+isa_fun_node(verb_adjs, Node, Role, NodeTo, pred(SemHead)) :-
+   nodo(Node)::adjs::adj/Role::nodo(NodeTo),
+   nodo(NodeTo)::pred::SemHead.
+
+isa_fun_node(verb_adjs, Node, Role, NodeTo, sem_mark(SemHead)) :-
+   nodo(Node)::adjs::adj/Role::nodo(NodeTo),
+   nodo(NodeTo)::sem_mark::SemHead.
+
+isa_fun_node(verb_adjs, Node, nil, NodeTo, pred_avv(SemHead)) :-
+   nodo(Node)::adjs::avv::nodo(NodeTo),
+   nodo(NodeTo)::pred_avv::SemHead.
+
+/* aggiunti proposizionali */  
+isa_fun_node(verb_adjs, Node, nil, NodeTo, sem_mark(SemHead)) :-
+   nodo(Node)::adjs::adj::nodo(NodeTo),
+   nodo(NodeTo)::sem_mark::SemHead.
+   
+
+/**********
+aggiunti nominali 
+**********/
+isa_fun_node(nom_adjs, Node, Role, NodeTo, pred(SemHead)) :-
+   nodo(Node)::adjs::adj/Role::nodo(NodeTo),
+   nodo(NodeTo)::pred::SemHead.  
+isa_fun_node(nom_adjs, Node, Role, NodeTo, SemHead) :-
+   nodo(Node)::adjs::nadj/Role::nodo(NodeTo),
+   sem_head(NodeTo, SemHead).    
+isa_fun_node(nom_adjs, Node, Role, NodeTo, pred(SemHead)) :-
+   nodo(Node)::adj/Role::nodo(NodeTo),
+   nodo(NodeTo)::pred::SemHead.  
+/*********** 
+modificatori nominali 
+***********/
+isa_fun_node(mods, Node, Role, NodeTo, pred(SemHead)) :-
+   nodo(Node)::mods::mod/Role::nodo(NodeTo),
+   nodo(NodeTo)::pred::SemHead.  
+isa_fun_node(mods, Node, FunRole, NodeTo, pred(SemHead)) :-
+   nodo(Node)::mods::FunRole::coordina::coord::nodo(NodeTo),
+   nodo(NodeTo)::pred::SemHead.  
+isa_fun_node(mods, Node, FunRole, NodeTo, pred(SemHead)) :-
+   nodo(Node)::mods::FunRole::nodo(NodeTo),
+   atomic(FunRole),
+   nodo(NodeTo)::pred::SemHead.  
+
+
+sem_head(Nodo, pred(Pred)) :-
+   nodo(Nodo)::pred::Pred.
+sem_head(Nodo, coordina(CoordNode)) :-
+   nodo(Nodo)::coordina::nodo(CoordNode).
+/* ma andrebbe normalizzato */
+sem_head(Nodo, coord_prop) :-
+   nodo(Nodo)::coord::nodo(_). 
+
+/**************** 
+Arguments
+**************/
+/* form */
+arg_smap(_, _/form-Node-_, _, inds(In, In), []) :-
+   !.
+
+/* oggetti coordinati */
+arg_smap(_, Func/Role-_-coordina(Node), _, Inds, [Role:Arg]) :-
+   findall(
+      Func-CoordNode-pred(Pred), 
+      (
+      nodo(Node)::_/Role::nodo(CoordNode),
+      nodo(CoordNode)::pred::Pred
+      ),
+      CoordNodes),
+   CoordNodes\=[],
+   Role\=prop,
+   funcs_list_smap(NoFr, funcs, CoordNodes, Locs, Inds, _, CoordArgs),
+   Arg= (set:[ind:_, cond:CoordArgs]).
+
+arg_smap(_, Func/Role-_-coordina(Node), _, Inds, [Role:Arg]) :-
+   !,
+   findall(
+      Func-CoordNode-pred(Pred), 
+      (
+      nodo(Node)::coord::nodo(CoordNode),
+      nodo(CoordNode)::pred::Pred
+      ),
+      CoordNodes),
+   CoordNodes\=[],
+   Role=prop,   
+   funcs_list_smap(NoFr, props, CoordNodes, Locs, Inds, _, CoordArgs),
+   Arg= (set:[ind:_, cond:CoordArgs]).
+   
+/* evento singolo 
+arg_smap(_, Role-Node-_, Locs, Inds, [Role:[ask:[ind:Ind, rest:Fact]]]) :-
+   propq_role(Role),
+   !,
+   nodo(Node)::focus::nodo(FocusNode),
+   nodo(FocusNode)::tipo_focus::interrogativo,
+   nodo(FocusNode)::pred::Pred,
+   index_smap(Node, Pred, Inds, Ind),
+   sent_smap(Node, NoFr, Locs, Inds, Fact).
+*/
+/* eventi */
+arg_smap(NoFr, vcomp/Role-Node-Pred, Locs, Inds, [arg2:[Role:Fact]]) :-
+   !,
+   vprop_smap(NoFr, Role-Node-Pred, Locs, Inds, Fact).
+
+arg_smap(NoFr, acomp/Role-Node-Pred, Locs, Inds, [arg2:[Role:Fact]]) :-
+   !,
+   vprop_smap(NoFr, Role-Node-Pred, Locs, Inds, Fact).
+
+arg_smap(NoFr, ncomp/Role-Node-Pred, Locs, Inds, [arg2:[Role:Fact]]) :-
+   !,
+   vprop_smap(NoFr, Role-Node-Pred, Locs, Inds, Fact).
+
+arg_smap(NoFr, pcomp/Role-Node-Pred, Locs, Inds, [arg2:[Role:Fact]]) :-
+   !,
+   vprop_smap(NoFr, Role-Node-Pred, Locs, Inds, Fact).
+
+arg_smap(NoFr, fcomp/Role-Node-Pred, Locs, Inds, [arg2:[Role:Fact]]) :-
+   !,
+   prop_smap(NoFr, Role-Node-Pred, Locs, Inds, Fact).
+
+arg_smap(NoFr, Func/Role-Node-_, Locs, Inds, [arg2:[Role:Fact]]) :-
+   prop_role(Role),
+   !,
+   sent_smap(Node, NoFr, Locs, Inds, Fact).
+
+/* individui controllati */
+arg_smap(NoFr, Role-Node-_, _, Inds, [ArgN:Arg]) :-
+   nodo(Node)::tab_ref::TabRef,
+   pro_tab_ref(TabRef),
+   !,   
+   (ArgN=arg1, Func=sogg; ArgN=args2),
+   nodo(Node)::indice::Index,
+   segui_catena_di_controllo(Index, Controller),
+   controlled_ind(Controller, Inds, Arg).
+
+/* funzioni inespresse riempite con exist */
+arg_smap(NoFr, Funs, _, inds(In, Out), [ArgN:Arg]) :-
+   Indd=..[inds,In,Mid],
+   index_smap(Node, Pred, Indd, Ind),
+   nodo(Node)::tab_ref::TabRef,
+   nodo(Node)::cat::Class,
+   ((Role=locat; Role=locative), Type=loc
+    ; Type=entity),
+   (ArgN=arg1, Func=sogg; ArgN=args2),
+   tab_refq(TabRef),
+   !,
+   card_smap(Node, Ind, Card),
+   def_smap(Node, Def),
+   mods_and_adjs_smap(
+      Node, inds(Mid, Out), pars([Ind]), 
+      Rests, Atts),
+   Arg=
+      (set:
+         [ind:Set,
+             [val:Ind, 
+										    cond:
+               [card:Card, 
+                class: ('<isa(Ind, Class)>'), 
+                ident: ('<quant(Ind, Pred)>'), 
+                type:Type,
+                role:Role],
+               Rests,
+               Atts]]),
+   Funs=..[Func/Role-Node-pred,Pred].
+
+/* individuo singolo */
+arg_smap(NoFr, Funs, _, inds(In, Out), [ArgN:Arg]) :-
+   Indd=..[inds,In,Mid],
+   index_smap(Node, Pred, Indd, Ind),
+   nodo(Node)::tab_ref::TabRef,
+   ((Role=locat; Role=locative), Type=loc
+    ; Type=entity),
+   (ArgN=arg1, Func=sogg; ArgN=args2),
+   tab_refi(TabRef),
+   !,
+   card_smap(Node, Ind, Card),
+   def_smap(Node, Def),
+   mods_and_adjs_smap(
+      Node, inds(Mid, Out), pars([Ind]), 
+      Rests, Atts),
+   Arg=
+      (set:
+         [ind:Set,
+             [val:Ind, 
+										    cond:
+               [card:Card, 
+                class: ('<isa(Ind, Pred)>'), 
+                ident: ('<def(Ind, Def)>'), 
+                type:Type,
+                role:Role],
+               Rests,
+               Atts]]),
+   Funs=..[Func/Role-Node-pred,Pred].
+
+/* nome proprio */
+arg_smap(NoFr, Funs, _, inds(In, Out), [ArgN:Arg]) :-
+   Indd=..[inds,In,Mid],
+   index_smap(Node, Pred, Indd, Ind),
+   nodo(Node)::tab_ref::TabRef,
+   ((Role=locat; Role=locative), Type=loc
+    ; Type=entity),
+   (ArgN=arg1, Func=sogg; ArgN=args2),
+   tab_refn(TabRef),
+   !,
+   card_smap(Node, Ind, Card),
+   gen_smap(Node, Gen),
+   mods_and_adjs_smap(
+      Node, inds(Mid, Out), pars([Ind]), 
+      Rests, Atts),
+   Arg=
+      (ind:
+          [val:Ind,
+										 cond:
+               [card:Card, 
+                class: ('<isa(Ind, Gen)>'),
+                ident: ('<name(Ind, Pred)>'), 
+                type:Type,
+                role:Role],
+               Rests,
+               Atts]),
+   Funs=..[Func/Role-Node-pred,Pred].
+
+
+/* Sintagmatic index to Individual */
+index_smap(
+   Node, Pred, 
+   inds(In, In), Ind)
+   :-
+   nodo(Node)::indice::Index,
+   on(ind(Index, Ind, Pred), In),
+   !.
+index_smap(
+   Node, Pred, 
+   inds(In, [ind(Index, Ind, Pred) | In]), Ind)
+   :-
+   nodo(Node)::indice::Index.
+
+controlled_ind(Controller, inds(In, In), Arg) :-
+   on(ind(Controller, Arg,  _), In),
+   !.
+
+controlled_ind(Controller, inds(In, Out), Arg) :-
+   Out = [ind(Controller, Arg,  _) | In].
+
+
+/* Create an individual */
+add_ind(Type, inds(In, Out), Ind) :-
+   Out = [ind(Ind, Type) | In].
+
+
+/***********
+Modifiers and Nominal Adjuncts
+************/
+mods_and_adjs_smap(
+   Node, inds(In, Out), Pars, 
+   rests:Rests, atts:Atts) 
+   :-
+   funcs_smap(mods, NoFr, Node, Locs, inds(In, Mid),  Pars, Mods),
+   funcs_smap(nom_adjs, NoFr, Node, Locs, inds(Mid, Out), Pars, Adjs),
+   separate_rests_atts(Mods, Rests1, Atts1),
+   separate_rests_atts(Adjs, Rests2, Atts2),
+   append(Rests1, Rests2, Rests),
+   append(Atts1, Atts2, Atts).
+
+
+separate_rests_atts(RestsAndAtts, Rests, Atts) :-   
+   selectall_att(rest, RestsAndAtts, Rests),
+   selectall_att(att, RestsAndAtts, Atts).
+ 
+/***********
+Modifiers 
+************/
+mod_smap(
+   nome_mod-Node-pred(Pred), inds(In, In), pars([Ind]), 
+   [rest:Rest]) 
+   :-
+   Rest= ('<isa(Ind, Pred)>'),
+   !.
+
+mod_smap(
+   mod_a-Node-pred(Pred), inds(In, In), pars([Ind]),
+   [att:Rest])
+   :-
+   Rest= ('<fact(Pred, [arg:Ind], 1)>'),
+   !.
+
+mod_smap(
+   predic-Node-_, Inds, pars([Ind]),
+   [rest:Rest])
+   :-
+   sent_smap(Node, NoFr, Locs, Inds, Rest),
+   !.
+mod_smap(
+   ModType-Node-pred(Pred), inds(In, In), pars([Ind]),
+   [rest:Rest])
+   :-
+   on(ModType, [mod_d, mod_r]),
+   Rest= ('<fact(Pred, [arg:Ind], 1)>'),
+   !.
+
+mod_smap(_, inds(In, In), _, []).
+
+/***********
+Nominal Adjuncts 
+************/
+nadj_smap(
+   predic-Node-_, Inds, _,
+   [att:Rest])
+   :-
+   sent_smap(Node, NoFr, Locs, Inds, Rest),
+   !.
+   
+nadj_smap(tema-Node-Pred, Inds, pars([Ind]), 
+   [att:Att]) 
+   :-
+   arg_smap(NoFr, tema-Node-Pred, _, Inds, [tema:Arg]),
+   !,
+   Att=
+      [rel:eq_set, 
+      arg1:Ind, 
+      arg2:Arg].
+
+nadj_smap(_, inds(In, In), _, []) .
+   
+/***********
+Verbal Adjuncts 
+************/
+vadj_smap(
+   AdjRole-Node-_, Locs, Inds, pars([EvId, _]), [att:Att])
+   :-
+   AdjRole==gerund,
+   !,
+   sent_smap(Node, NoFr, Locs, Inds, Gerund),
+   Att = 
+      [rel:circumstance,
+      args:[arg1:EvId, arg2:Gerund],
+      pol:1].
+
+vadj_smap(
+   AdjRole-Node-Pred, Locs, inds(In, Out), Pars, Sem)
+   :-
+   funcs_smap(funcs, NoFr, Node, Locs, inds(In, Mid), Pars, Args),
+   vadj_with_args_smap(AdjRole-Node-Pred, args:Args,  inds(Mid, Out), Pars, Sem).
+
+vadj_smap(AdjRole-Node-Pred, Locs, Inds, Pars, Sem)
+   :-
+   notnod(Node, _/_),
+   transfrastic_vadj_smap(
+      AdjRole-Node-Pred, ArgNode, Inds,  Pars, Sem).
+
+
+vadj_smap(_,  Locs, inds(In, In), _, []).
+
+/* ex: vivevano felici */
+vadj_with_args_smap(
+   emotivo-Node-pred(Pred), 
+   args:[ArgRole:Arg], 
+   Inds, 
+   pars([EvId, _]), 
+   [rest:Rest])
+   :-
+   ArgRole \= prop, 
+   index_smap(Node, event(Pred), Inds, AdjEvId),
+   pol_smap(Node, Pol), 
+   !,
+   AdjFact=[rel:Pred, args:[arg:Arg], Pol],
+   Rest = 
+      [rel:while,
+      args:[arg1:EvId, arg2:AdjFact],
+      pol:1].
+
+/* ex: una volta */
+vadj_with_args_smap(
+   deittico-_-sem_mark(nil), 
+   args:[non_punct:Arg2], 
+   inds(In, In), 
+   pars([_, Tloc]),
+   [rest:Rest])
+   :-
+   !,
+   Rest = 
+      [rel:in,
+      args:[arg1:Tloc, arg2:Arg2],
+      pol:1].
+
+/* ex: con mattoni e cemento */
+vadj_with_args_smap(
+   AdjRole-Node-sem_mark(_), 
+   args:[nil:Arg2, AdjRole:Arg3], 
+   inds(In, In), 
+   pars([EvId, _]),
+   [rest:Rest])
+   :-
+   !,
+   Rest = 
+      [rel:AdjRole,
+      args:[event:EvId, object:Arg2, AdjRole:Arg3],
+      pol:1].
+
+/* ex: per proteggersi */
+vadj_with_args_smap(
+   _-_-sem_mark(SemMark), 
+   args:[prop:Arg2], 
+   inds(In, In),
+   pars([EvId, _]), 
+   [rest:Rest])
+   :-
+   !,
+   Rest = 
+      [rel:SemMark,
+      args:[arg1:EvId, arg2:Arg2],
+      pol:1].
+
+/* ex: pero_ */
+transfrastic_vadj_smap(
+   AdjType-_-pred(Pred), ArgNode, Indd,  pars([EvId, _]), 
+   [att:Att]) 
+   :-
+   Indd=..[inds,In, In],
+   on(AdjType, [avvers, modal]),
+   Att= ('<fact(Pred, [arg:EvId], 1)>').
+   
+/* ex: intanto */
+transfrastic_vadj_smap(
+   nil-Node-pred_avv(Pred), ArgNode, Indd,  pars([EvId, _]), 
+   [att:Att]) 
+   :-
+   Indd=..[inds,In, In],
+   Att= ('<fact(Pred, [arg:EvId], 1)>').
+   
+
+/* Cardinality */
+card_smap(Node, Ind, ['<card(Ind, Card1)>']) :-
+   nodo(Node)::spec::card::Card,
+   conv_card(Card, Card1), 
+   !.
+card_smap(Node,  Ind, ['<card(Ind, 1)>']) :-
+   nodo(Node)::num::sing,
+   !.
+card_smap(Node,  Ind, ['<card(Ind, Card)>', '<greater(Card, 1)>']) :-
+   nodo(Node)::pred::exist,
+   !.
+card_smap(Node,  Ind, ['<card(Ind, Card)>', '<greater(Card, 1)>']) :-
+   nodo(Node)::num::plur,
+   !.
+card_smap(Node, _, unknown).
+   
+/* Definiteness */
+def_smap(Node, Def1) :-
+   nodo(Node)::spec::def::Def,
+   conv_defn(Def, Def1),
+   !.
+def_smap(Node, unknown).
+
+
+/* Gender Default Class */
+gen_smap(Node, Kind) :-
+   nodo(Node)::gen::Gen,
+   nodo(Node)::cat::Cat,
+   (on(umano, Cat),
+   conv_genc(Gen, Kind)
+   ;
+   conv_genl(Gen, Kind)),
+   !.
+
+gen_smap(Node, unknown).
+
+/* Tense */
+tense_smap(
+   Node, EventId, Indd, 
+   TLoc, [rest:Loc1, rest:Loc2])
+   :-
+   Indd=..[inds,In, Out],
+   nodo(Node)::tempo::Tense,
+   !,
+   add_ind(tloc, Indd, TLoc),
+   Loc1=['< time_location(EventId, TLoc)>'],
+   Loc2=['< in(TLoc, Tense)>'].
+
+tense_smap(
+   Node, EventId, inds(In, Out), 
+   Tloc, [rest:Loc1])
+   :-
+   Indd=..[inds,In, Out],
+   add_ind(tloc, Indd, TLoc),
+   Loc1=['< time_location(EventId, TLoc)>'].
+
+/* Context */
+choose_context(1, Node, [NoCl, NNC, Loc, Temp, At], inds(In, Out), NewRes, [disc:rel:DiscRel, states:[move:DiscMove, state:State], ref:[Topics]])
+   :-
+   predicat_smap(Node, Type, [NoCl, NNC, Loc, Temp, At], 
+           inds(In, Out), NewRes, 
+           [disc:rel:DiscRel, states:[move:Rel, state:Change], ref:[Topics]]),
+    !.
+choose_context(NoFr, Node, [NoCl, NNC, Loc, Temp, At], inds(In, Out), NewRes, [disc:rel:DiscRel, states:[move:DiscMove, state:State], ref:[Topics]])
+   :-
+  (nonvar(In),
+   nonvar(Loc),
+   nonvar(Temp),
+   !,
+   old_context_smap(NoFr, Node, [NoCl, NNC, Loc, Temp, At], inds(In, Out), NewRes, [disc:rel:DiscRel, states:[move:DiscMove, state:State], ref:[Topics]])
+   ;
+   context_smap(NoFr, Node, [NoCl, NNC, Loc, Temp, At], inds(In, Out), NewRes, [disc:rel:DiscRel, states:[move:DiscMove, state:State], ref:[Topics]])
+   ),!.
+
+old_context_smap(NoFr, Node, [NoCl, NNC, Loc, Temp, At], inds(In, Out), NewRes, [disc:rel:DiscRel, states:[move:DiscMove, state:State], ref:[Topics]]):-
+  rete(Rete),
+  assign_index(NoFr, Loc, Temp, In, Out),
+  collect_tops(NoFr, Topics),
+  info(NoFr, _, FunRole, View, Intens, Change, Rel, 
+     VerbCat, Verb, TempRel, DiscRel, DiscDom, SubjConsc),
+  d_structure(
+   NoFr, Node, NoCl, _, DiscRel, TempRel,
+   MainRel, State, DiscMove, DiscLev),
+   NewRes=[rest:TempRel,
+                rel:MainR],
+     (
+      loc(Infon, Id, [arg:main_tloc, arg:Ref]), 
+      MainR=loc(Id,[arg:main_tloc, arg:Ref])
+       ;
+      includes(tes(TimeId), NewLoc),
+      MainR=includes(tes(TimeId), NewLoc)).
+
+predicat_smap(Node, Type, [NoCl, NNC, Loc, Temp, At], inds(In, Out), NewRes, [disc:rel:DiscRel, states:[move:Rel, state:Change], ref:[Topics]]):-
+  rete(Rete),
+  assign_index(NoFr, Loc, Temp, In, Out),
+  collect_tops(NoFr, Topics),
+  info(NoFr, _, FunRole, View, Intens, Change, Rel, 
+     VerbCat, Verb, TempRel, DiscRel, DiscDom, SubjConsc),
+   (Type=fact, Intens=factive; Type=sit),
+   NewRes=[rest:TempRel,
+                rel:MainR],
+     (
+      loc(Infon, Id, [arg:main_tloc, arg:Ref]), 
+      MainR=loc(Id,[arg:main_tloc, arg:Ref])
+       ;
+      includes(tes(TimeId), NewLoc),
+      MainR=includes(tes(TimeId), NewLoc)).
+
+context_smap(NoFr, Node, [NoCl, NNC, Loc, Temp, At], inds(In, Out), NewRes, [disc:rel:DiscRel, states:[move:DiscMove, state:State], ref:[Topics]]):-
+  rete(Rete),
+  in_context(Rete, NoFr, NoCl, NNC, Loc, Temp, At),
+  assign_index(NoFr, Loc, Temp, In, Out),
+  collect_tops(NoFr, Topics),
+  d_structure(
+   NoFr, Node, NoCl, _, DiscRel, TempRel,
+   MainRel, State, DiscMove, DiscLev),
+   NewRes=[rest:TempRel,
+                rel:MainR],
+     (
+      loc(Infon, Id, [arg:main_tloc, arg:Ref]), 
+      MainR=loc(Id,[arg:main_tloc, arg:Ref])
+       ;
+      includes(tes(TimeId), NewLoc),
+      MainR=includes(tes(TimeId), NewLoc)).
+
+collect_tops(NoFr,topics:NTops):-
+  findall(Type-Ind, confer_topic(NoFr, Type, Ind, SnX, _), Topics),
+  sort(Topics, NTops).
+
+assign_index(_,_,_, [], []):- !.
+
+assign_index(NoFr, Loc, Temp, [ind(Sind, Rest)|Inds], [ind(Sind, Rest)|Out]):-
+    (Rest=tloc, nonvar(Temp), Sind=Temp
+     ; 
+     Rest=sloc, nonvar(Loc), Sind=Loc
+    ;
+    var(Sind),
+    conv_sn_index(NoFr, SnX, Sind)
+    ;
+    nonvar(Sind)),
+   assign_index(NoFr, Loc, Temp, Inds, Out).
+
+assign_index(_, _, _, [ind(SnX, Sind, Rest)|Inds], [ind(SnX, Sind, Rest)|Out]):-
+   (asserted_ind(SnX, Sind)
+    ;
+   conv_sn_index(NoFr, SnX, Sind)),
+   assign_index(_, _, _, Inds, Out).
+
+/*
+conv_sn_index(_, SnX, Ind) :-
+   asserted_ind(SnX, Ind),
+   nonvar(Ind),
+   !.
+
+conv_sn_index(NoFr, SnX, Ind) :-
+   gen_sym(id, Ind),
+   assert(confer_ind(NoFr, SnX, Ind)),
+   assert(new_ind(Ind)).
+
+asserted_ind(SnX, Ind) :-
+  frase_corrente(NoFr, _),
+  confer_topic(NoFr, _, Ind, SnX, _),
+  !.
+   
+asserted_ind(SnX, Ind) :-
+  frase_corrente(NoFr, _),
+  confer_ind(NoFr, SnX, Ind).
+*/
+/* Polarity */
+pol_smap(Node, pol:Pol1) :-
+   polarity(Node, Pol),
+   conv_polarity(Pol, Pol1).
+
+tab_refq([+ ref, - pro, - ana, + me]).
+tab_refn([+ ref, - pro, - ana, - class]).
+tab_refi([+ ref, - pro, - ana, + class]).
+pro_tab_ref([+ ref, + pro, - ana, + class]).
+pro_tab_ref([+ ref, - pro, - ana, - me]).
+pro_tab_ref([+ ref, + pro, + ana, - me]).
+pro_tab_ref([+ ref, + pro, + ana, + me]).
+pro_tab_ref([+ ref, + pro, - ana, - me]).
+pro_tab_ref([+ ref, + pro, - ana, + me]).
+pro_tab_ref([- ref, - pro, + ana, + me, - subj]).
+            
+conv_polarity(no, 0).
+conv_polarity(yes, 1).
+
+conv_defn('0', indef) :- !.
+conv_defn(0, indef) :- !.
+conv_defn(+, def) :- !.
+conv_defn(-, indef) :- !.
+conv_defn(Def, Def).
+
+conv_card(due, 2) :- !.
+conv_card(tre, 3) :- !.
+conv_card(Card, Card).
+
+conv_genc(mas, man) :- !.
+conv_genc(fem, woman) :- !.
+conv_genl(fem, loc) :- !.
+conv_genl(mas, loc) :- !.
+
+
+prop_role(prop).
+prop_role(modal).
+prop_role(propq).
+
+/********
+copulative(+verb, +fun1/+role1, +fun2/+role2, +xcompPred, -relation, -intRole).
+********/
+copulative(
+   essere, sogg/tema_bound, acomp/prop, AcompPred, 
+   AcompPred, arg).
+copulative(
+   avere, sogg/esperiente, ncomp/stato, NcompPred, 
+   avere+NcompPred, esperiente).
+
+copulative(essere).
+
+selectall_att(_, [], []) :-
+   !.
+selectall_att(Att, [Att:Val | Feats], [Att:Val | OtherFeats]) :-
+   !,
+   selectall_att(Att, Feats, OtherFeats).
+selectall_att(Att, [_ | Feats], OtherFeats) :-
+   selectall_att(Att, Feats, OtherFeats).
+
+info_evaluation(NoFr) :-
+   prop_roots(Nodes),
+   nl,
+   props_info_eval(Nodes, NoFr, _).
+
+info_evaluation(NoFr) :-!.
+
+props_info_eval([], _, _) :-
+   !.
+props_info_eval([Node-FunRole | Nodes], NoFr, OldClause) :-
+   info_eval(infon(OldClause, NewClause),
+      NoFr, Node, FunRole, 
+      View, Intens, Change, Rel, 
+      VerbCat, Verb, 
+       TempRel, DiscRel, DiscDom, SubjConsc),
+   asserta(
+      info(
+         NoFr, Node, FunRole, 
+         View, Intens, Change, Rel, 
+         VerbCat, Verb,
+         TempRel, DiscRel, DiscDom, SubjConsc)),
+   write_info_eval(NoFr, Node),
+   props_info_eval(Nodes, NoFr, OldClause).
+
+props_info_eval([Node-ip_ell/prop], NoFr, OldClause) :-
+   PrecNoFr is NoFr - 1,
+   info(PrecNoFr, N, FunRole, View, Intens,
+     Change, Rel, _, _, TempRel, DiscRel, DiscDom, SC),
+   asserta(
+      info(
+         NoFr, Node, FunRole, 
+         View, Intens, Change, Rel, 
+         VerbCat, Verb,
+         TempRel, DiscRel, DiscDom, SubjConsc)),
+   write_info_eval(NoFr, Node),
+   !.
+
+props_info_eval([Nodo-Fun/prop | Nodes], NoFr, OldClause) :-
+   nodo(Nodo)::_::nodo(N1),
+   props_info_eval([N1-Fun/prop | Nodes], NoFr, OldClause).
+
+props_info_eval([Node-FunRole | Nodes], NoFr, OldClause) :-
+   props_info_eval(Nodes, NoFr, OldClause).
+
+write_info_eval(NoFr, Node) :-
+   info(NoFr, Node, FunRole, View, Intens,
+     Change, Rel, _, _, TempRel, DiscRel, DiscDom, SC),
+   write('CLAUSE IDENTIFIER:               '),
+   writenl(NoFr-Node),
+   write('CLAUSE TYPE:                     '),
+   writenl(FunRole),
+/*   write('POINT OF VIEW:                   '),
+   writenl(View),
+*/
+   write('FACTUALITY:                      '),
+   writenl(Intens),
+   write('CHANGE IN THE WORLD:             '),
+   writenl(Change),
+   write('RELEVANCE:                       '),
+   writenl(Rel),
+   write('TEMPORAL RELATION:               '),
+   writenl(TempRel),
+   write('DISCOURSE FOCUS:                 '),
+   find_time_focus(DiscFoc),
+   writenl(DiscFoc),
+   write('DISCOURSE RELATION:              '),
+   writenl(DiscRel),
+   write('DISCOURSE DOMAIN:                '),
+   writenl(DiscDom),
+   write_subject_of_consciousness(SC),
+   !.
+write_info_eval(_, _).
+
+write_subject_of_consciousness(sc(NoFr, Index, Pred)) :-
+   !,
+   write('SUBJECT OF CONSCIOUSNESS:        '),
+   writeseqnl(_,[Pred/Index, from, NoFr]), nl.
+
+write_subject_of_consciousness(nil) :-
+   !,
+   write('SUBJECT OF CONSCIOUSNESS:        '),
+   writenl(none), nl.
+
+find_time_focus(tes(TimeInd)) :-
+time_focus(StackNo, tes(TimeInd)).
+
+/**************************
+info_eval(+OtherClause,
+   +NoFr, +Root, +FunRole, 
+   -View, -Intensionality, -Change, -Relevance,
+   -VerbSemCat, -verb,
+   -tempRelation, -DiscourseRelation, 
+   -discDomain, -subjectOfConsciusness)
+== Gives the point of view, state of the world, and relevance of a sentence, from its f-structure
+**************************/
+info_eval(OtherClause,
+   NoFr, Root, FunRole, 
+   View, Intens, Change, Relev,
+   SemCat, Verb,
+   TempRel, DiscRel, DiscDom, SubjConsc)
+   :-
+
+   sem_cat(Root, SemCat),
+   tense(Root, FunRole, Tense),
+   aspect(Root, Aspect),
+   voice(Root, Voice),
+   speech_type(Root, Speech),
+   polarity(Root, Pol),
+   mood(Root, Mood),
+   semantic_verbal_pred(Root, Verb),
+   stato(NoFr, State),
+   support(Root, Support),
+   perform(Root, Support, Perform),
+   focalizers(Root, Focs),
+   event_index(Root, TesIndex),
+   view(NoFr,FunRole,Speech,SemCat,Voice,Verb,Support,View),
+   factivity(Verb, Tense, Mood, FunRole, Support, Intens),
+   change(Speech,Pol,Support,View,Mood,Tense,Aspect,Change),
+   relevance(Change, Relev),
+
+   prec_sentence_info(
+      NoFr, PrecChange, PrecState, PrecSemCat,
+      PrecTesIndex, PrecDiscRel, PrecDiscDom, OtherClause),
+
+   temp_relation(OtherClause,Tense,
+      NoFr, Root, TesIndex, PrecTesIndex, PrecDiscRel, Change,
+      Intens,TempRel),
+   disc_relation(
+      NoFr, View, FunRole, 
+      Relev, Intens, Aspect,
+      [PrecChange, Change], [PrecState, State],
+      Verb, Support, [PrecSemCat, SemCat],
+      Focs,
+      PrecDiscRel,
+      DiscRel),
+   disc_domain(Intens,
+      NoFr, Root, FunRole, SemCat, Mood, Perform, PrecDiscDom,
+      DiscDom, SubjConsc).
+
+
+/***********
+view(+NoFr, +Root, +SpeecType, +VerbSemanticCat, +Voice, +Verb, +Support, -PointOfView)
+== 
+Se lo SpeechType è direct,  View è internal
+altrimenti, se la SemCat è perloc, View è social_engagement
+altrimenti, se la SemCat è soggettiva, View è  internal,
+altrimenti View è external
+In aggiunta, se il Mood è cond è internal
+***********/
+view(_, _,direct, _, _, _, _, internal) :-
+   !.
+view(_, adj/hypoth,indirect, _, _, _, _, internal) :-
+   !.
+
+view(_, main/hypoth,indirect, _, _, _, _, external) :-
+   !.
+
+view(_, _,indirect, perloc, _, _, _, social_engagement) :-
+   !.
+view(_, _,indirect, _, passive, Verb, Supp, social_engagement) :-
+   genre(legal),
+   (obligation_verb(Verb)
+    ;
+   modal_verb(Supp)),
+   !.
+
+view(_, _,indirect, SemCat, _, _, _, internal_intensional) :-
+   internal_intens(SemCat),
+   !.
+
+view(_, _,indirect, SemCat, _, _, _, internal_extensional) :-
+   internal_extens(SemCat),
+   !.
+view(NoFr, _,indirect, SemCat, _, _, _, internal):-
+   PrecNoFr is NoFr - 1,
+   info(PrecNoFr, _, _, View, _, Change, _, _, _, _, _, DiscDom, _),
+   stato(PrecNoFr, State),
+   SemCat=esistenza,
+   State=continua, DiscDom=implicit_subjective.
+   
+view(_, _,indirect, _, _, _, _, external).
+
+
+/* internal_intens(affettivo). */
+internal_intens(soggettivo).
+internal_intens(mental_activ).
+internal_intens(ment_perloc).
+internal_intens(emotivo).
+
+internal_extens(percettivo).
+internal_extens(stato).
+internal_extens(presuppositivo).
+
+/***********
+factivity(+Tense, +Mood, +FunRole, +Support, -Intensionality),
+***********/
+factivity(_, _, _, vcomp/_, _, factive) :-
+   nodo(N)::vcomp/_::indice::Ind,
+   nodo(N)::pred::fare,
+   !.
+
+factivity(_, _, _, vcomp/_, _, nonfactive) :-
+   !.
+
+factivity(_, _, _, _/hypoth, _, nonfactive) :-
+   !.
+
+factivity(_, _, _, fcomp/Role, _, nonfactive) :-
+   on(Role, [propq, propint]),
+   !.
+
+factivity(_, _, _, adj/hypoth, _, nonfactive) :-
+   !.
+
+factivity(_, _, _, adj/cond, _, nonfactive) :-
+   !.
+
+factivity(_, _, Mood, _, _, nonfactive) :-
+   on(Mood, [cond, cong]),
+   !.
+
+factivity(_, Tense, _, _, _, nonfactive) :-
+   on(Tense, [futuro, imperat]),
+   !.
+
+factivity(Verb, _, _, _, _, nonfactive) :-
+   modal_verb(Verb),
+   !.
+factivity(_, _, _, _, _, factive) .
+
+
+
+/***********
+change(+Speech, +Pol, +View, +Tense, +Aspect, -Change)
+== 
+Se la polarità è no e l'aspetto è stato Change è null,
+altrimenti se la polarità è no Change è negated,
+altrimenti, se View è soggettivo allora Change è null,
+altrimenti calcola Change sulla base di Speec, Tense, Aspect.
+
+NB: Se il verbo è uno stativo, sarebbe meglio dare null, anche se la polarità e no
+***********/
+change(_, _, _, _, cond, _, _, null) :- !.
+
+change(_, no, Supp, _, _, _, stato, negated) :- 
+    nonvar(Supp),  
+   !.
+
+change(Speech, Pol, Supp, View, Mood, Tense, Aspect, Change) :- 
+change(Speech, Pol, View, Tense, Aspect, Change), !.
+
+
+change(_, no, _, _, stato, null) :-
+   !.
+change(_, no, _, _, _, negated) :-
+   !.
+change(_, _, internal_intensional, _,    stato,   null) :-
+   !.
+change(_, _, internal_extensional, _,    stato,   null) :-
+   !.
+change(Speech, _, _, Tense, Aspect, Change) :-
+  change(Speech, Tense, Aspect, Change),
+  !.
+
+/* change(+Speech, +Tense, +Aspect, -Change)*/
+change(indirect, pres,       _,        null).
+change(indirect, imp,        stato,    null).
+change(indirect, pass_rem,   _,        culminated).
+change(indirect, past,        stato,    null).
+change(indirect, past,   _,        culminated).
+change(indirect, imp,        Tense,    gradual) :-
+   on(Tense, [attivita, accomp, mental_activ, process]).
+change(indirect, trap_pross,    _,        earlier).
+change(direct,   imperat,    _,        null).
+change(direct,   fut,        _,        null).
+change(direct,   pres,       stato,    null).
+change(direct,   pass_pross, _,        culminated).
+change(direct,   trap_pross,    _,        earlier).
+change(direct,   pres,       attivita, gradual).
+change(_,        _,          _,        null). /* default */
+      
+
+/***********
+relevance(+change, -relevance)
+***********/
+relevance(null, background) :-
+  !.
+relevance(_, foreground).
+
+
+/***************
+• prec_sentence_info(
+   +noFr, -change, -precState, -semCat, -tempRel, -discRel, -discDom).
+• info/10 viene asserita attraverso asserta e quindi chiamando info/10 si ottiene l'informazione sull'ultima clause analizzata •
+***************/
+prec_sentence_info(1, _, _, _, TesIndex, _, _, infon(OldClause,NewClause)) :-
+   (var(OldClause),
+    OldClause=1
+    ;
+    nonvar(OldClause),
+    NewClause is OldClause + 1,
+   info(1, _, _, View, _, Change, _, SemCat, _, TempRel, DiscRel, DiscDom, _),
+   stato(1, State),
+   TempRel=..[_, TesIndex, _]
+    ),
+   !.
+prec_sentence_info(
+   NoFr, Change, PrecState, SemCat,  TesIndex, DiscRel, DiscDom, _)
+   :-
+   info(LastNoFr, _, _, View, _, Change, _, SemCat, _, _, DiscRel, DiscDom, _),
+   nonvar(NoFr),
+   PrecNoFr is NoFr - 1,
+   stato(PrecNoFr, PrecState),
+   (NoFr = LastNoFr, CurrNoFr=LastNoFr;
+    PrecNoFr = LastNoFr, CurrNoFr=LastNoFr;
+    PrecNoFr \= LastNoFr, CurrNoFr=PrecNoFr),     
+   prec_temp_rel_sentence(CurrNoFr, StackNo, TesInd),
+   (var(StackNo);
+    nonvar(StackNo),
+    (StackNo < CurrNoFr; StackNo = CurrNoFr)),   
+   (var(TesInd),
+    info(AppropNoFr, _, _, _, _, _, _, _, _, TempRel, _, _, _),
+    TempRel=..[_, TesIndex, _]
+    ;
+    nonvar(TesInd),
+    TesIndex=tes(TesInd)
+    ;
+    var(TesInd),
+    info(AppropNoFr, _, _, _, _, _, _, _, _, TesIndex, _, _, _)
+    ).
+
+prec_temp_rel_sentence(PrecNoFr, StackNo, TimeInd) :-
+   time_focus(StackNo, tes(TimeInd)).
+
+prec_temp_rel_sentence(AppropNoFr, AppropNoFr, TimeInd) :-
+   time_focus(AppropNoFr, tes(TimeInd)),
+   AppropNoFr\=0,
+   !.
+prec_temp_rel_sentence(PrecNoFr, PrecNoFr, _).
+
+/* calcola le relazioni temporali tenendo conto della fattività del cambiamento nel mondo e della precedente relazione del discorso: nella prima frase considera clauses diverse */
+
+temp_relation(infon(1,Nc),_,
+   1, Root, TesIndex, _, _, _, _, TempRel) 
+   :-
+   var(Nc),
+   nodo(Root)::rel1::[Rel1|_],
+   nodo(Root)::rel2::[Rel2|_],
+   Rel1=..[Reltd, _, Td],
+   Rel2=..[Reltr, _, Tr],
+   map_temp_rel(Reltr, MappedRel),
+   t_rel_all(MappedRel, TesIndex, Td, [TempRel]),!.
+
+temp_relation(_,_,
+   1, _, TesIndex, PrecTesIndex, PrecDiscRel, Change, 
+   Factivity,  TempRel) 
+   :-
+   TesIndex\=PrecTesIndex,!,
+   temporal_rel(_,TesIndex, PrecTesIndex, PrecDiscRel, Change,
+    Factivity, Rel),
+   map_temp_rel(Rel, Rel1),
+   t_rel_all(Rel1, TesIndex, PrecTesIndex, [TempRel]),
+   !.
+
+temp_relation(_,Tense,
+   NoFr, Root, TesIndex, PrecTesIndex, PrecDiscRel, Change,
+   Factivity, TempRel) 
+   :-
+   Tense=trap_pross,
+   time_focus(AppropNoFr, TimeFocus),
+   (TimeFocus \= PrecTesIndex;
+   (AppropNoFr=1; AppropNoFr is NoFr - 2)),
+   map_temp_rel([bf], Rel1),
+   t_rel_all(Rel1, TesIndex, TimeFocus, [TempRel]),
+   !.
+
+temp_relation(_,Tense,
+   NoFr, Root, TesIndex, PrecTesIndex, PrecDiscRel, Change,
+   Factivity, TempRel) 
+   :-
+   TesIndex\=PrecTesIndex, PrecTesIndex\=nil,!,
+   temporal_rel(Root,TesIndex, PrecTesIndex, PrecDiscRel, Change, 
+          Factivity, Rel),
+   map_temp_rel(Rel, Rel1),
+   t_rel_all(Rel1, TesIndex, PrecTesIndex, [TempRel]),
+%   TempRel=..[Rel1, TesIndex, PrecTesIndex],
+   !.
+
+temp_relation(_,_, _, _, TesIndex, nil, _, _, _, TempRel) :-
+   temporal_rel(_,TesIndex, nil, PrecDiscRel, Change,
+    Factivity, Rel),
+   map_temp_rel(Rel, Rel1),
+   t_rel_all(Rel1, TesIndex, nil, [TempRel]),
+%   TempRel=..[Rel1, TesIndex, nil],
+   !.
+
+temp_relation(_,_,
+   _, _, TesIndex, PrecTesIndex, _, _, _,
+   undef(TesIndex, PrecTesIndex)) :-
+   TesIndex\=PrecTesIndex,!.
+
+temp_relation(_,_,
+   _, _, TesIndex, PrecTesIndex, _, _, _,
+   undef(TesIndex, TesIndex)) :-
+   var(PrecTesIndex),!.
+
+t_rel_all(Rel1, TesIndex, PrecTesIndex, [TempRel]):-
+   TempRel=..[Rel1,TesIndex, PrecTesIndex],
+   !.
+
+map_temp_rel('<', before).
+map_temp_rel('>', after).
+map_temp_rel('=', overlap).
+map_temp_rel(diverso, after).
+map_temp_rel(contemporaneo, overlap).
+map_temp_rel(incluso, contains).
+map_temp_rel([eq], overlap).
+map_temp_rel([af], after).
+map_temp_rel([bf], before).
+map_temp_rel([dr], during).
+map_temp_rel(Rels, finished_by) :-
+   on(fb, Rels).
+map_temp_rel(Rels, started_by) :-
+   on(sb, Rels).
+map_temp_rel(Rels, contains) :-
+   on(cn, Rels).
+map_temp_rel(Rels, after) :-
+   on(bf, Rels).
+map_temp_rel(Rels, after) :-
+   on(af, Rels).
+map_temp_rel(Rels, during) :-
+   on(dr, Rels).
+
+temporal_rel(_,TesIndex, PrecTesIndex, _, _, _, Rel) :-
+   rel_temp(_, TesIndex, PrecTesIndex, Rel).
+
+temporal_rel(_,
+   TesIndex, tes(TempIndex), PrecDiscRel, _, Factivity, Rel1) 
+:-
+   rel_temp(_, TesIndex, tr(TempIndex), Rel),
+   infer_temp_rel(PrecDiscRel, TesIndex, tr(TempIndex), Rel, Rel1).
+
+temporal_rel(Root,
+   TesIndex, tes(TempIndex), PrecDiscRel, _, Factivity, Reltr) 
+:-
+   nodo(Root)::reltr::[Rel|_],
+   Rel=..[Reltr, _, Td].
+
+temporal_rel(_,
+   tes(TesIndex), tes(TempIndex), PrecDiscRel, _, Factivity, Rel1) 
+:-
+   rel_temp(_, tes(TesIndex), tr(TesIndex), Rel),
+   Rel\=[eq],
+   infer_temp_rel(PrecDiscRel, tes(TesIndex), tr(TempIndex), Rel, Rel1).
+
+temporal_rel(_,
+   TesIndex, tes(TempIndex), PrecDiscRel, Change,
+   Factivity, Rel) 
+:-
+   (Change=null, Rel=[dr]
+    ;
+    nonvar(PrecDiscRel),
+    PrecDiscRel=egression(_-_), Rel=[fb]
+    ;
+    (Factivity=factive;PrecDiscRel=narration), Rel=[af]
+   ;
+   Rel=[dr]).
+
+
+infer_temp_rel(PrecDiscRel, tes(TesIndex), tr(TimeIndex), Rel, Rel) 
+:-
+   PrecDiscRel\=inception,   
+%   PrecDiscRel\=result,   
+   rel_temp(_, tes(TimeIndex), tr(TimeIndex), [eq]).
+
+infer_temp_rel(PrecDiscRel, TesIndex, TrIndex, Rel, Rel) :-
+%   PrecDiscRel\=result,   
+   rel_temp(_, TesIndex, tr(TempIndex), Rel),
+   rel_temp(_,  tes(TempIndex), tr(TempIndex), Rel).
+
+infer_temp_rel(PrecDiscRel,tes(TesIndex), TrIndex, Rel, Rel1) :-
+   rel_temp(_, tes(TesIndex), tr(TempIndex), Rel),
+   (PrecDiscRel=inception,
+    (on(sb,Rel), Rel1=[sb])
+    ;
+    (on(af,Rel), Rel1=[af])
+    ;
+    PrecDiscRel\=inception, 
+%    PrecDiscRel\=result, 
+    Rel1=Rel).
+
+infer_temp_rel(_,tes(TesIndex), TrIndex, Rel, Rel1) :-
+   rel_temp(_, tes(TesIndex), tr(TempIndex), Rel),
+   rel_temp(_,  tr(TempIndex), tr(TesIndex), Rel1).
+
+/*************
+relations(-RelForm)
+== Calcola la forma logica del grafo corrente e la converte in forma relazionale
+*************/
+relations(LogicForm, RelForm) :-
+   xlate(n1,LogicForm),
+   convert_lf(LogicForm, RelForm).
+  
+/*************
+convert_lf(+LogicForm, -RelForm)
+:- spy convert_lf
+*************/
+
+/* situation con polarità negativa */
+
+convert_lf(wff(situation, [wff(not,Wff)]), NotSit) :-
+   convert_lf(wff(situation, Wff), Sit),
+   Sit=..[Func, Quant, EvId, essere, Args, Restr, Pol],
+   Args=[ind(A1,B1,C1,D1),infon(A,B,C,D,E,Pol)],
+   switch_polarity(Pol, NotPol),
+   NotArgs=[ind(A1,B1,C1,D1),infon(A,B,C,D,E,NotPol)],
+   NotSit=..[Func, Quant, EvId, essere, NotArgs, Restr, NotPol],
+   !.
+
+convert_lf(wff(situation, [wff(not,Wff)]), NotSit) :-
+   convert_lf(wff(situation, Wff), Sit),
+   Sit=..[Func, Quant, EvId, Rel, Args, Restr, Pol],
+   switch_polarity(Pol, NotPol),
+   NotSit=..[Func, Quant, EvId, Rel, Args, Restr, NotPol],
+   !.
+
+/* situation con distribuzione della relazione su una congiunzione di argomenti proposizionali*/
+
+convert_lf(wff(situation, [wff(Rel, Args)]), and([Sit1, Sit2])) :-
+   on(wff(and, [Arg1, Arg2]), Args),
+   functor(Arg1, wff, 2),
+   functor(Arg2, wff, 2),
+   !,
+   replace_any(wff(and, [Arg1, Arg2]), Arg1, Args, Args1),
+   convert_lf(wff(situation, [wff(Rel, Args1)]), Sit1),
+   replace_any(wff(and, [Arg1, Arg2]), Arg2, Args, Args2),
+   convert_lf(wff(situation, [wff(Rel, Args2)]), Sit2).
+
+
+/* situation  */
+
+convert_lf(wff(situation, [wff(Rel, Args)]), Sit) :-
+   convert_args(Args, Rel, Args2, NewRel, PredNode, Event),
+   conv_event(Event, sit, NewRel, PredNode, Args2, 1, Sit), 
+   !.
+
+/* l'informazione di isola viene eliminata */
+
+convert_lf(wff(isola, [Wff]), ConvWff) :-
+   convert_lf(Wff, ConvWff),
+   !.
+
+/* wff che non ha un corrispondente diretto nella F-Struttura */
+convert_lf(wff(isa, [Ind, Class | Rest]), Infon ) :-
+   convert_args(
+      [Ind | Rest], isa,  [ConvInd| ConvRest], 
+      NewRel, PredNode, Event),
+   conv_event(
+      Event, infon, NewRel, PredNode, 
+      [ConvInd, Class | ConvRest], 1, Infon),
+   !.
+
+
+/* and */
+convert_lf(wff(and, Args),  and(ConvArgs) ) :-
+   convert_lf(Args, ConvArgs),
+   !.
+
+/* wff che non è una situation e ha polarità negativa */
+convert_lf(wff(not, Arg), Infon0 ) :-
+   convert_lf(Arg, Infon),
+   Infon=..[Func, Rel, Args, _],
+   Infon0=..[Func, Rel, Args, 0],
+   !.
+
+/* wff che non è una situation */
+convert_lf(wff(antecedente, Args), Infon ) :-
+   on(Arg, Args),
+   convert_args(Arg, antecedente, ConvArgs, NewRel, PredNode, Event),
+   conv_event(Event, infon, NewRel, PredNode, ConvArgs, 1, Infon),
+   !.
+
+convert_lf(wff(Rel, Args), Infon ) :-
+   convert_args(Args, Rel, ConvArgs, NewRel, PredNode, Event),
+   conv_event(Event, infon, NewRel, PredNode, ConvArgs, 1, Infon),
+   !.
+
+convert_lf([], []) :-
+   !.
+
+/* congiunzione di situazioni ; argomenti proposizionali */
+convert_lf([A | B], [ConvA | ConvB]) :-
+   convert_lf(A, ConvA),
+   convert_lf(B, ConvB),
+   !.
+
+/* Individui */
+convert_lf(SnX, Ind) :-
+   atomic(SnX),
+   frase_corrente(NoFr, _),
+   conv_sn_index(NoFr, SnX, Ind),
+   !.
+
+convert_lf(Lf, Lf) :-
+   nl,
+   writeseq(user, ['Non è stato possibile convertire:', Lf]),
+   nl.
+
+
+/****************
+convert_args(+lfTerms, +rel, -relInds, -newRel, -event)
+== Conversione di una lista di argomenti. Viene estratto il termine che rappresenta l'evento
+*************/
+
+/* Se NewRel non è stata già istanziata viene presa la vecchia */
+convert_args([], Rel, [], Rel, _, []) :-
+   !.
+
+convert_args([], _, [], _, _, []) :-
+   !.
+
+/* L'informazione di focus viene "abbassata" */
+convert_args(
+   [wff(focus, [term(Q, SnX, Wff)]) | Terms],
+   Rel, 
+   Inds,
+   NewRel,
+   PredNode,
+   SitVar) 
+   :-
+   !,
+   convert_args(
+      [term(Q, SnX, wff(and,[wff(focus, [SnX]), Wff])) 
+      | Terms],
+      Rel,  Inds, NewRel, PredNode, SitVar).
+
+/* Gli argomenti form vengono eliminati 
+convert_args(
+   [term(_, Var, _) | Terms], Rel,
+   ConvTerms, NewRel, PredNode,
+   SitVar) 
+   :-
+   rel_role(Var, Rel, form, NewRel, PredNode),
+   !,
+   convert_args(Terms, Rel, ConvTerms, NewRel, PredNode, SitVar).
+*/
+
+/* Termine set: viene aggiunta l'informazione sul Ruolo  */
+convert_args(
+   [term(set, Var, Inds) | Terms], Rel, 
+   [ind(set, ConvVar, ConvInds, Role) | ConvTerms], NewRel, PredNode,
+   SitVar) 
+   :-
+   convert_args(Inds, Rel, ConvInds, NewRel, PredNode, _),
+   rel_role(Var, Rel, Role, NewRel, PredNode),
+   convert_lf(Var, ConvVar), 
+   convert_args(Terms, Rel, ConvTerms, NewRel, PredNode, SitVar),
+   !.
+
+
+/* Argomento con quantificatore in [event, state]; è un argomento aggiunto che va trattato come modificatore dell'evento */
+convert_args(
+   [term(Quant, FrX, Restr) | Terms], Rel, 
+   Inds, NewRel, PredNode,
+   [Quant, IdEv, ConvRestr]) 
+   :-
+   on(Quant, [event, state, process]),
+   !,
+   frase_corrente(NoFr, _),
+   conv_sn_index(NoFr, FrX, IdEv),
+   land_to_list(Restr, Restr1),
+   convert_lf(Restr1, ConvRestr),
+   convert_args(Terms, Rel, Inds, NewRel, PredNode, []),
+   !.
+
+
+/* Termine individuo: viene aggiunta l'informazione sul Ruolo  */
+convert_args(
+   [term(Quant, Var, Restr) | Terms], Rel, 
+   [ind(Quant, ConvVar, Restr3, Role) | ConvTerms], NewRel, PredNode,
+   SitVar) 
+   :-
+   land_to_list(Restr, Restr1),
+   conv_control(Var, Restr1, CtrVar, Restr2),
+   convert_lf(Restr2, Restr3),
+   rel_role(Var, Rel, Role, NewRel, PredNode),
+   convert_lf(CtrVar, ConvVar), 
+   convert_args(Terms, Rel, ConvTerms, NewRel, PredNode, SitVar),
+   !.
+
+/* Termine non individuale oppure atomico (non riceve il ruolo) */
+convert_args(
+   [Wff | Terms], Rel, 
+   [ConvWff| ConvTerms], NewRel, PredNode,
+   SitVar) 
+   :-
+   convert_lf(Wff, ConvWff),
+   convert_args(Terms, Rel, ConvTerms, NewRel, PredNode, SitVar),
+   !.
+
+
+/****************
+conv_event(
+   +Restrictions, +Type, +Rel, +predNode, +Args, +Pol, 
+   -EventDescription)
+****************/
+
+conv_event([], Func, Rel, PredNode, Args, Pol, Role:Infon) :-
+   adj_role(Rel, PredNode, Role),
+   !,
+   gen_sym(infon, EvId),
+   Infon=..[Func, att, EvId, Rel, Args, [], Pol].
+
+conv_event([], Func, Rel, PredNode, Args, Pol, Infon) :-
+   !,
+   gen_sym(infon, EvId),
+   Infon=..[Func, att, EvId, Rel, Args, [], Pol].
+
+conv_event(
+   [Quant, EvId, Restr], Func, Rel, PredNode, [Ogg], Pol, 
+   Role:Infon) 
+   :-
+   asserted_ind(SnX, Ogg),
+   adj_role(SnX, PredNode, Role),
+   !,
+   Infon=..[Func, Quant, EvId, Rel, [Ogg], Restr, Pol].
+
+conv_event(
+   [Quant, EvId, Restr], Func, Rel, PredNode, Args, Pol, 
+   Infon) 
+   :-
+   !,
+   Infon=..[Func, Quant, EvId, Rel, Args, Restr, Pol].
+
+
+
+/***************
+conv_control(+SnIn, +RestrIn,  -SnOut, -RestrOut)
+== Tratta i sintagmi con antecedente o controllore (l'informazione relativa è contenuta tra le restrizioni)
+***************/
+
+/* 
+Una restrizione singola viene normalizzata a and() 
+*/
+conv_control(Var, wff(Head, Restr),  ConVar, Out) :-
+   Head \= and,
+   !,
+   conv_control(
+      Var, wff(and,[wff(Head, Restr)]),  ConVar, Out).
+
+/* 
+L'antecedente esterno viene eliminato dalle restrizioni 
+*/
+conv_control(Var, wff(and, Restr),  Var, wff(and, Out)) :-
+   remove(wff(antecedente, [SnX, esterno]), Restr, Out),
+   !.
+   
+/* 
+Se il sintagma ha un antecedente interno, risale la catena di controllo e rimuove la restrizione su pro
+*/
+conv_control(_, wff(and, Restr),  [SnZ,SnW], wff(and, Restr2)) :-
+   remove(wff(antecedente, [Anaf, [SnY, SnX]]), Restr, Restr1),
+   Anaf \= SnY,
+   segui_catena_di_controllo(SnY, SnZ),
+   Anaf \= SnX,
+   segui_catena_di_controllo(SnX, SnW),
+   remove_pro(Restr1, Restr2),
+   !.
+   
+conv_control(_, wff(and, Restr),  SnZ, wff(and, Restr2)) :-
+   remove(wff(antecedente, [Anaf, SnY]), Restr, Restr1),
+   Anaf \= SnY,
+   segui_catena_di_controllo(SnY, SnZ),
+   remove_pro(Restr1, Restr2),
+   !.
+
+/*
+Se il sintagma ha un un controllore risale la catena di controllo e rimuove la restrizione su pro 
+*/
+conv_control(_, wff(and, Restr),  SnZ, wff(and, Restr2)) :-
+   remove(wff(controllore, [Anaf, SnY]), Restr, Restr1),
+   Anaf \= SnY,
+   segui_catena_di_controllo(SnY, SnZ),
+   remove_pro(Restr1, Restr2),
+   !.
+   
+conv_control(Var, InOut, Var, InOut) . 
+
+
+
+remove_pro([Restr | OtherRestrs], OtherRestrs). 
+
+
+/***************
+conv_quant(+Args, -ConvArgs)
+== Tratta ciascuno
+***************/
+conv_quant(Args, ConvArgs) :-
+   on(Quant, [ciascuno,ciascuna,all,ognuno,each,tutti]),
+   remove(wff(Quant, [_, Term]), Args, Args1),
+   Term=term(_, _, wff(isa, [_, Quant, Term1])),
+   Term1=term(_, _, wff(and, Restr)),
+   on(wff(controllore, [_, Ante]), Restr),
+   raise_quant(Args1, Quant, Ante, ConvArgs),
+   !.
+conv_quant(Args, Args) .
+
+
+raise_quant(
+   [term(_, Ante, Restr) | Terms], 
+   Quant, Ante, 
+   [term(Quant, Ante, Restr) | Terms]) 
+   :-
+   !.
+
+raise_quant(
+   [Term | Terms], 
+   Quant, Ante, 
+   [Term | ConvTerms]) 
+   :-
+   raise_quant(Terms, Quant, Ante, ConvTerms),
+   !.
+
+raise_quant([], _, _, []) .
+  
+
+/*****************
+conv_sn_index(+NoFrase, +SnIndex, -IndIndex)
+== Conversione da Sintagma a Individuo. Se al sintagma non è già stato associato un individuo ne viene creato uno. Il nuovo individuo vien asserito nella partizione new_ind/1
+*****************/
+conv_sn_index(_, SnX, Ind) :-
+   asserted_ind(SnX, Ind),
+   nonvar(Ind),
+   !.
+
+conv_sn_index(NoFr, SnX, Ind) :-
+   gen_sym(id, Ind),
+   assert(confer_ind(NoFr, SnX, Ind)),
+   assert(new_ind(Ind)).
+
+
+ 
+/***************
+asserted_ind(+SnIndex, -IndIndex)
+== Controlla se a un certo sintagma è già stato associato un individuo. Viene consultata dapprima la partizione confer_topic creata dinamicamente durante l'analisi del discorso e contenente la lista dei topic; se il sintagma non è tra i topic viene consultata la partizione confer_ind che invece viene creata durante la conversione dalla forma logica alla forma relazionale
+****************/
+
+asserted_ind(SnX, Ind) :-
+  frase_corrente(NoFr, _),
+  confer_topic(NoFr, _, Ind, SnX, _),
+  !.
+   
+asserted_ind(SnX, Ind) :-
+  frase_corrente(NoFr, _),
+  confer_ind(NoFr, SnX, Ind).
+   
+
+/*******
+rel_role(+snIndex, +pred, -newRole, -newPred)
+Accessi al grafo
+rel_role(SnX, Pred, form, _, _) :-
+   nodo(Node)::_/form::indice::SnX,
+   !.
+*******/
+
+rel_role(SnX, Pred, NewRole, NewPred, Node) :-
+   nodo(Node)::_/Role::indice::SnX,
+   !,
+   role_map(Node, Pred, Role, NewPred, NewRole).
+
+/* coordinazione di vcomp */
+rel_role(SnX, Pred, NewRole, NewPred, Node) :-
+   nodo(Node)::coordina::_/Role::indice::SnX,
+   !,
+   role_map(Node, Pred, Role, NewPred, NewRole).
+
+
+/* coordinazione di sn o sp */
+rel_role(SnX, Pred, NewRole, NewPred, Node) :-
+   nodo(Node)::_/Role::coordina::_/Role::indice::SnX,
+   !,
+   role_map(Node, Pred, Role, NewPred, NewRole).
+
+
+rel_role(SnX, Pred, NewRole, NewPred, Node) :-
+   nodo(Node)::focus::indice::SnX,
+   nodo(Node)::_/Role::controllore::SnX,
+   !,
+   role_map(Node, Pred, Role, NewPred, NewRole).
+
+rel_role(SnX, Pred, NewRole, NewPred, Node) :-
+   nodo(Node)::focus::sn_int::indice::SnX,
+   nodo(Node)::_/Role::controllore::SnX,
+   !,
+   role_map(Node, Pred, Role, NewPred, NewRole).
+
+
+rel_role(SnX, Pred, _, Pred, _).
+
+/*
+rel_role(SnX, Pred, Role, Pred, Node) :-
+   nodo(_)::_/Role::indice::SnX.
+*/
+adj_role(Rel, PredNode, Role) :-
+   nodo(PredNode)::adjs::adj/Role::sem_mark::Rel.
+
+adj_role(Rel, PredNode, Role) :-
+   nodo(PredNode)::adj/Role::sem_mark::Rel.
+
+supporter_cat(Rel, Cat) :-
+   nodo(Nodo)::vcomp/Prop::pred::Rel,
+   nodo(Nodo)::cat::Cat.
+
+/********
+idomatic_roles(
+   +pred, -interpreted_pred, 
+   -reinterpretedRoles, -properRoles, -forms, -functionForms).
+idomatic_roles(
+   essere, esserci,
+   [tema_bound=tema_bound], [], [ci], []).
+
+idomatic_roles(
+   leccare, leccarsi_i_baffi,
+   [agente=esperiente], [], [], [ogg, ogg2]).
+
+idomatic_roles(
+   have, have_regard,
+   [esperiente=subj_disc], [], [], [ogg]).
+
+idomatic_roles(
+   avere, avere_alle_calcagna,
+   [], [], [], [ogg]).
+*********/
+  
+/********
+• role_map(+node, +oldRole, -newPred, -newRole).
+• Un ruolo viene mappato in un altro sulla base dell'informazione contenuta nella partizione idomatic_roles/6. Per identificare la relazione viene fatto solo un controllo di coerenza, non di completezza (i.e. non si controlla che ci siano altri ruoli oltre a quelli previsti). •
+role_map(Node, Pred, OldRole, NewPred, NewRole) :-
+   nodo(Node)::pred::Pred,
+   idomatic_roles(
+      Pred, NewPred, IntRoles, ProperRoles, Forms, FuncsForm),
+   remove(OldRole=NewRole, IntRoles, IntRoles1),
+   forall(
+      nogen_member(Role=_, IntRoles1),
+      nodo(Node)::_/Role::nodo(_)),
+   forall(
+      nogen_member(Role, ProperRoles),
+      nodo(Node)::_/Role::nodo(_)),
+   forall(
+      nogen_member(Form, Forms),
+      (
+      nodo(Node)::form::Form
+      ;
+      nodo(Node)::idiom/form::Form
+      )   ),
+   forall(
+      nogen_member(FuncForm, FuncsForm),
+      nodo(Node)::FuncForm/form::nodo(_)),
+   assert(new_pred(NewPred)),
+   !.
+*********/
+
+role_map(Node, Pred,  Role, Pred, Role) :-
+   nodo(Node)::pred::Pred,
+   !.
+role_map(_, Pred,  Role, Pred, Role).
+
+
+
+generate_location(NoFr, CatSem, Ref, Id):-
+   cat_sem_to_class(CatSem, Class),
+   Ref=..[ref_ex, SnX | RestRef],
+   conv_sn_index(NoFr, SnX, Id),
+   arg(2, Ref, Pred),
+   Fact=loc(Id, [arg:Class, arg:Pred]),
+   asserisci(NoFr, SnX, Fact),
+   NewRef=..[ref_ex, Id | RestRef],
+%   retractall(current_main_loc(_, CatSem, _)),
+   assert(current_main_loc(NoFr, CatSem, NewRef)).
+
+match_locations(NoFr, CatSem, Ref, Id):-
+    PrecNoFr is NoFr - 1,
+    current_main_loc(PrecNoFr, CatSem, PrecLoc),
+    arg(1, Ref, Id1),   
+    arg(2, Ref, Pred),   
+    (
+     PrecLoc=ref_ex(univ), Pred2=univ
+     ;
+     arg(2, PrecLoc, Pred2)),
+    (Pred\=Pred2,
+     generate_location(NoFr, CatSem, Ref, Id)
+    ;
+     confirm_location(NoFr, CatSem, Id)
+    ).
+
+/******************
+main_location(+NFrase, +CatSem, +Role, +RefList, -LocInd)
+== Side Effect: viene asserita la current_main_loc
+******************/
+main_location(NoFr, CatSem, Role, RefList, univ) :-
+   genre(legal),
+   !.
+
+main_location(NoFr, CatSem, Role, RefList, Id) :-
+   nonvar(Id),
+   !.
+
+main_location(NoFr, CatSem, Role, RefList, Id) :-
+   main_loc_dei(RefList, CatSem, Role, Ref),
+   !,
+   confirm_location(NoFr, CatSem, Id).
+
+main_location(NoFr, luogo, locativo, RefList, Id) :-
+   main_loc_infer(NoFr, RefList, luogo, locativo, Pred, NewRef),
+   infer_loc_space(NoFr, luogo, Pred, NewRef, Id).
+
+main_location(NoFr, tempo, temporale, RefList, Id) :-
+   main_loc_infer_temp(NoFr, RefList, tempo, temporale, Pred, Ref),
+   infer_loc_temp(NoFr, tempo, Ref, Id).
+
+main_location(NoFr, tempo, _, _, Id) :-
+   main_loc_avv(Ref),
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_tloc, arg:Ref]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Ref],
+   retractall(current_main_loc(_, tempo, _)),
+   assert(current_main_loc(NoFr, tempo, NewRef)).
+
+
+main_location(NoFr, CatSem, Role, RefList, Id) :-
+   main_loc(RefList, CatSem, Role, Ref),
+%   !,
+   (
+   NoFr=1
+   ->     
+   generate_location(NoFr, CatSem, Ref, Id)
+   ;
+   CatSem=tempo
+   ->
+   generate_location(NoFr, CatSem, Ref, Id)
+   ;
+   CatSem=luogo,
+   match_locations(NoFr, CatSem, Ref, Id)
+   ),
+   !.
+main_location(NoFr, luogo, Role, RefList, Id) :-
+   nodo(N)::adj/locativo::sem_mark::Sem,
+   nodo(N)::adj/locativo::pred::Pred,
+   nodo(N)::adj/locativo::cat::Cat,
+   on(luogo,Cat),
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_sloc, arg:Pred]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Pred],
+   retractall(current_main_loc(_, luogo, _)),
+   assert(current_main_loc(NoFr, luogo, NewRef)).
+
+main_location(NoFr, tempo, Role, RefList, Id) :-
+   nodo(N)::adj/temporale::sem_mark::Sem,
+   nodo(N)::adj/temporale::pred::Pred,
+   nodo(N)::adj/temporale::cat::Cat,
+   (on(tempo,Cat);on(date,Cat)),
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_tloc, arg:Pred]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Pred],
+   retractall(current_main_loc(_, tempo, _)),
+   assert(current_main_loc(NoFr, tempo, NewRef)).
+
+main_location(NoFr, luogo, Role, RefList, Id) :-
+   nodo(N)::adj/locativo::sem_mark::Sem,
+   nodo(N)::adj/locativo::nodo(N1),
+   nodo(N1)::ogg/_::pred::Pred,
+   nodo(N1)::ogg/_::cat::Cat,
+   on(luogo,Cat),
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_sloc, arg:Pred]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Pred],
+   retractall(current_main_loc(_, luogo, _)),
+   assert(current_main_loc(NoFr, luogo, NewRef)).
+
+main_location(NoFr, tempo, Role, RefList, Id) :-
+   nodo(N)::adj/temporale::sem_mark::Sem,
+   nodo(N)::adj/temporale::nodo(N1),
+   nodo(N1)::ogg/_::pred::Pred,
+   nodo(N1)::ogg/_::cat::Cat,
+   (on(tempo,Cat);on(date,Cat)),
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_tloc, arg:Pred]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Pred],
+   retractall(current_main_loc(_, tempo, _)),
+   assert(current_main_loc(NoFr, tempo, NewRef)).
+
+main_location(NoFr, tempo, Role, RefList, Id) :-
+   nodo(N)::pcomp/temporale::sem_mark::Sem,
+   nodo(N)::pcomp/temporale::nodo(N1),
+   nodo(N1)::ogg/_::pred::Pred,
+   nodo(N1)::ogg/_::cat::Cat,
+   (on(tempo,Cat);on(date,Cat)),
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_tloc, arg:Pred]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Pred],
+   retractall(current_main_loc(_, tempo, _)),
+   assert(current_main_loc(NoFr, tempo, NewRef)).
+
+main_location(NoFr, tempo, _, _, Id) :-
+   main_loc_int(NoFr,Ref),
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_tloc, arg:Ref]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Ref],
+   retractall(current_main_loc(_, tempo, _)),
+   assert(current_main_loc(NoFr, tempo, NewRef)).
+
+main_location(NoFr, CatSem, _, _, Id) :-
+   confirm_location(NoFr, CatSem, Id).
+
+
+cat_sem_to_class(tempo, main_tloc). 
+cat_sem_to_class(luogo, main_sloc). 
+   
+
+confirm_location(NoFr, luogo, Id) :-
+   PrecNoFr is NoFr - 1,
+   current_main_loc(PrecNoFr, luogo, PrecLoc),
+   (compare_topics(PrecNoFr, PrecLoc, Id, OldLoc)
+    ;
+    compare_loc_inf(PrecLoc, Id, OldLoc)),
+   assert(current_main_loc(NoFr, luogo, OldLoc)).
+
+
+confirm_location(NoFr, CatSem, Id) :-
+   PrecNoFr is NoFr - 1,
+   current_main_loc(PrecNoFr, CatSem, PrecLoc),
+   arg(1, PrecLoc, Id),   
+   assert(current_main_loc(NoFr, CatSem, PrecLoc)).
+
+confirm_location(NoFr, tempo, Id) :-
+   main_loc_int(No,Ref),
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_tloc, arg:Ref]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Ref],
+   retractall(current_main_loc(_, tempo, _)),
+   assert(current_main_loc(NoFr, tempo, NewRef)).
+
+confirm_location(NoFr, tempo, Id) :-
+   nodo(_)::ref_int::[Ref],
+   !,
+   gen_sym(infon, Infon),
+   gen_sym(id, Id),
+   Fact= loc(Infon, Id, [arg:main_tloc, arg:Ref]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id , Ref],
+   retractall(current_main_loc(_, tempo, _)),
+   assert(current_main_loc(NoFr, tempo, NewRef)).
+
+confirm_location(NoFr, TempoLuogo, nil) :-!.
+
+infer_loc_space(NoFr, CatSem, Pred, NewRef, Id1) :-
+   PrecNoFr is NoFr - 1,
+   current_main_loc(PrecNoFr, CatSem, PrecLoc),
+   arg(1, PrecLoc, Id),   
+   arg(2, PrecLoc, Pred2),
+   (
+      (
+      check_topics(NoFr, Pred, Pred, Id1)
+      ;
+      compare_loc(Pred, Pred2, Id, Id1)
+      ),
+     (
+     var(Id1),
+     NewLoc=PrecLoc   
+     ;
+     nonvar(Id1), 
+     NewRef=ref_ex(I,Loc,Tab,Pers,Gen,Num,Cat,F/R),
+     NewLoc=ref_ex(Id1,Loc,Tab,Pers,Gen,Num,Cat,F/R)   
+     )
+   ;
+    included(Pred,Pred2), 
+    Id1=Id, 
+    NewLoc=PrecLoc   
+   ;
+    infer_generic_location(Pred, Pred2),
+    Id1=Id,
+    NewLoc=PrecLoc   
+   ;
+    check_locations(PrecNoFr, Pred, Id1), 
+    NewRef=ref_ex(I,Loc,Tab,Pers,Gen,Num,Cat,F/R),
+    NewLoc=ref_ex(Id1,Loc,Tab,Pers,Gen,Num,Cat,F/R)   
+   ),
+   assert(current_main_loc(NoFr, CatSem, NewLoc)).
+
+infer_generic_location(Pred, Pred2):-
+    fact(_, name, [Pred2, Ids], 1, _, _),
+    fact(_, isa, [arg:Idss, arg:Pred], 1, _, _),
+    fact(_, di, [arg:Idss, specif:Ids], 1, _, _).
+
+/* Pred2 è la preceding loc */
+compare_loc(Pred, Pred2, Id, Id1):-
+  check_topics(_, Pred, Pred2, Id1).   
+
+check_locations(NoFr, Pred, Id):-
+   (proposto(ref_ex(_,Tes,_,P,G,N,C,F1/R1))
+    ;
+    principale(ref_ex(_,Tes,_,P,G,N,C,F1/R1))),
+    !,
+   (fact(_, poss, [Tes, Id1, Id], 1, Sl, Tl),
+    search_dmod(Pred, Id)
+    ;   
+    recover_location(Id1, Pred, Id),
+    search_dmod(Tes, Id1)
+    ).
+
+/* Id1 è l'id del main topic della frase in cui si ha una stessa locazione, il cui id è Id */
+recover_location(Id1, Pred, Id):-
+  frase_corrente(NoFr,_),
+  PrecNoFr is NoFr - 1,
+  more_recent_location(PrecNoFr, Pred, Id1, Id).
+
+more_recent_location(PrecNoFr, Pred, Id, Id2):-
+   recency(PrecNoFr, Id, Pred, Id2).
+
+recency(N, Id, Pred, Id1) :-
+  1<N,
+  topic(N,main,Id),
+  current_main_loc(N, CatSem, PrecLoc),
+  arg(2, PrecLoc, Pred),
+  arg(1, PrecLoc, Id1)
+  ;
+  1<N,
+  N1 is N - 1,
+  recency(N1, Id, Pred, Id1).
+
+/* Pred è il locativo */
+check_topics(_, Pred, Pred2, _):-
+   fact(In, name, [Pred2, _], 1, _, _),
+   Pred=Pred2.
+
+/* il proposto o il principale possiedono il Pred */
+check_topics(NoFr, Pred, Pred2, Id1):-
+   (proposto(ref_ex(_,Tes,_,P,G,N,C,F1/R1))
+    ;
+    principale(ref_ex(_,Tes,_,P,G,N,C,F1/R1))),
+    !,
+   fact(In, isa, [_:Idc, _:Pred2], 1, _, _),
+   fact(Inf, poss, [Tes, Idp, Idc], 1, _, _),
+   (recover_location(Idp, Pred, Id1)
+     ;
+    var(Id1),
+     Id1=Idc
+    ).
+
+compare_topics(NoFr, PrecLoc, Id, OldLoc):-
+   arg(1, PrecLoc, Ido),   
+   arg(2, PrecLoc, Pred2),   
+   (proposto(ref_ex(_,Tes,_,P,G,N,C,F1/R1))
+    ;
+    principale(ref_ex(_,Tes,_,P,G,N,C,F1/R1))),
+    !,
+   1<NoFr,
+   topic(NoFr,Type,Id1),
+   (Type=main;Type=expected),
+   (fact(In, isa, [_:Id1, _:Tes], 1, _, _)
+    ;
+    in(_,Id1,Ids),
+    fact(In, isa, [_:Ids, _:Tes], 1, _, _)
+    ;
+   fact(In, name, [Tes, Id1], 1, _, _)
+   ),
+   (infer_enter_relation(Tes,Id1, Ide),
+    nonvar(Ide),
+    fact(Inf, isa, [_:Ide, _:Loc], 1, _, _),
+    PrecLoc=ref_ex(I,_,_,_,_,_,Cat,F/R),
+    GenLoc=ref_ex(Ide,Loc,_,_,_,_,Cat,F/R),   
+    OldLoc=GenLoc, Id=Ide
+    ;
+    var(Ide), Id=Ido,
+    OldLoc=PrecLoc).
+
+infer_enter_relation(Tes, Id1, Id):-
+   nodo(N)::pred::Pred,
+   Pred=fare,
+   nodo(N)::vcomp/_::coord::pred::Pred2,
+   Pred2=entrare,
+   !,
+   fact(_, Rel, [agente:Id1, loc_direct:Id], 1, _, _).
+
+/* cerco una location che sia adeguata al mio topic proposto o principale tra quelle precedenti */
+compare_loc_inf(PrecLoc, Id1, OldLoc):-
+   arg(1, PrecLoc, Id),   
+   arg(2, PrecLoc, Pred2),   
+   (proposto(ref_ex(_,Tes,_,P,G,N,C,F1/R1))
+    ;
+    principale(ref_ex(_,Tes,_,P,G,N,C,F1/R1))),
+    !,
+   infer_from_generic_rel(Tes, Idl),
+   (Id\=Idl, Id1=Idl,
+   current_main_loc(_, luogo, OldLoc),
+   arg(1, OldLoc, Idl)
+    ;
+   Id1=Id, OldLoc=PrecLoc).
+
+infer_from_generic_rel(Tes, Id):-
+   (fact(In, isa, [_:Id1, _:Tes], 1, _, Id)
+    ;
+    in(_,Id1,Ids),
+    fact(In, isa, [_:Ids, _:Tes], 1, _, Id)
+    ;
+   fact(In, name, [Tes, Id1], 1, _, _),
+   fact(In, isa, [_:Id1, _:_], 1, _, Id)
+   ),
+   !.
+
+infer_loc_temp(NoFr, CatSem, Trs, Id) :-
+   Trs=..[Tr,Pred],
+   PrecNoFr is NoFr - 1,
+   current_main_loc(PrecNoFr, CatSem, PrecLoc),
+   arg(1, PrecLoc, Id), 
+   arg(2, PrecLoc, Tess),
+   Tess=..[Tes,Pred2],
+   Pred=Pred2,
+   Ref=..[Tr,Pred],
+   loc(Infon, Id, [arg:main_tloc, arg:Pred]),
+   Fact=..[loc,Infon, Id, [arg:main_tloc, arg:Ref]],
+   assert(Fact),
+   NewRef=..[ref_ex, Id , Ref],
+   retractall(current_main_loc(_, CatSem, _)),
+   assert(current_main_loc(NoFr, CatSem, NewRef)).
+
+infer_loc_temp(NoFr, CatSem, Pred, Id1) :-
+   PrecNoFr is NoFr - 1,
+   current_main_loc(PrecNoFr, CatSem, PrecLoc),
+   arg(1, PrecLoc, Id),   
+   arg(2, PrecLoc, Pred2),
+   infer_temp_loc(NoFr, Pred, MainLoc),
+   gen_sym(infon, Infon),
+   gen_sym(id, Id1),
+   Fact= loc(Infon, Id1, [arg:main_tloc, arg:MainLoc]),
+   assert(Fact),
+   assert(confer_infon(Infon, NoFr, nil, nil, location)),
+   NewRef=..[ref_ex, Id1 , MainLoc],
+   retractall(current_main_loc(_, CatSem, _)),
+   assert(current_main_loc(NoFr, CatSem, NewRef)).
+
+/* Adverbial location */
+main_loc_avv(Ref):-
+   nodo(n1)::adjs::avv::pred_avv::Ref,
+   nodo(n1)::adjs::avv::tipo::Tipo,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n1)::adjs::adv::avv::pred_avv::Ref,
+   nodo(n1)::adjs::adv::avv::tipo::Tipo,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n1)::adjs::adv::avv::pred_avv::Ref1,
+   nodo(n1)::adjs::adv::avv::tipo::Tipo,
+   on(Tipo, [temp]),
+   nodo(n1)::adjs::adv::intens::int::Int,
+   concat(Int, Ref1, Ref).
+
+main_loc_avv(Ref):-
+   nodo(n1)::relavv::[TR=Ref].
+
+main_loc_avv(Ref):-
+   nodo(n1)::adjs::avv::adj/Tipo::nodo(J),
+   nodo(J)::duraz::punt,
+   nodo(J)::pred::Ref,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n1)::adjs::avv::adj/Tipo::pred::Ref,
+   nodo(n1)::adjs::avv::adj/Tipo::Duraz::Dur,
+   nodo(n1)::adjs::avv::mod::date::Date,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n1)::adjs::avv::adj/Tipo::pred::Ref,
+   nodo(n1)::adjs::avv::adj/Tipo::Duraz::Dur,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n2)::adjs::avv::pred_avv::Ref,
+   nodo(n2)::adjs::avv::tipo::Tipo,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n2)::adjs::adv::avv::pred_avv::Ref,
+   nodo(n2)::adjs::adv::avv::tipo::Tipo,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n2)::adjs::adv::avv::pred_avv::Ref1,
+   nodo(n2)::adjs::adv::avv::tipo::Tipo,
+   on(Tipo, [temp]),
+   nodo(n2)::adjs::adv::intens::int::Int,
+   concat(Int, Ref1, Ref).
+
+main_loc_avv(Ref):-
+   nodo(n2)::relavv::[TR=Ref].
+
+main_loc_avv(Ref):-
+   nodo(n2)::adjs::avv::adj/Tipo::nodo(J),
+   nodo(J)::duraz::punt,
+   nodo(J)::pred::Ref,
+   nodo(n2)::adjs::avv::mod::date::Date,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n2)::adjs::avv::adj/Tipo::pred::Ref,
+   nodo(n2)::adjs::avv::adj/Tipo::duraz::Dur,
+   nodo(n2)::adjs::avv::mod::date::Date,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+
+main_loc_avv(Ref):-
+   nodo(n2)::adjs::avv::adj/Tipo::pred::Ref,
+   nodo(n2)::adjs::avv::adj/Tipo::Duraz::Dur,
+   on(Tipo, [deictic, deittico, clock_cal, temp]).
+/*************
+main_loc_dei(+ReferentsList, +SemCat, +Role, -Ref, -Ind)
+== Deictic location
+*************/
+main_loc_dei(RefList, Cat, Role, Ref):-
+   on(Ref/_, RefList),
+   arg(1, Ref, Ind),
+   arg(7, Ref, CatSem),
+   nogen_member(Cat, CatSem),
+   arg(8, Ref, _/RoleR),
+   !,
+   Role=RoleR,
+   nodo(N)::indice::Ind,
+   nodo(N)::mods::mod_d::nodo(N1),
+   !.
+/*************
+main_loc_infer(+ReferentsList, +SemCat, +Role, -Ref, -Ind)
+== Inferred location = a corner is included in a restaurant
+*************/
+main_loc_infer(_, RefList, _, locativo, Pred, Ref):-
+   on(Ref/_, RefList),
+   arg(1, Ref, Ind),
+   arg(2, Ref, Pred),
+   arg(7, Ref, CatSem),
+   nonvar(CatSem),
+   notmembro(body_part, CatSem),
+   notmembro(umano, CatSem),
+   (arg(8, Ref, _/locativo);
+   arg(8, Ref, _/locat)),
+   Pred\=dentro.
+
+main_loc_infer(_, RefList, luogo, _, Pred, Ref):-
+   on(Ref/_, RefList),
+   arg(1, Ref, Ind),
+   arg(2, Ref, Pred),
+   arg(7, Ref, CatSem),
+   nonvar(CatSem),
+   notmembro(body_part, CatSem),
+   notmembro(umano, CatSem),
+   membro(luogo, CatSem),
+   arg(8, Ref, ogg/goal),
+   Pred\=dentro.
+
+main_loc_infer(_, RefList, luogo, _, Pred, Ref):-
+   on(Ref/_, RefList),
+   arg(1, Ref, Ind),
+   arg(2, Ref, Pred),
+   (arg(8, Ref, _/locativo);
+   arg(8, Ref, _/locat);
+   arg(8, Ref, ogg/nil)),
+   Pred\=dentro.
+
+main_loc_infer(_, RefList, tempo, _, Pred, Ref):-
+   on(Ref/_, RefList),
+   arg(1, Ref, Ind),
+   arg(2, Ref, Pred),
+   (arg(8, Ref, _/temporale);
+   arg(8, Ref, _/temp);
+   arg(8, Ref, ogg/nil)).
+
+/*************
+main_loc_infer_temp(+ReferentsList, +SemCat, +Role, -Ref, -Ind)
+== Inferred temporal location = limitato a locazioni temporali avverbiali e TR
+*************/
+main_loc_infer_temp(NoFr, RefList, CatSem, Role, Pred, Ref)
+   :-
+   (
+    main_loc_avv(Ref)
+    ;
+    main_loc_int(NoFr,Ref)
+   ),!.
+
+/*************
+main_loc(+ReferentsList, +SemCat, +Role, -Ref)
+*************/
+/*  Role and CatSem based and must be goal object */
+main_loc(RefList, luogo, _, Ref):-
+   on(Ref/_, RefList),
+   arg(7, Ref, CatSem),
+   nonvar(CatSem),
+   notmembro(body_part, CatSem),
+   membro(luogo, CatSem),
+   (arg(8, Ref, ogg/goal)
+    ;
+   arg(8, Ref, obl/goal)).
+
+/*  CatSem and Role based */
+main_loc(RefList, Cat, Role, Ref):-
+   on(Ref/_, RefList),
+   arg(7, Ref, CatSem),
+   nonvar(CatSem),
+   notmembro(body_part, CatSem),
+   membro(Cat, CatSem),
+   arg(8, Ref, _/Role).
+
+/* Role based */
+main_loc(RefList, _, locativo, Ref):-
+   on(Ref/_, RefList),
+   arg(7, Ref, CatSem),
+   nonvar(CatSem),
+   notmembro(body_part, CatSem),
+   notmembro(istituzione, CatSem),
+   notmembro(umano, CatSem),
+   (arg(8, Ref, _/locativo);
+   arg(8, Ref, _/locat)).
+
+/*  CatSem based and must be adjunct object */
+main_loc(RefList, luogo, _, Ref):-
+   on(Ref/_, RefList),
+   arg(7, Ref, CatSem),
+   nonvar(CatSem),
+   notmembro(body_part, CatSem),
+   membro(luogo, CatSem),
+   arg(8, Ref, ogg/nil).
+
+/*  CatSem based and must be adjunct object */
+main_loc(RefList, luogo, _, Ref):-
+   on(Ref/_, RefList),
+   arg(7, Ref, CatSem),
+   nonvar(CatSem),
+   notmembro(sostanza, CatSem),
+   notmembro(body_part, CatSem),
+   membro(luogo, CatSem),
+   arg(8, Ref, adj/specif).
+
+/*  Only for temporal locations. Function is ogg_avv */
+main_loc(RefList, tempo, _, Ref):-
+   on(Ref/_, RefList),
+   arg(7, Ref, CatSem),
+   membro(deittico,CatSem),
+   arg(8, Ref, Fun/Role),
+   legal_temp_fun_role(Fun, Role).
+
+main_loc(RefList, tempo, _, Ref):-
+   on(Ref/_, RefList),
+   arg(7, Ref, CatSem),
+   arg(8, Ref, Fun/Role),
+   legal_temp_funrole(Fun, Role).
+
+/*  CatSem based and must be adjunct object */
+main_loc(RefList, tempo, _, Ref):-
+   on(Ref/_, RefList),
+   arg(7, Ref, CatSem),
+   nonvar(CatSem),
+   notmembro(body_part, CatSem),
+   (membro(tempo, CatSem)
+    ;
+    membro(date, CatSem)
+    ;
+    membro(temp, CatSem)),
+   arg(8, Ref, ogg/nil).
+
+main_loc_int(1,Ref):-
+   nodo(n1)::ref_int::[Ref].
+
+main_loc_int(NoFr,TR2):-
+   nodo(_)::ref_int::[Ref],
+   time_focus(StackNo, TR2),
+   TR2=tes(Ref1),
+   Ref=tr(Ref2),
+   Ref2 \= Ref1.
+
+%legal_temp_fun_role(ogg_avv, _).
+legal_temp_fun_role(ogg,Role):-
+   Role\=tema_bound.
+% legal_temp_funrole(ogg,punct).
+legal_temp_funrole(ogg,non_punct).
+
+
+
+write_main_loc(NFrase) :-
+   current_main_loc(NFrase, luogo, Ref),
+   Ref=..[ref_ex, _ | Args],
+   Ref1=..[ref_ex, NFrase | Args],
+   writenl('MAIN SPATIAL LOCATION: '),
+   write(Ref1).
+
+write_main_temp(NFrase) :-
+   current_main_loc(NFrase, tempo, Ref),
+   Ref=..[ref_ex, _ | Args],
+   !,
+   Ref1=..[ref_ex, NFrase | Args],
+   writenl('MAIN TEMPORAL LOCATION: '),
+   write(Ref1).
+
+write_main_temp(NFrase) :-
+   current_main_loc(NFrase, tempo, MainTemp),
+   writenl('MAIN TEMPORAL LOCATION: '),
+   write(MainTemp).
+
+
+/*
+infer_temp_loc(NoFr, MainLoc, MainLoc):-
+   current_main_loc(_, tempo, MainTemp),
+   MainTemp = ref_ex(Id, Loc),
+   Loc = tr(TR),
+   !.
+*/
+infer_temp_loc(NoFr, CurrLoc, NewLoc):-
+   current_main_loc(_, tempo, MainTemp),
+   MainTemp = ref_ex(Id, OldLoc),
+   specific_time(CurrLoc, OldLoc, NewLoc).
+
+infer_temp_loc(NoFr, MainLoc, MainLoc):-
+   current_main_loc(_, tempo, MainTemp),
+   MainTemp \= ref_ex(univ),
+   !.
+
+specific_time(CurrLoc, OldLoc, NewLoc):-
+   check_loc(CurrLoc, Type1),
+   check_loc(OldLoc, Type2),
+   infer_include(Type1, Type2, Type),
+   (
+    Type=Type1, NewLoc=CurrLoc
+   ;
+    Type=Type2, NewLoc=OldLoc
+   ).   
+
+specific_time(CurrLoc, OldLoc, NewLoc):-
+   infer_temp(CurrLoc, OldLoc, NewLoc).   
+
+check_loc(ieri, day).
+check_loc(giovedì, week_day).
+check_loc(1950, date).
+check_loc(tes(TR), ref_time).
+
+infer_temp(tr(TR1), tr(TR2), TR2):-
+rel_temp(Inf, tes(TR1), tr(TR2), [bf]).
+
+infer_temp(tr(TR1), _, TR2):-
+   time_focus(StackNo, TR2).
+
+
+infer_include(day, week_day, week_day).
+infer_include(day, ref_time, day).
+infer_include(date, ref_time, date).
+
+/*
+connect_main_temp_loc(NoFr, _) :-
+   genre(legal),
+   !.
+*/
+connect_main_temp_loc(NoFr, NewLoc) :-
+   main_sentence_index(FrX),
+   rete(Rete),
+   concatena(FrX, Rete, TimeId),
+   (
+    current_main_loc(_, tempo, MainTemp),
+    MainTemp = ref_ex(Id, tr(TR)),
+    connect_time(TimeId, NewLoc)
+   ;
+    assert(includes(tes(TimeId), NewLoc)),
+    connect_time(TimeId, NewLoc),
+    write_inclusion(includes, tr(TimeId), NewLoc)
+   ;
+    assert(includes(tes(TimeId), NewLoc)),
+    write_inclusion(includes, tr(TimeId), NewLoc)
+   ).
+connect_main_temp_loc(NoFr, _) :-
+   !.
+
+connect_time(TimeId, NewLoc)
+  :- 
+info(NoFr, Node, FunRole, View, Intens, Change, Rel, 
+       VerbCat, Verb,TempRel, DiscRel, DiscDom, SubjConsc),
+   TempRel=..[Relt,Tr1, Tr2],
+   assert(TempRel),
+   write_inclusion(Relt, Tr1, Tr2).
+
+write_inclusion(Relt, TimeId, MainLoc) :-
+%   active_output_win('Model'),
+   !,
+   nl, 
+   Rels=..[Relt,TimeId, MainLoc],
+   write(Rels).
+write_inclusion(_, _, _).
+
+
+/* converte un grafo nell'input per la forma logica */
+
+/* tologf(InFile) - predicato principale - legge la rete da un .net */
+
+tologf(FL) :-
+   read_rete(NetId),
+   xlate(n1,FL), 
+   !,
+   nl,write_frase(NetId),
+   nl,nl,write(FL),nl,
+   scope(FL).
+
+tologf(InFile) :-
+    xlate(n1,FL),
+    !,
+    write(FL),nl,scope(FL).
+
+
+notnodlg(N, Path):-
+   findall(Value, 
+           nodo(N)::Path::nodo(Value), Ps),
+   Ps=[],!.
+
+notnodlg0(N, Attributo, Funzioni, Path):-
+   findall(Value, 
+           nodo(N)::Path::Attributo::Funzioni::nodo(Value), Ps),
+   Ps=[],!.
+
+notnodlg1(Nodo, Funzioni, Path):-
+   findall(Value, 
+           nodo(N)::Path::Funzioni::nodo(Value), Ps),
+   Ps=[],!.
+
+main_relation(N1, _, Pred) :-
+   nodo(N2)::sub/prop::nodo(N1),
+   nodo(N2)::sem_mark::Pred,
+   !.
+main_relation(_, Role, Role).
+
+
+xlate_mod_int(N, Ind, Ind1, XMod) :-     
+   nodo(N)::adjs::int::Pred,     
+   XMod = wff(Pred, [Ind1,Ind]).
+
+xlate_mod_int(_, _,_, _).
+
+
+/* nodo di coordinazione tra frasi */
+xlate(N, FL) :-  
+   (nodo(N)::F/R::nodo(NN),
+    F\=vcomp,F\=adv,  
+   nodo(NN)::coord::nodo(N1),  
+   nodo(NN)::coord::nodo(N2)
+   ;
+   nodo(N)::coord::nodo(N1),  
+   nodo(N)::coord::nodo(N2) 
+   ),  
+   N1 \= N2,  
+   xlate(N1,FL1),  
+   xlate(N2,FL2),  
+   FL=wff(and,[FL1,FL2]),
+   !. 
+
+/* nodo di ipotassi tra frasi */
+xlate(N, FL) :-  
+   nodo(N)::F/R::nodo(N1),
+    F=dir_speech,  
+   nodo(N)::F/R::nodo(N2),  
+   N1 \= N2,  
+   xlate(N1,FL1),  
+   xlate(N2,FL2),  
+   FL=wff(and,[FL1,FL2]),
+   !. 
+
+/* subordinazione alta */
+xlate(N, FL) :-  
+  (
+  nodo(N)::adjs::sub/prop::nodo(N1)
+  ;
+  nodo(N)::adj::sub/prop::nodo(N1)
+  ;
+  nodo(N)::adj/Role::nodo(N1)
+  ),
+  main_relation(N1, Role, Pred),
+  nonvar(Pred),
+  xlate(N1,XSub),
+  (
+  nodo(N)::main/prop::[],
+  nodo(N)::adj::sub/prop::main/prop::nodo(N3),
+  XSub=wff(Pred,[wff(adj,[wff(Pred1,
+           [wff(main,[XMain]), wff(adj,[XSub1])])])]),
+  FL = wff(Pred1,[wff(main,[XMain]), wff(adj,[XSub1])])
+  ;
+  nodo(N)::main/prop::[],
+  notnodlg0(N, sub/prop, main/prop, adj),
+  FL = wff(Pred,[wff(adj,[XSub])]) 
+  ;
+  nodo(N)::main/prop::nodo(N3),
+  xlate(N3, XMain),
+  FL = wff(Pred,[wff(main,[XMain]), wff(adj,[XSub])])
+  ;
+  nodo(N)::adv_main/prop::nodo(N3),
+  xlate(N3, XMain),
+  FL = wff(Pred,[wff(main,[XMain]), wff(adj,[XSub])])
+  ;
+  FL=XSub), 
+  !. 
+
+xlate(N, FL) :-  
+  nodo(N)::adjs::report/prop::nodo(N1),
+  xlate(N1,FL1),
+  FL = wff(main,[XSub]), 
+  !. 
+
+xlate(N, FL1) :-  
+   nodo(_)::Funz/Role::nodo(N),
+   (nogen_member(Funz, [acomp,ncomp]),
+     (nodo(N)::indice::Ind,
+      nodo(N)::pred::Pred,  
+      (
+      nodo(N)::vcomp/prop::nodo(Sogg)
+       ;
+      nodo(N)::sogg/nil::nodo(Sogg)),  
+      nodo(N1)::controllore::Contr,  
+      xlate(Sogg,XSogg),
+      xlate_sn(N, FL2),
+      FL1 = wff(Pred,[XSogg, FL2])
+     ;
+     nodo(N)::coordina::coord::nodo(N1),  
+     nodo(N)::coordina::coord::nodo(N2), 
+     N1 \= N2,  
+     nodo(N1)::indice::Ind2,
+     nodo(N1)::pred::Pred2,  
+     nodo(N2)::indice::Ind1,
+     nodo(N2)::pred::Pred1,  
+      nodo(N1)::sogg/nil::nodo(N11),  
+      nodo(N11)::controllore::Contr,  
+        Predcoord=[Pred1,Pred2],
+        FL1=wff(Predcoord,[Contr]))
+    ;
+    Funz=vcomp,
+    nodo(N)::adj::nodo(N1),
+    nodo(N1)::sem_mark::Pred,
+    nodo(N1)::adj::sub/prop::nodo(N2), /* sfuggire */
+    xlate(N2, XSub),
+    nodo(N1)::adjs::adj::nodo(N3),
+    nodo(N3)::sem_mark::Pred1,
+    xlate(N3, XMain),
+    FL1 = wff(and,[XMain, XSub])),
+/*    FL1 = wff(and,[XMain, FLsub])),
+    FL1 = wff(Pred,[wff(adj,[XMain]), wff(adj,[XSub])])),
+   FL1 = wff(Pred,[wff(main,[XMain])])), */
+    !.
+/* per(correre(X), sfuggire(Y)) 
+  FL = wff(Pred,[wff(main,[XMain]), wff(adj,[XSub])])
+*/
+
+xlate(N,FL) :-  
+   nodo(_)::pcomp/_::nodo(N),
+   nodo(N)::sogg/_::nodo(Sogg),
+   nodo(N)::ogg/_::pred::Pred,
+   nodo(N)::ogg/_::antecedente::esterno,
+   nodo(N)::ogg/_::nodo(Ogg),
+      xlate(Sogg,XSogg),
+   xlate(Ogg,XOgg),
+   FL = wff(in,[XSogg,XOgg]), 
+   !.
+
+xlate(N,FL) :-  
+   nodo(_)::pcomp/_::nodo(N),
+   nodo(N)::sogg/_::nodo(Sogg),
+   nodo(N)::ogg/_::pred::Pred,
+   nodo(N)::ogg/_::controllore::Contr,
+   nodo(N)::ogg/_::nodo(Ogg),
+      xlate(Sogg,XSogg),
+   xlate(Ogg,XOgg),
+   FL = wff(in,[XSogg,XOgg]), 
+   !.
+
+xlate(N,FL) :-  
+   nodo(_)::pcomp/_::nodo(N),
+   nodo(N)::sogg/_::nodo(Sogg),
+   nodo(N)::sogg/_::controllore::Contr,
+   nodo(N)::ogg/_::pred::Pred,
+   nodo(N)::ogg/_::nodo(Ogg),
+      xlate(Sogg,XSogg),
+   xlate(Ogg,XOgg),
+   FL = wff(in,[XSogg,XOgg]), 
+   !.
+
+/* e' la frase principale */
+xlate(Nodo,FL) :-
+   ( 
+   nodo(Nodo)::modo::Modo 
+   ;
+   nodo(Nodo)::sogg/prop::_
+   ),
+   nodo(Nodo)::pred::Pred,
+   nodo(Nodo)::indice::Ind,
+   nodo(Nodo)::cat::CatV,
+   nodo(Nodo)::modo::Modo,                 
+   nodo(Nodo)::tempo::Tempo,
+   findall(
+      N,
+      (
+        (  nodo(Nodo)::focus::sn_int::nodo(N),!,
+     (nodo(Nodo)::F1/Ruolo::controllore::Contr
+      ;
+      nodo(Nod)::sogg/nil::controllore::Contr
+      ;
+      nodo(Nod)::F1/Ruolo::controllore::Contr
+      ),
+                  (F1=sogg;F1=ogg;F1=ogg2;F1=obl)
+         ;
+         nodo(Nodo)::focus::nodo(N),
+         notnodlg1(Nodo, sn_int, focus),
+     (nodo(Nodo)::F1/Ruolo::controllore::Contr
+      ;
+      nodo(Nod)::sogg/nil::controllore::Contr
+      ;
+      nodo(Nod)::F1/Ruolo::controllore::Contr
+      ),
+         nodo(Nodo)::F1/Role::controllore::Contr,
+                  (F1=sogg;F1=ogg;F1=ogg2;F1=obl))
+      ),
+      Laa),
+   findall(
+      N,
+        (member(
+         F,
+         [sogg,sogg_posposto,subj_top,sogg_top,sogg_foc,topic,
+         ogg,ogg2,obl2,obl1,obl,foc,fuoco,subj_foc,ogg_avv,adv,
+         pcomp,acomp,ncomp,vpred,vcomp,fcomp]),
+         nodo(Nodo)::F/Role::nodo(N),Role\=form
+      ),
+      Lab),
+   append(Lab, Laa, La1),
+   maplist(xlate,La1,Las),                 
+   togli_doppi(Las, La2),
+   Adjs_q=[],        
+   aggiunti_frasali(Nodo,Ind, Adjs),
+   build_event_restrictions(Tempo, Ind, Adjs, EvStato, TQuant, EventRes),  
+   ( 
+   Adjs_q = [], 
+   La3=La2                    
+   ;                  
+   append(La2,[Adjs_q],La3)
+   ),   
+   (
+   on(CatV, [risultato,achiev_irr,achiev,achiev_tr,accomp,cambiamento])
+   ->   
+   EvStato=ev,
+   TQuant=definito,
+   append(La3,[term(event,Ind,EventRes)],Args)         
+   ;
+   CatV=attivita,             
+   EvStato=pr,
+   TQuant=indefinito,
+   append(La3,[term(process,Ind,EventRes)],Args)
+   ;            
+   EvStato=st,
+   TQuant=indefinito,
+   append(La3,[term(state,Ind,EventRes)],Args)
+   ),  
+   (find_forms(Nodo,Pred,Pre),
+   FL1 = wff(Pre,Args)               
+   ;  
+   FL1 = wff(Pred,Args)
+   ),                 
+   (
+   nodo(Nodo)::adjs::neg::Neg,                  
+   FL2 = wff(not,[FL1]), 
+   !
+   ;                  
+   FL2 = FL1
+   ),         
+   (
+   Modo=inf,
+   FL=FL2,
+   !
+   ;
+   nodo(Nodo)::focus::tipo_focus::interrogativo,
+   FL=FL2,
+   !                    
+   ;                  
+   FL= wff(situation,[FL2])
+   ).
+
+xlate(Nodo, FL) :-
+   nodo(Nodo)::sub/prop::nodo(N1),
+   nodo(Nodo)::sem_mark::Pred,
+   nodo(Nodo)::sub/prop::nodo(N1),
+   nodo(N)::adjs::adj::sub/prop::pred::P,
+   nodo(N0)::vcomp/prop::adj::nodo(N),
+   nodo(N)::pred::P,
+   nodo(N)::modo::inf,
+   xlate(N,FL), 
+   !.
+
+xlate(Nodo, FL1) :-
+   nodo(Nodo)::ip::nodo(N1),
+   nodo(N)::ip_ell/prop::nodo(N2),
+   nodo(N1)::adjs::adj/Role::nodo(N3),
+   xlate(N3,FL), 
+   (
+    nodo(N1)::adjs::neg::Neg,                  
+    FL1 = wff(not,[FL])
+    ;
+    FL1=Fl),
+   !.
+
+xlate(Nodo, FL) :-
+   nodo(Nodo)::ip_ell/prop::[],
+   nodo(Nodo)::adjs::avv::adj/Role::nodo(N3),
+   nodo(Nodo)::indice::Ind,
+   aggiunti_ellittici(Nodo,Ind,Adjs),
+   build_event_restrictions(pres, Ind, Adjs, st, indefinito, EventRes),  
+   append(La3,[term(state,Ind,EventRes)],Args),
+   FL1 = wff(be,Args),  
+   (
+   nodo(Nodo)::adjs::neg::Neg,                  
+   FL2 = wff(not,[FL1]), 
+   !
+   ;                  
+   FL2 = FL1
+   ),         
+   FL= wff(situation,[FL2]),
+   !.
+
+xlate(Nodo, FL) :-
+   nodo(Nodo)::ip_ell/prop::nodo(N2),
+   nodo(N2)::F/R::nodo(N3),
+   nodo(Nodo)::indice::Ind,
+   xlate(N3,La3), 
+   aggiunti_ellittici(Nodo,Ind,Adjs),
+   build_event_restrictions(pres, Ind, Adjs, st, indefinito, EventRes),  
+   append([La3],[term(state,Ind,EventRes)],Args),
+   FL1 = wff(be,Args),  
+   (
+   nodo(Nodo)::adjs::neg::Neg,                  
+   FL2 = wff(not,[FL1]), 
+   !
+   ;                  
+   FL2 = FL1
+   ),         
+   FL= wff(situation,[FL2]),
+   !.
+
+xlate(Nodo, FL) :-
+   nodo(Nodo)::_/prop::nodo(N1),
+   xlate(N1,FL), 
+   !.
+
+/* e' un sn */
+xlate(Nodo, FL) :-
+   nodo(Nodo)::coordina::nodo(N1),
+   nodo(Nodo)::indice::Ind,
+   nodo(N1)::F/R::nodo(N0),  
+   nodo(N1)::F/R::nodo(N2), 
+     N0 \= N2,  
+   nodo(N1)::F/R::nodo(N3),
+   N3\=N0,N3\=N2,
+   nodo(N3)::indice::Ind3,
+   nodo(N3)::pred::Pred3,
+     nodo(N0)::indice::Ind2,
+     nodo(N0)::pred::Pred2,  
+     nodo(N2)::indice::Ind1,
+     nodo(N2)::pred::Pred1,
+    (nonvar(Pred3), Predcoord=[Pred1,Pred2,Pred3]
+     ;  
+     Predcoord=[Pred1,Pred2]),  
+   FL=wff(Predcoord,[ Ind]),
+   !.
+
+xlate(Nodo, FL) :-
+   nodo(Nodo)::coordina::nodo(N1),
+   nodo(Nodo)::indice::Ind,
+   nodo(N1)::F/R::nodo(N0),  
+   nodo(N1)::F/R::nodo(N2), 
+     N0 \= N2,  
+     nodo(N0)::indice::Ind2,
+     nodo(N0)::pred::Pred2,  
+     nodo(N2)::indice::Ind1,
+     nodo(N2)::pred::Pred1,
+     Predcoord=[Pred1,Pred2],  
+   FL=wff(Predcoord,[ Ind]),
+   !.
+
+xlate(Nodo, FL) :-
+   nodo(Nodo)::coordina::nodo(N1),
+   nodo(Nodo)::indice::Ind,
+   findall(N, nodo(N1)::F/R::nodo(N), Nodes),
+   xlate_sn(Nodes, FLCoord),
+   FL=term(set, Ind, FLCoord),
+   !.
+/* e' un sn */
+xlate(Nodo, FL) :-
+   nodo(Nodo)::tab_ref::_,
+   xlate_sn(Nodo,FL), 
+   !.
+
+/* e' un sn */
+xlate(Nodo, FL) :-
+   nodo(Nodo)::controllore::_,
+   xlate_sn(Nodo, FL),
+   !.
+
+/* un Pro senza controllo e senza tab_ref  */
+xlate(Nodo,CC) :- 
+   nodo(Nodo)::pred::Pred, 
+   nogen_member(Pred, [pPro, vbl]),                    
+   nodo(Nodo)::indice::Ind,                     
+   CC=term(definito,Ind,wff(pPro,[Ind])), 
+   !. 
+
+
+find_forms(Nodo,Pred,Pre):-
+   nodo(Nodo)::F/form::pred::PPred,
+   F\=sogg,F\=ogg2,
+   concat(Pred, '_', NPred),
+   concat(NPred, PPred, Pre),
+   assert(new_pred(Pred,Pre)),
+   !.
+
+aggiunti_ellittici(Nodo,Ind,XMods) :-
+   bagof(
+      N-adj/X,
+      (
+      nodo(Nodo)::adjs::avv::adj/X::nodo(N),
+        nodo(Nodo)::adjs::avv::nodo(N0);
+      nodo(Nodo)::adjs::X::nodo(N),
+        nodo(Nodo)::adjs::nodo(N0);
+      nodo(Nodo)::adj/X::nodo(N),
+        nodo(Nodo)::adj::nodo(N0);
+      nodo(Nodo)::adj::X::nodo(N),
+        nodo(Nodo)::adj::nodo(N0)
+      ), 
+      ListaAdjs1),
+   xlate_adjs_f(ListaAdjs1,Ind,Adjs),
+   (nodo(N0)::mod::Tipo::Pred,
+    XMods = wff(and, [wff(Pred, [Ind, Adjs])])
+    ;
+    XMods = Adjs),
+   !.
+aggiunti_ellittici(_,_,[]).
+
+xlate_sn([Nodo | Nodi], [FL | Fls]) :-
+   !,
+   xlate_sn(Nodo, FL),
+   xlate_sn(Nodi, Fls).
+
+xlate_sn([], []) :-
+   !.
+
+
+xlate_sn(Nodo, FL) :-
+   nodo(Nodo)::controllore::IndContr,
+   nodo(NContr)::indice::IndContr,
+   nodo(_X)::focus::nodo(NContr), 
+   !,
+   xlate(NContr,FL).
+
+xlate_sn(Nodo, FL) :-
+   nodo(Nodo)::controllore::IndContr,
+   nodo(NContr)::indice::IndContr,
+   nodo(X)::focus::sn_int::nodo(NContr), 
+   !,
+   xlate(NContr,FL).
+
+xlate_sn(Nodo, FL) :-
+   nodo(Nodo)::indice::Ind,
+   nodo(X)::focus::nodo(Nodo), 
+   notnodlg(Nodo, sn_int),
+   !,
+   nodo(Nodo)::pred::Pred,
+   altre_restrizioni_sn(Nodo,Ind,AltreRes),                    
+   trova_quantif(Nodo,Quant,Pred,IndCo,AltreRes),                    
+   (
+   AltreRes \= [],
+   Restrict = wff(and,[wff(isa,[Ind, Pred]), AltreRes])
+   ;
+   AltreRes = [],
+   XArgs = [], 
+   Restrict = wff(isa,[Ind, Pred])
+   ),
+   Fl1=term(Quant, Ind, Restrict), 
+   FL=wff(focus,[Fl1]).
+
+xlate_sn(Nodo, FL) :-
+   nodo(Nodo)::indice::Ind,
+   nodo(N)::focus::nodo(Nod), 
+   nodo(Nod)::sn_int::nodo(Nodo), 
+   !,
+   nodo(Nodo)::pred::Pred,
+   altre_restrizioni_sn(Nodo,Ind,AltreRes),                    
+   trova_quantif(Nodo,Quant,Pred,IndCo,AltreRes),                    
+   (
+   AltreRes \= [],
+   Restrict = wff(and,[wff(isa,[Ind, Pred]), AltreRes])
+   ;
+   AltreRes = [],
+   XArgs = [], 
+   Restrict = wff(isa,[Ind, Pred])
+   ),
+   Fl1=term(Quant, Ind, Restrict), 
+   FL=wff(focus,[Fl1]).
+
+
+xlate_sn(Nodo,FL) :- 
+   nodo(Nodo)::indice::Ind,
+   nodo(Nodo)::pred::Pred,
+   xlate_args_sn(Nodo, XArgs),
+   altre_restrizioni_sn(Nodo,Ind,AltreRes),                    
+   trova_quantif(Nodo,Quant,Pred,IndCo,AltreRes),                    
+   (
+   AltreRes \= [],
+   Restrict = wff(and,[wff(isa,[Ind, Pred]), AltreRes])
+   ;
+   XArgs \= [],
+   Main = wff(isa,[Ind, Pred]),
+   Head = wff(and,[wff(has,XArgs), Main]),  
+   Restrict = wff(and,[Head, AltreRes])
+   ;
+   AltreRes = [],
+   XArgs = [], 
+   Restrict = wff(isa,[Ind, Pred])
+   ),
+   FL=term(Quant, Ind, Restrict), 
+   ! .
+
+xlate_sn_coordinati(Nodo,FL) :- 
+   nodo(Nodo)::indice::Ind,
+   nodo(Nodo)::pred::Pred,
+   Restrict = wff(isa,[Ind, Pred]),
+   FL=term(Quant,Ind,Restrict), 
+   ! .
+
+
+build_event_restrictions(Tempo, Ind, Adjs, EvStato, TQuant, EventRes) :-
+   EventRes = wff(and, [wff(isa,[Ind, EvStato]), EventRes1]),
+   TimeRes = wff(and, [wff(isa,[TInd, tloc]), wff(Tempo, [TInd])]),
+   Time = wff(time,[Ind, term(TQuant,TInd, TimeRes) ]),
+   gen_sym(t, TInd),
+   (
+   Adjs = [] 
+   -> 
+   EventRes1 = Time               
+   ;                  
+   EventRes1 = wff(and,[Time, Adjs])                 
+   ).
+
+
+/*******
+altre_restrizioni_sn(+nodo, +indiceSintagma, -listaRestrizioni)
+******/
+altre_restrizioni_sn(Nodo, Ind, AltreRes) :-
+  bagof(
+    N-Tipo,
+    restrizione(Nodo, Ind, N, Tipo),
+    ListaMods),
+  xlate_mods(ListaMods,Ind,AltreRes),
+  !.
+altre_restrizioni_sn(_,_,[]).
+
+/*******
+restrizione(+superNodo, +indiceSintagma, -nodo, -tipo)
+******/
+restrizione(Nodo, _, N, aggettivo) :-
+    nodo(Nodo)::mods::pred::N.
+
+restrizione(Nodo, _, N, sogg/poss) :-
+    nodo(Nodo)::sogg/poss::nodo(N).
+
+restrizione(Nodo, _, N, relativa/aperto) :-
+    nodo(Nodo)::mods::Tipo::nodo(N).
+
+restrizione(Nodo, _, N, Tipo) :-
+    nodo(Nodo)::mods::Tipo::nodo(N).
+
+restrizione(Nodo, _, N, Tipo) :-
+    nodo(Nodo)::adjs::_/_::mods::Tipo::nodo(N).
+
+restrizione(Nodo, _, N, Tipo) :-
+    nodo(Nodo)::adjs::Tipo::nodo(N).
+
+restrizione(Nodo, Ind, N, aperto) :-
+      nodo(N)::sogg/_::controllore::Ind,
+      nodo(_)::adjs::_::nodo(N).
+
+restrizione(Nodo, _, N, controllore) :-
+    nodo(Nodo)::controllore::N.
+
+restrizione(Nodo, _, N, antecedente) :-
+    nodo(Nodo)::antecedente::N.
+
+
+/*
+trasla modificatori e aggiunti di un sn un elemento della lista e': Nodo-Funz/Ruolo
+*/
+xlate_mods([],Ind,[]) :-!.
+xlate_mods([M],Ind,XM) :- 
+   xlate_mod(M,Ind,XM),
+   !.
+xlate_mods([M | AltriM], Ind, XMods) :-
+   xlate_mod(M, Ind, XM),
+   xlate_mods(AltriM, Ind, XAltriM),
+   XMods = wff(and, [XM, XAltriM]).
+
+xlate_mods([M | AltriM], Ind, XMods) :-
+   xlate_mods(AltriM, Ind, XMods),
+   !.
+
+/* controllore */
+xlate_mod(CC-X, Ind, wff(X,[Ind,CC1])) :-
+   nogen_member(X, [controllore, antecedente]),     
+   % si controlla se il controllore e' un topic       
+   (
+   nodo(N1)::indice::CC,        
+   nodo(_N2)::topic::nodo(N1),        
+   (nodo(N1)::antecedente::CC1;
+    nodo(N1)::controllore::CC1) 
+/*   ;       
+   nodo(N)::sogg/nil::nodo(Sogg),  
+   nodo(N1)::controllore::CC1  
+*/   ;
+   CC1=CC
+   ),       
+   !.
+
+/* aggiunti aperti */
+xlate_mod(Adj-aperto,Ind,XAdj):-
+      nodo(Adj)::sem_mark::Pred,
+      nodo(Adj)::sogg/_::nodo(Sogg),
+      nodo(Adj)::ogg/_::nodo(Ogg),
+      xlate(Sogg,XSogg),
+      xlate(Ogg,XOgg),
+      XAdj = wff(Pred,[Ind,XSogg,XOgg]), 
+      !.
+
+/* aggiunti aperti */
+xlate_mod(Adj-aperto,Ind,XAdj):-
+      nodo(Adj)::pred::Pred,
+      nodo(Adj)::sogg/_::nodo(Sogg),
+      nodo(Adj)::ogg/_::nodo(Ogg),
+      xlate(Sogg,XSogg),
+      xlate(Ogg,XOgg),
+      XAdj = wff(Pred,[Ind,XSogg,XOgg]), 
+      !.
+
+/* aggiunti aperti  struttura sbagliata compare sn */
+xlate_mod(Adj-aperto,Ind,XAdj):-
+      nodo(Adj)::pred::Pred,
+      nodo(Adj)::sogg/nil::nodo(Sogg),      
+      xlate(Sogg,XSogg),      
+      XAdj = wff(Pred,[XSogg]), 
+      !.
+
+/* frasi relative */
+xlate_mod(Mod-_Funz/_Ruolo,Ind,XMod) :-
+     nodo(Mod)::modo::Modo,
+     xlate(Mod,XMod1),
+     XMod = wff(isola,[XMod1]), 
+     !.
+
+/* sp aggiunti all'sn */
+xlate_mod(Adj-adj/Funz,Ind,XAdj) :-
+     member(Funz,[poss]),
+     nodo(Adj)::pred::Pred,
+     nodo(Adj)::ogg/_::nodo(Ogg),
+     xlate(Ogg,XOgg),
+     XAdj = wff(Pred,[Ind,XOgg]), 
+     !. 
+
+/* sp aggiunti all'sn */
+xlate_mod(Adj-adj/Funz,Ind,XAdj) :-
+     nodo(Adj)::pred::Pred,
+     nodo(Adj)::ogg/_::nodo(Ogg),
+     xlate(Ogg,XOgg),
+     XAdj = wff(Pred,[Ind,XOgg]),
+     !. 
+
+xlate_mod(Adj-adj/Funz,Ind,XAdj) :-
+     nodo(Adj)::sem_mark::Pred,
+     xlate(Adj, XOgg),
+     XAdj = wff(Pred,[Ind, XOgg]), 
+     !. 
+
+xlate_mod(Nodo-sogg/poss,Ind,XAdj) :-
+     xlate(Nodo,Poss),     
+     XAdj = wff(poss,[Ind,Poss]), 
+     !.
+
+/* aggiunti dell'sn */
+xlate_mod(Adj-adj,Ind,XAdj) :-
+     nodo(Adj)::sem_mark::Pred,
+     nodo(Adj)::Funz/Rol::nodo(A),
+     xlate(A, XOgg),
+     XAdj = wff(Pred,[Ind, XOgg]), 
+     !. 
+
+/* nome-mod (fratelli porcellini) */
+
+xlate_mod(N-nome_mod,Ind,XAdj) :-     
+   nodo(N)::pred::Pred,     
+   XAdj = wff(isa,[Ind, Pred]),
+   !.
+
+xlate_mod(N-nadj/Funz,Ind,XAdj) :-     
+   nodo(N)::pred::Pred,     
+   XAdj = wff(isa,[Ind, Pred]),
+   !.
+
+/* aggettivi - non hanno ruolo ? TUTTO DA RIVEDERE !!!!!! */
+/* aggiunto da Emanuele */
+xlate_mod(N-mod/Ruolo, Ind, XMod) :-     
+   nodo(N)::pred::Pred,     
+   XMod = wff(Pred, [Ind]).
+
+xlate_mod(N-mod_a, Ind, XMod) :-     
+   nodo(N)::pred::Pred,     
+   XMod = wff(Pred, [Ind]).
+
+% EP 13.01.13
+xlate_mod(N-mod_r, Ind, XMod) :-     
+   nodo(N)::pred::Pred,     
+   XMod = wff(Pred, [Ind]).
+
+xlate_mod(Pred-aggettivo,Ind,XMod) :-     
+   XMod = wff(Pred,[Ind]).
+
+
+/* aggiunti frasali */
+aggiunti_quant(Nodo,Ind,Adjs) :-
+   bagof(N-X, nodo(Nodo)::adjs::X::nodo(N) ,[ListaAdjs1]),  %?? 
+   xlate_mod_quant(ListaAdjs1,Ind,Adjs),
+   !.
+aggiunti_quant(_,_,[]).
+
+/* aggiunti aperti - PRONOMI QUANTIFICATI        
+( QUANTIFICATORI FLUTTUANTI  !!!?>?>?? ) */
+xlate_mod_quant(Adj-adj/quantitativo,Ind,XAdj):-      
+   nodo(Adj)::cat::[quantif],      
+   nodo(Adj)::pred::Pred,      
+   nodo(Adj)::tab_ref::_,
+   xlate_sn(Adj, FL),
+   XAdj = wff(Pred,[Ind,FL]),
+   !.
+
+aggiunti_frasali(Nodo,Ind,Adjs) :-
+   bagof(
+      N-X,
+      ( (
+      nodo(Nodo)::adjs::X::nodo(N);
+      nodo(Nodo)::adj/X::nodo(N);
+      nodo(Nodo)::adj::X::nodo(N)),
+      X\=avv
+      ), 
+      ListaAdjs1),
+%   filtra_aperti(ListaAdjs1,ListaAdjs2),
+   xlate_adjs_f(ListaAdjs1,Ind,Adjs), 
+   !.
+aggiunti_frasali(_,_,[]).
+
+
+filtra_aperti([],[]).
+filtra_aperti([T|C],XC) :- 
+   aperto(T),
+   !,
+   filtra_aperti(C,XC).
+filtra_aperti([T|C],[T|XC]) :- 
+filtra_aperti(C,XC).
+
+aperto(M-adj/_) :-
+ nodo(M)::sogg/_::nodo(_X).
+
+/* 
+Trasla aggiunti di una frase 
+Un elemento della lista e': Nodo-Funz/Ruolo    
+*/
+
+xlate_adjs_f([],_,[]).
+
+xlate_adjs_f([M],Ind,XM) :- 
+   xlate_adj_f(M,Ind,XM),
+   !.
+xlate_adjs_f([M|AltriM],Ind,XMods) :-
+   xlate_adj_f(M,Ind,XM),
+   xlate_adjs_f(AltriM,Ind,XAltriM),
+   XMods = wff(and,[XM,XAltriM]).
+
+xlate_adjs_f([M|AltriM],Ind,XMods) :-
+   xlate_adjs_f(AltriM,Ind,XMods),
+   !.
+
+/* subordinata */
+xlate_adj_f(Adj-subordinata,Ind,XAdj) :-
+   nodo(Adj)::sub::Pred,
+   xlate(Adj,XSub),
+   XAdj = wff(Pred,[Ind,XSub]), 
+   !. 
+
+/*
+xlate_adj_f(Adj-sub/prop,Ind,XAdj) :-
+   nodo(N)::sub/prop::nodo(Adj),
+   nodo(N)::sem_mark::Pred,
+   xlate(Adj,XSub),
+   XAdj = wff(Pred,[Ind,XSub]), 
+   !. 
+*/
+xlate_adj_f(Adj-adj,Ind,XAdj) :-
+   nodo(Adj)::sem_mark::Pred,
+   nodo(Adj)::sub/prop::nodo(Sub),
+   xlate(Sub,XSub),
+   XAdj = wff(Pred,[Ind,XSub]),
+   !. 
+
+xlate_adj_f(Adj-adj/gerund,Ind,XAdj) :-
+   xlate(Adj,XSub),
+   XAdj = wff(coincide,[Ind,XSub]), 
+   !. 
+
+xlate_adj_f(Adj-particip,Ind,XAdj) :-
+   xlate(Adj,XSub),
+   XAdj = wff(coincide,[Ind,XSub]), 
+   !. 
+
+xlate_adj_f(Adj-vcomp/prop,Ind,XAdj) :-
+   xlate(Adj,XSub),
+   XAdj = wff(coincide,[Ind,XSub]), 
+   !. 
+
+xlate_adj_f(Adj-gerundive_coordinate,Ind,XAdj) :-
+   findall(N-adj/gerund, nodo(Adj)::adj/gerund::nodo(N), Nodes),
+   xlate_adjs_f(Nodes, Ind, XAdj),
+   !. 
+
+/* aggiunti aperti */
+xlate_adj_f(Adj-adj/_,Ind, XAdj):-
+   nodo(Adj)::sem_mark::Pred,
+   nodo(Adj)::sogg/_::nodo(Sogg),
+   nodo(Adj)::ogg/_::nodo(Ogg),
+   xlate(Sogg,XSogg),
+   xlate(Ogg,XOgg),
+   XAdj = wff(Pred,[Ind,XSogg,XOgg]),
+   !.
+
+/* aggiunti aperti   -  QUANTIFICATORI FLUTTUANTI  
+xlate_mod(Adj-aperto,Ind,Pred):-      
+nodo(Adj)::cat::[quantif],      
+nodo(Adj)::pred::Pred,      
+nodo(Adj)::indice::II,       
+nodo(Adj)::sogg/_::nodo(Sogg), !.
+xlate_adj_f(Adj-adj/_,Ind,XAdj):-
+      nodo(Adj)::pred::Pred,
+      nodo(Adj)::cat::Cat,
+     Cat=[quantif],    
+    nodo(Adj)::tab_ref::_,
+    xlate_sn(Adj,FL),
+      XAdj = wff(Pred,[Ind,FL]), !.
+*/
+
+
+/* aggiunti chiusi */
+xlate_adj_f(Adj-adj/_,Ind,XAdj):-
+      nodo(Adj)::sem_mark::Pred,
+      nodo(Adj)::ogg/_::nodo(Ogg),
+      xlate(Ogg,XOgg),
+      XAdj = wff(Pred,[Ind,XOgg]), 
+      !.
+/* aggiunti aperti aggettivali */
+xlate_adj_f(Adj-adj/Role,Ind, XAdj):-
+   nodo(_)::adj/Role::pred::Pred,
+   nodo(Adj)::sogg/_::nodo(Sogg),
+   nodo(Adj)::F/R::nodo(Ogg),F\=sogg,
+   xlate(Sogg,XSogg),
+   xlate(Ogg,XOgg),
+   XAdj = wff(Pred,[Ind,XSogg,XOgg]),
+   !.
+
+xlate_adj_f(Adj-adj/Role,Ind,XAdj):-
+      nodo(Adj)::sem_mark::Pred,
+      xlate(Adj,XOgg),
+      XAdj = wff(Pred,[Ind,XOgg]), 
+      !.
+
+/* modali - allora */
+xlate_adj_f(Adj-adj/Tipo,Ind,XAdj) :-
+     Tipo \= quantitativo,
+     nodo(Adj)::pred::Pred,
+     XAdj = wff(Pred,[Ind]), 
+     !.
+
+
+nello_scope_di(Var,L) :-
+%    cancella_rete(_X),
+%    estendi_nome_file(InFile,'.net',InFileExt),
+%    leggi_rete(InFileExt, NetId),
+  xlate(n1,X),
+  gen(X,Y),
+%  ppout(Y),nl,
+  nello_scope_di_x(Var,Y,L),!.
+
+nello_scope_di_x(Var,wff(_Quant,[Var|_]),[]) :- !.
+
+nello_scope_di_x(XVar,wff(Quant,[Var,Res,Body]),[Quant/Var|RestQ]) :-
+     quantifier(Quant),
+     !,
+     (nello_scope_di_x(XVar,Res,RestQ);
+      nello_scope_di_x(XVar,Body,RestQ)),
+     !.
+
+nello_scope_di_x(Var,wff(_Pred,Args),ListaQ):-
+     nogen_member(Arg,Args),
+     nello_scope_di_x(Var,Arg,ListaQ),
+     !.
+
+
+ax(A) :-
+   aw(A, _).
+
+aw(b, c).
+aw(d, e).
+aw(f, g).
+/******************************************************************            Prolog Implementation of Scope Generation Algoritm
+*******************************************************************/
+/*                        Representation of wffs:
+
+Una formula ben formata (fbf) della forma 'p(arg1,...argn)' e' rappresentata
+come il termine Prolog fbf(p,[arg1,...,argn]) dove argi' e' la codifica della
+sottoespressione argi.
+
+Una costante e' rappresentata dalla omonima costante Prolog.
+
+Un termine complesso e' rappresentato dal termine Prolog
+term(quant,var,restrict') dove restrict' e' la codifica della fbf che forma
+la restrizione del quantificatore.*/
+
+/* gen(Form,ScopedForm)
+% ====================
+%
+%        Form        ==> una fbf con termini complessi in-place
+%        ScopedForm  <== un pieno scoping di Form*/
+
+gen(Form, ScopedForm) :-
+       pull(Form, top_level, ScopedForm).
+
+/* pull(Form, Complete?, ScopedForm)
+%==================================
+%
+%        Form          ==> una fbf con termini complessi in-place
+%        Complete?     ==> vero sse sono permessi solo scopings pieni
+%        ScopedForm    <== uno scoping pieno o parziale di Form
+%
+%        Applica termini a livello diverso di incassamento in Form, inclusa
+%        l'applicazione all'intera Form e a posizioni argomentali opache
+%        dentro Form.*/
+
+pull(Form, Complete, ScopedForm) :-
+       pull_opaque_args(Form, PulledOpaque),
+       apply_terms(PulledOpaque, Complete, ScopedForm).
+
+/* pull_opaque_args(Form, ScopedForm)
+%===================================
+%
+%        Form       ==> un termine o una fbf con termini complessi in-place
+%        ScopedForm <==Form con posizioni argomentali opache ricorsivamente
+%                      scoped
+%
+%        Ambita ricorsivamente argomenti della Form data.*/
+/*
+pull_opaque_args(wff(and,[wff(focus,[X]),wff(not,[Y])]),
+                        wff(not,[SY])) :- !,
+                    pull_opaque_args(Y,SY).
+*/
+pull_opaque_args(wff(Pred,Args), wff(Pred,ScopedArgs)) :- !,
+
+       pull_opaque_args(Pred, 1, Args, ScopedArgs).
+
+pull_opaque_args(Term, Term).
+/* pull_opaque_args(Pred, ArgIndex, Args, ScopedArgs)
+%=====================================================
+%
+%       Pred        ==> il predicato della fbf i cui args stanno per essere
+                       scoped
+%       ArgIndex    ==> indice dell'argomento in corso di scoping
+%       Args        ==> lista degli args dall'ArgIndex in avanti
+%       ScopedArgs  <== Args con posizioni argomentali opache ricorsivamente
+                       scoped
+%
+%       Ambita un dato argomento se opaco; altrimenti, ambita ricorsivamente
+%       le sue sottoparti.
+
+% Nessun altro argomento.*/
+pull_opaque_args(_Pred,_ArgIndex,[],[]) :- !.
+
+/* La posizione argomentale corrente e' opaca; dai ambito.*/
+
+/* Tratta le isole. I quantificatori non debbono uscire delle isole */
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),Pred=isola, !,
+        pull(FirstArg,true,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+
+/* Tratta le isole. I quantificatori non debbono uscire delle isole */
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),Pred=isola1, !,
+        pull(FirstArg,top_level,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+/* not + nessuno
+  il verbo ha un argomento -  
+  */
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),   FirstArg = wff(_,[X,_Y]),
+        X = term(P,Var,Res),(P=nessuno;P=indefinito),  !,
+        apply_t(term(P,Var,Res),FirstArg,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+/* l'argomento di un operatore opaco e' un verbo con un solo argomento
+  dichiarato come focus. il quantificatore contenuto nel focus deve
+  essere interno all'operatore opaco */
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),
+        FirstArg = wff(_,[wff(subj_foc,[X])]), !,
+        pull(FirstArg,true,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+/* l'argomento di un operatore opaco e' un verbo con un solo argomento
+  dichiarato come topic. il quantificatore contenuto nel topic deve
+  essere esterno all'operatore opaco */
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),
+        FirstArg = wff(_,[wff(subj_top,[X])]), !,
+        pull(FirstArg,true,ScopedFirstArg),
+/*        pull_opaque_args(FirstArg,ScopedFirstArg), */
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+/* il secondo argomento e un evento e deve dare not evento */
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),   FirstArg = wff(_,[X,Y]),
+        Y = term(P,Var,Res),(P=event),  !,
+        apply_t(term(P,Var,Res),FirstArg,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+/* not + nessuno
+  il verbo ha due argomenti -  
+  */
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),   FirstArg = wff(_,[X,Y]),
+        Y = term(P,Var,Res),P=nessuno,  !,
+        apply_t(term(P,Var,Res),FirstArg,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),   FirstArg = wff(_,[X,Y]),
+        X = term(P1,_,_),P1=indefinito,
+        Y = term(P,Var,Res),
+        classe(P1,N1), classe(P,N2), N2<N1, !,
+        (pull_opaque_args(FirstArg,ScopedFirstArg);
+        apply_t(term(P,Var,Res),FirstArg,ScopedFirstArg)),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),   FirstArg = wff(_,[X,Y]),
+        X = term(P1,_,_),
+        Y = term(P,Var,Res),P=indefinito,
+        classe(P1,N1), classe(P,N2), N2<N1, !,
+        apply_t(term(P,Var,Res),FirstArg,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),   FirstArg = wff(_,[X,Y]),
+        X = term(P1,_,_),
+        Y = term(P,Var,Res),P=tutti,
+        classe(P1,N1), classe(P,N2), N2<N1, !,
+        apply_t(term(P,Var,Res),FirstArg,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+
+/* il verbo ha due argomenti - uno dei due e' dichiarato come focus o 
+  topic */
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex),   FirstArg = wff(_,[X,Y]),
+        ( wff(P,_)=X, (P=fuoco;P=topic), !,
+        pull(FirstArg,true,ScopedFirstArg);
+          wff(P,_)=Y, (P=fuoco;P=topic), !,
+        pull_opaque_args(FirstArg,ScopedFirstArg)),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+
+/* trattamento normale di operatore opaco */
+
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        opaque(Pred,ArgIndex), !,
+        pull(FirstArg,false,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+/* Il corrente argomento non e' opaco; non assegnare ambito.*/
+pull_opaque_args(Pred, ArgIndex,
+        [FirstArg|RestArgs],
+        [ScopedFirstArg|ScopedRestArgs]) :-
+        pull_opaque_args(FirstArg,ScopedFirstArg),
+        NextIndex is ArgIndex+1,
+        pull_opaque_args(Pred, NextIndex, RestArgs, ScopedRestArgs).
+
+
+apply_terms(Form, top_level, Form) :-
+       not(term(Form,_Term)), !.
+
+apply_terms(Form, true, Form) :-
+       not(term1(Form,_Term)), !.
+
+apply_terms(Form, false, Form) :-
+       not(term2(Form,_Term)), !.
+
+/* tratta la congiunzione and */
+apply_terms(wff(and,[F1,F2]),Complete,wff(and,[FF1,FF2])) :-
+         !,
+         apply_terms(F1,Complete,FF1),
+         apply_terms(F2,Complete,FF2).
+
+/* il quantificatore definito e' il piu' interno possibile 
+  classe = -1 */
+
+apply_terms(Form, Complete, ScopedForm) :-
+        applicable_term(Form,Term),
+        Term = term(Q,V,R),classe(Q,-1), !,
+        apply_t(Term, Form, AppliedForm),
+        apply_terms(AppliedForm, Complete, ScopedForm).
+
+
+/* il quantificatore definito e' il piu' esterno possibile 
+  classe 0  */
+apply_terms(Form, Complete, ScopedForm) :-
+        Complete = top_level,
+        applicable_term(Form,term(Q,V,R)),
+        classe(Q,Nq),Nq=0,
+        bagof(Term,applicable_term(Form,Term),L),
+        controlla_priorita(Nq,L),
+        !,
+        apply_t(term(Q,V,R), Form, AppliedForm),
+        apply_terms(AppliedForm, Complete, ScopedForm).
+
+/* verbo con piu argomenti il primo quantificato e il secondo indefinito */
+apply_terms(Form, Complete, ScopedForm) :-
+        Form = wff(_Pred,[term(Q1,_,_),term(indefinito,V,R)|_]),
+        classe(Q,Nq),classe(indefinito,Nqq), Nqq<Nq,!,                              
+        applicable_term(Form,term(indefinito,V,R)),
+        apply_t(term(indefinito,V,R), Form,AppliedForm),
+        apply_terms(AppliedForm, Complete, ScopedForm).
+
+/* quantificatori normali applicati secondo la priorita' */
+
+apply_terms(Form, Complete, ScopedForm) :-
+        applicable_term(Form,term(Q,V,R)),
+        classe(Q,Nq),0<Nq,
+        bagof(Term,applicable_term(Form,Term),L),
+        controlla_priorita(Nq,L),
+        apply_t(term(Q,V,R), Form, AppliedForm),
+        apply_terms(AppliedForm, Complete, ScopedForm).
+
+apply_terms(Form, false, Form).   /* spostata qui per avere i quantif.
+                                    nello stesso ordine in cui 
+                                    compaiono nella frase */
+
+controlla_priorita(Nq,L) :- nogen_member(term(QQ,_,_),L),
+                           classe(QQ,Nqq),Nq<Nqq,!,fail.
+controlla_priorita(_,_).
+
+/* quantificatori normali senza tenere conto della priorita' */
+/*
+apply_terms(Form, Complete, ScopedForm) :-
+        applicable_term(Form,Term),
+        Term = term(Q,V,R),classe(Q,Nq),0<Nq,
+        apply_t(Term, Form, AppliedForm),
+        apply_terms(AppliedForm, Complete, ScopedForm).
+*/
+/* apply_t(Term,Form,NewForm)
+%=========================
+%
+%         Term        ==> un termine complesso
+%         Form        ==> la fbf da applicare al Term
+%         NewForm     <== Form con il quantificatore avvolto intorno*/
+
+apply_t(term(Quant,Var, Restrict),
+     Body,
+     wff(Quant,[Var,PulledRestrict,OutBody])) :-
+     pull(Restrict, false, PulledRestrict),
+     subst(Var,term(Quant,Var,Restrict),Body,OutBody).
+
+/* applicable_term(Form,Term)
+%==========================
+%
+%      Form ==> una espressione in linguaggio di forma logica
+%      Term <== un termine top-level in Form( cioe', un termine non incassato
+%               in un altro termine) che non e' libero in nessuna variabile
+%               vincolata lungo il percorso da Form al Term.*/
+
+applicable_term(Form,Term) :-
+        applicable_term(Form, Term, []).
+
+
+applicable_term(term(Q,V,R), term(Q,V,R), BVs) :-
+    /* se incontra la definizione.*/
+       not(free_in(BVs, R)).
+
+
+applicable_term(wff(Quant,[Var,Restrict,Body]),Term,BVs) :-
+      quantifier(Quant),!,
+      (applicable_term(Restrict,Term,[Var|BVs]);
+      applicable_term(Body,Term,[Var|BVs])).
+
+
+applicable_term(wff(_Pred,Args),Term,BVs) :-
+     applicable_term(Args,Term,BVs).
+
+applicable_term([F|R],Term, BVs) :-
+     applicable_term(R,Term,BVs);
+     applicable_term(F,Term,BVs).
+
+
+term(Forma,term(Q,V,R)) :- trova(term(Q,V,R),Forma).
+term1(Forma,term(Q,V,R)) :- trova(term(Q,V,R),Forma),classe(Q,Nq),0<Nq.
+term2(Forma,term(Q,V,R)) :- trova(term(Q,V,R),Forma),classe(Q,Nq),0<Nq.
+
+subst(X,Y,Y,X) :- !.
+subst(X,Y,and(A1,A2),and(B1,B2)) :- subst(X,Y,A1,B1), subst(X,Y,A2,B2).
+subst(X,Y,wff(P,ListaArgs),wff(P,NuovaListaArgs)) :-
+          maplist(subst(X,Y),ListaArgs,NuovaListaArgs), !.
+subst(X,Y,term(Q,V,R),term(Q,V,R1)) :- subst(X,Y,R,R1), !.
+subst(X,Y,S,S).
+
+
+free_in([],S) :- fail, !.
+free_in([X|Resto],S) :-  trova(X,S),
+                        not(bound_in(X,S)),
+                        free_in(Resto,S).
+
+
+bound_in(X,E) :- trova(term(Q,X,_R),E),quantifier(Q), !.
+bound_in(X,E) :- trova(wff(Q,[X,_R,_S]),E),quantifier(Q), !.
+
+
+
+/*   PREDICATI VARI  */
+
+
+sort_lf(List,Sorted) :- swap_lf(List,List1), !,
+                    sort_lf(List1,Sorted).
+sort_lf(Sorted,Sorted).
+
+swap_lf([X,Y|Rest],[Y,X|Rest]) :- successore(X,Y).
+swap_lf([Z|Rest],[Z|Rest1]) :- swap_lf(Rest,Rest1).
+
+successore(term(Qx,_,_),term(Qy,_,_)) :-
+       classe(Qx,Cx), classe(Qy,Cy), Cx<Cy.
+
+
+
+/* scope(N) predicato principale
+     presuppone che le strutture di input siano memorizzate
+     come fatti del tipo f(n,input_structure).
+     N ==> numero del fatto f a cui si vuole applicare l'algoritmo
+*/
+
+
+scope(X,File) :- tell(File),scope(X),put(26),told.
+
+scope(X):-  
+            nl,nl,
+            write('input form'),
+            nl,
+            ppin(X),
+%            nl,nl,
+%            write('output form'),
+            !,
+%            gen(X,Y),
+%            nl,nl,
+%            ppout(Y),
+            nl,nl.
+scope(_) .
+
+
+/****************
+crea_arg(+IndInfo, -Individual, +Location)
+
+ARGUMENTS
+   IndInfo      :arg/6 term. Info about Individual.
+   Individual   :atom. Individual identifier.
+   Location     :atom. Location identifier.
+****************/
+
+% risolto - altri
+crea_arg(arg(Arg), Id, Temp, Loc) :- var(Arg),!.
+
+crea_arg(arg(arg(SnX/NoFr,Testa,Def,Part,Card, Class,Num, Cat, F/Role)), Id, Temp, Loc) :- 
+      var(SnX),
+      referente(SnX,[],Id,Testa,Num,Card),
+      !.
+
+crea_arg(arg(SnX/NoFr,Testa,Def,Part,Card, Class,Num, Cat, F/Role), Id, Temp, Loc) 
+    :- 
+   nodo(N)::indice::SnX,
+   (setof(N1-Type,
+                   (nodo(N)::Type::nodo(N1), 
+                        atomic(Type),
+                        (Type=mods;Type=adjs)
+                     ), Mods2)
+       ; Mods2=[]), !
+     ,
+   (setof(N1-Type,
+                   (nodo(N)::Type::nodo(_), N1=N, 
+                        \+ atomic(Type),
+                        notnodlg(N1, _/predic)
+                     ), Mods1)
+        ; Mods1=[]), !,
+    (F/Role=_/tema_bound, 
+     nodo(NN)::F/Role::indice::SnX,
+     append(Mods2,[NN-F/Role],Mods)
+     ;
+     F/Role=ogg/nil,
+     nodo(NN)::adjs::F1/R1::ogg/nil::indice::SnX,
+     append(Mods2,[NN-F1/R1],Mods)
+    ;
+     append(Mods1, Mods2, Mods)), 
+       (   
+        Mods\=[],on(Nod-_/poss, Mods),
+        notnodo0(Nod, _/poss, controllore),
+        Def1= + def, Part1=Part
+        ;
+        nodo(N)::spec::mod::Mod,
+        Def1= + def, Part1=Part
+        ;
+        F/Role=ncomp/tema,
+        nodo(_)::adjs::ncomp/tema::nodo(N),
+        Def1= + def, Part1 = nil
+        ;        
+        Def1=Def, Part1=Part),
+   dynamic(ref/1),
+   crearg(SnX/NoFr,Testa,Def1,Part1,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc).
+
+crearg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc) 
+    :- 
+    1<NoFr,
+    risolto(NoFr, SnX, Anaf, Testa),
+      (Anaf=pPro,
+       nodo(N)::pred::Testa,
+       nodo(N)::num::Num
+       ;
+       Anaf\=pPro
+       ;
+       Num=Num),
+    resarg(SnX/NoFr,Anaf,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc),!.
+
+
+crearg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc) 
+    :- 
+    trova_deitt(Testa,Num1),
+    bindantecedent_deicticpredication(ref_ex(SnX,Testa,[+ref,+def,nil,_,+pro,-ana,+class],Pers,Gen,Num,Cat,F/Role)),
+    resarg(SnX/NoFr,Testa,indefinite,Def,Part,Card,Class,Num1,Cat,F/Role,Mods,Id,Temp, Loc),!.
+
+
+crearg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc) 
+    :- 
+    exarg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc),
+    asserta(rcs(Testa,Id)).
+
+% Argomenti risolti da Risolvi1:
+% Si cerca la Testa nel mondo
+%  risolto - altri
+
+search_infer_rel(NoFr, NStrc):-
+         info(NoFr, Node, FunRole, View, Intens, Change, Rel, VerbCat, Verb,TempRel, DiscRel, DiscDom, SubjConsc),
+         facts_sits(Verb, Ind, Args),
+         NStrc=[Ind:Verb:Args],
+         !.
+
+facts_sits(Rel, Ind, Args):-
+         (fact(Ind, Rel, Args,1,_,Loc1);
+         sit(Ind, Rel, Args,1,_,Loc1)).
+
+ 
+build_prop_ant(NoFr,[NoCl], [NStrc]) :-
+         1<NoFr,
+         (Args=[_:_]; Args=[_:_, _:_]; Args=[_:_, _:_, _:_]),
+         disc_struc(At,
+         PNoFr-NoCl, Topics, MainRel, Tint, TempRel, 
+         DiscRel, I-Strc, SimplDiscDom, Point),
+         functor(MainRel,Rel,_),
+         facts_sits(Rel, Ind),
+         NStrc=[Ind:Rel].
+
+build_prop_ant(NoFr,[FCl|FCls], [NStrc|Rstr]) :-
+         1<NoFr,
+         (Args=[_:_]; Args=[_:_, _:_]; Args=[_:_, _:_, _:_]),
+         Ats=..[At,N-N1],
+         disc_struc(Ats,
+         PNoFr-FCl, Topics, MainRel, Tint, TempRel, 
+         DiscRel, I-Strc, SimplDiscDom, Point),
+         functor(MainRel,Rel,_),
+         facts_sits(Rel, Ind),
+         NStrc=[Ind:Rel],
+         build_prop_ant(PNoFr, FCls, Rstr).
+
+
+relazione_suoce(NoFr, SnX, Idx, Temp, Loc):-
+         1<NoFr,
+         main_or_expect(NoFr, Id),
+         fact(_, sposare, [agente:Id, tema_aff:Idz],1,_,Loc1),
+         fact(_,relat,[figlia,Idz,Id1],1,Temp1,Loc1),
+         fact(_,isa, [ind:Id1, class:Testa], 1, Temp2, Loc2),
+         asserisci(NoFr,SnX,fact(has_prop,[arg:Id1,arg:Idx],1,Temp, Loc)),
+         asserisci(NoFr,SnX,fact(relat,[Testa,Id1,Idx],1,Temp, Loc)),!.
+
+trova_deitt(Anaf,Num1):-
+         (Anaf=questi, Num1=plur
+          ; 
+          Anaf=questo, Num1=sing
+          ;
+          Anaf=quella, Num1=sing
+          ;
+          Anaf=quello, Num1=sing
+          ;
+          Anaf=quelle, Num1=plur
+          ;
+          Anaf=quelli, Num1=plur).
+
+resarg(SnX/NoFr,Anaf,Testa,_,Part,_, _,Num, _, _/_,Mods,Id,Temp, Loc) :- 
+         ( member(Anaf,[altri]);
+            member(Anaf,[altro]) ),
+         !,
+         (Testa=indefinite; Testa\=indefinite, T=Testa),
+         trova_card(SnX, altri, Part, _, _, Card),
+         referente(SnX,[],Idx,T,plur,Card1),
+         in(_,IdSubset,Idx),
+         referente(SnX,[],IdSubset,T,_,CardSub),
+         Card is Card1-CardSub,
+         0<Card,
+         creatert(NoFr,set,Mods,SnX,T,Card,Quant,Num,Id,Temp, Loc),         
+         asserisci(NoFr,SnX,fact(isa,[ind:Id,class:T],1,Temp, Loc)),
+         asserisci(NoFr, SnX, in(Id,Idx)),
+         !.
+
+resarg(SnX/NoFr,Anaf,Testa,_,Part,Card, _,Num, _, _/_,Mods,Id,Temp, Loc) :- 
+         member(Anaf,[some]),
+         !,
+         trova_card(SnX, some, Part, _, _, Card),
+         referente(SnX,Mods,Idx,Testa,plur,Card1),
+         in(_,IdSubset,Idx),
+         referente(SnX,Mods,IdSubset,Testa,_,CardSub),
+         Card is Card1-CardSub,
+         0<Card,
+         creatert(NoFr,set,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),         
+         asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Testa],1,Temp, Loc)),
+         asserisci(NoFr, SnX, in(Id,Idx)),
+         !.
+
+% risolto card minore (maggiore)
+resarg(SnX/NoFr,Anaf,Testa,_,Part,_, _,Num,_, _/_, Mods,Id,Temp, Loc) :- 
+         member(Anaf,[maggiore]),
+         trova_card(SnX, maggiore, Part, _, _, Card),
+         referente(SnX,[],Idx,Testa,plur,Card1),
+         Card < Card1,
+         creatert(NoFr,ind,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+         asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Testa],1,Temp, Loc)),
+         asserisci(NoFr, SnX, in(Id,Idx)),
+         asserisci(NoFr,SnX,fact(maggiore,[arg:Id,arg:Idx],1,Temp, Loc)),
+         !.
+
+/* 4 risolto plurale si cerca referente decomposto */
+resarg(SnX/NoFr,Anaf,Testa,_,_,Card,_,Num,Cat,F/Role,Mods,Id,Temp, Loc) :-  
+         member(Anaf,[them]),
+         on(T1,Testa),
+         on(T2,Testa), T2\=T1,
+         referente(SnX,Mods,Idz,T1,Nu,1),
+         referente(SnX,Mods,Idx,T2,Nu,1),
+         creatert(NoFr,set,Mods,SnX,Testa,2, _,_,Id,Temp, Loc),
+         asserisci(NoFr, SnX, in(Idz,Id)),
+         asserisci(NoFr, SnX, in(Idx,Id)),
+         asserisci(NoFr,SnX,fact(isa,[arg:Id,class:Cat],1,Temp, Loc)),
+         asserisci(NoFr,SnX,fact(name,[Testa,Id],1,Temp, Loc)),
+         !.   
+
+% 5 risolto si cerca referente: si lega una proposizione
+resarg(SnX/NoFr,Anaf,indefinite,+ def,_,_,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc) :-  
+         1<NoFr,
+         (Class= +class; Class= +me),
+         PNoFr is NoFr - 1,
+         search_infer_rel(PNoFr, NStrc),
+         gen_sym(id, Id),
+         asserisci(NoFr, SnX, ent(Id)),
+         asserisci(NoFr,SnX,fact(prop,[arg:Id,disc_set:NStrc],1,Temp, Loc)),
+         !.  
+
+resarg(SnX/NoFr,Anaf,Testa,+ def,Part,Card0,+ class,Num,Cat,sub/compar,Mods,Id,Temp, Loc) :-  
+         trova_card(SnX, Num, Part, _, _, Card),
+         referente(SnX,Mods,Id,Testa,Num,Card),
+         proprieta(Id,Prop),
+         nodo(n1)::F/prop::pred::P,
+         asserisci(NoFr, SnX, fact(P,[nil:Id],0,Temp, Loc)),         
+         !.   
+
+% 6 risolto si cerca referente
+resarg(SnX/NoFr,_,indefinite,+ def,_,_,_,Num,Cat,F/Role,Mods,Id,Temp, Loc) :-  
+         gen_sym(id, Id),
+         (Num=plur,
+           asserisci(NoFr, SnX, set(Id)),
+           asserisci(NoFr, SnX, card(Id,5));
+           asserisci(NoFr, SnX, ind(Id))),          
+         default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+         !.   
+
+% 7 risolto si cerca referente di istituzioni
+resarg(SnX/NoFr,Anaf,Testa,_,_,_,_,Num,Cat,F/Role,Mods,Id,Temp, Loc) :-
+         collective_head(Testa),
+         (nogen_member(istituzione,Cat); nogen_member(umano,Cat)),   
+         (Num1=sing;Num1=plur),
+         trova_card(SnX, Num1, Part, _, _, Card),
+         referente(SnX,Mods,Id,Testa,Num1,Card).
+
+% 7 risolto si cerca referente
+resarg(SnX/NoFr,Anaf,Testa,_,_,_,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc) :-  
+         Testa\=indefinite,
+         (Anaf=you, 
+         (Num1=sing;Num1=plur),
+         trova_card(SnX, Num1, Part, _, _, Card)
+         ;
+         trova_deitt(Anaf,Num1),
+         referente(SnX,Mods,Id,Testa,Num1,Card)
+         ;
+         Anaf=pPro,
+         referente(SnX,Mods,Id,Testa,Num1,1),
+         (ind(_, Id)
+           ;
+          genre(legal),
+          (ent(_,Id)
+            ;
+           set(_,Id)
+            ;
+           class(_,Id)
+           )
+         )
+         ;
+        (Num=sing,
+         trova_card(SnX, Num, Part, _, _, Card)
+         ; 
+         Num1=Num)
+        ),
+         (
+          (nonvar(Card); Num1=plur),
+          (var(Id),
+           (Class= +class, Tes=Anaf
+            ;
+            Class\= +class, Tes=Testa),
+           \+ ref(nil),
+          (Tes=exist,ent(_,Id),
+            referente(SnX,Mods,Id,Te,Nu,_)
+            ;
+           referente(SnX,Mods,Id,Tes,Num1,Card)),
+           (Card\=1,
+            individua_controllato(SnX, Id, Temp, Loc)
+            ;
+            Card=1,
+            (ent(_,Id),
+            individua_controllato(SnX, Id, Temp, Loc)
+            )
+            ;
+            Num1=sing           
+            ))
+           ;
+          Num1=sing,
+          referente(SnX,Mods,Id,Testa,sing,Card)
+           ;
+          Num1=plur,
+          var(Id),
+          referente(SnX,Mods,Id,Testa,sing,Card),
+          notcard(Id),
+          notind(Id),
+          individua_controllato(SnX, Id, Temp, Loc),
+          asserisci(NoFr, SnX, set(Id)),
+          asserisci(NoFr, SnX, card(Id,5))
+           ;
+          Num1=plur,
+          var(Id),
+          \+ ref(nil),
+          referente(SnX,Mods,Id,Testa,Num1,_)
+           ;
+          Num1=plur,
+          nonvar(Card),
+          nonvar(Id)
+           ;
+          Num1=nil,
+          nonvar(Id)
+          ),
+         !.   
+
+resarg(SnX/NoFr,Anaf,Testa,+ def,_,_,- me,plur,Cat,F/Role,Mods,Id,Temp, Loc) :-  
+     on(T, Testa),
+     piu_recente(Id),
+     set(_,Id),
+     proprieta_rec(Idx,Tx),
+    (Tx=T
+     ;
+    (proprieta(Idx,T),
+     (Id=Idx;
+      inclus_in(Idx,Id))
+     ;
+     proprieta(Idx,T1),
+     proprieta(Idx,T2),
+     T2\=T1,
+     (T=T1;T=T2
+      ;
+     inclus_in(Idx,Id),
+     proprieta(Idy,T)),
+    (proprieta(Idy,T1);
+     proprieta(Idy,T2))
+     )).
+     
+resarg(SnX/NoFr,Anaf,indefinite,+ def,_,_,_,Num,Cat,F/Role,Mods,Id,Temp, Loc) :-  
+        \+ trova_deitt(Anaf,Num),         
+         gen_sym(id, Id),
+         (Num=plur,
+           asserisci(NoFr, SnX, set(Id)),
+           asserisci(NoFr, SnX, card(Id,5));
+           asserisci(NoFr, SnX, ind(Id))),          
+         default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+         !.   
+
+
+/* se l'argomento è indefinito si cerca di asserire un nuovo individuo nel mondo 
+  altrimenti, se è definito si cerca un individuo nel mondo */
+
+exarg(SnX/NoFr,Testa,def0,nil,Card,Class,Num,Cat,F/Role,Mods,Id,Temp,Loc) 
+    :-
+       trova_card(SnX,Num,nil,Quant,Card,Card0),
+       prarg(SnX/NoFr,Testa,def0,nil,Quant,Card,Card0,Class,Num,Cat,F/Role,Mods,Id,Temp,Loc),!.
+
+exarg(SnX/NoFr,Testa,Def,nil,Card,Class,Num,Cat,F/Role,Mods,Id,Temp,Loc) 
+    :-
+       (Class = -class; 
+        Class = +class),
+       (Def = +def
+        ; Def = def0), 
+       oldarg(SnX/NoFr,Testa,[Def,nil,Card,Class,Num,Cat,F/Role],Mods,Id,Temp,Loc),!.
+
+exarg(SnX/NoFr,Testa,Def,nil,Card,Class,Num,Cat,F/Role,Mods,Id,Temp,Loc) 
+    :-
+       (Class = -class; 
+        Class = +class),
+       (Def = +def
+        ; Def = def0), 
+       oldarg1(SnX/NoFr,Testa,[Def,nil,Card,Class,Num,Cat,F/Role],Mods,Id,Temp,Loc),!.
+
+exarg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp,Loc) 
+    :-
+     Role\=prop, Role\=compar,
+       nonvar(Def),nonvar(Class),
+       Part\=nil,
+       (Class = +me; Class = +class), 
+       trova_card(SnX, Num, Part, Quant, Card, Card0),
+       qarg(SnX/NoFr,Testa,Def,Quant,Card0,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc),!.
+
+exarg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp,Loc) 
+    :-
+       Def \= +def, 
+       Testa\=exist,
+       narg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp,Loc),!.
+
+define_card(some, set):-!.
+define_card(nil, class):-!.
+define_card(Card, Type):-
+   Card\=nil,
+   (Card=1, Type=ind
+    ; Type=set).
+
+
+% 28 nome con def0 in genre legal
+prarg(SnX/NoFr,Testa,Def,Part,Quant,Card0,Card,Class,Num,Cat,F/R,Mods,Id,Temp,Loc)
+   :-  
+   Class= +class, Part=nil,
+    referente(SnX,Mods,Id,Testa,Num,Card)
+   ;
+    (Num=plur,
+    nodo(N)::Fun/Role::indice::SnX,
+    notnodo(N, Fun/Role, coordina),
+    creatert(NoFr,class,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+    class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc)
+    ;
+    (Mods=[], 
+       define_card(Card, Type)
+     ;
+     Mods\=[], 
+       define_card(Card, Type)),
+    ( Num=plur,
+     creatert(NoFr,Type,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+     class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc)
+     ;
+     Num=sing,
+     (nogen_member(umano, Cat); nogen_member(hum, Cat); nogen_member(sociale, Cat)),
+     creatert(NoFr,Type,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+     class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc)
+     ;
+     creatert(NoFr,Type,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+     class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc))
+     ),
+   !.   
+
+/* nomi propri */
+% 20 class+ e def0 con un role=comparativo si suppone nuovo
+prarg(SnX/NoFr,Testa,Def,_,Quant,_,Card,Class,Num,Cat,F/Role,Mods,Ind,Temp, Loc):-
+   (Role=comparativa;Role=compar;F=nadj),
+   main_or_expect(NoFr1, Ind),
+   restrizioni(NoFr, Mods, SnX, Ind, Temp, Loc),
+   asserisci(NoFr, SnX, ind(Ind)), % EP 93.01.12
+   class_props(NoFr, SnX, Cat, Ind, fact, isa, Testa, 1, Temp, Loc),
+   !.   
+
+% 21 nome proprio gia nominato
+prarg(SnX/NoFr,Testa,Def,Part,Quant,_,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-  
+           \+ ref(nil),
+   referente(SnX,Mods,Id,Testa,Num,Card),
+   !.   
+
+prarg(SnX/NoFr,Testa,Def,Part,Quant,_,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-  
+   (Class= +class, Num=sing
+    ;
+    Class= -class),
+           \+ ref(nil),
+   refer_propr(Id,Testa,Num,Card),
+   restrizioni(NoFr, Mods, SnX, Id, Temp, Loc),
+   !.   
+
+% 23 nome proprio ncomp
+prarg(SnX/NoFr,Testa,Def,_,_,_,_,Class,sing,Cat,ncomp/prop,Mods,Idx,Temp, Loc):-  
+   1<NoFr,
+   nodo(N)::_/tema_bound::antecedente::An,
+   topic(NoFr,_,Id),
+   creatert(NoFr,ind,Mods,SnX, Testa,Card,Quant,Num,Idx,Temp, Loc),
+   asserisci(NoFr, SnX, fact(role, [Testa, Idx, Id], 1, Temp, Loc)),
+   class_props(NoFr, SnX, Cat, Idx, fact, isa, Testa, 1, Temp, Loc),
+   asserisci(NoFr, SnX, fact(Testa,[nil:Id], 1, Temp, Loc)),
+   !. 
+
+prarg(SnX/NoFr,Testa,Def,_,Quant,_,Card,Class,sing,Cat,F/Role,Mods,Idn,Temp, Loc):-
+   1<NoFr,
+   Class = -class, 
+   topic(NoFr,_,Id),
+           \+ ref(nil),
+   referen_plur(Id,Testa1,plur,Card2,Idx),
+   fact(_,relat,[Testa1,Idz,Idx],1,_,_),
+   creatert(NoFr,name,Mods,SnX, Testa,Card,Quant,Num,Idn,Temp, Loc),
+   asserisci(NoFr, SnX, in(Idn,Idx)),
+   class_props(NoFr, SnX, Cat, Idn, fact, name, Testa, 1, univ, univ),
+   !.
+
+prarg(SnX/NoFr,Testa,Def,_,Quant,_,Card,Class,sing,Cat,sogg/poss,Mods,Idn,Temp, Loc) 
+   :-
+   1<NoFr,
+   Class = -class,
+   nodo(N)::sogg/poss::indice::SnX,
+   nodo(N)::cat::Cat1,
+   (nogen_member(relazionale,Cat1); 
+    nogen_member(relat,Cat1)), 
+   nodo(N)::pred::Rel,
+   topic(NoFr,_,Id),
+   fact(_,Rel,[_:Id],1,_,_),
+   creatert(NoFr,name,Mods,SnX,Testa,Card,Quant,Num,Idn,Temp, Loc),
+   class_props(NoFr, SnX, Cat, Idn, fact, name, Testa, 1, univ, univ),
+   asserisci(NoFr, SnX, fact(relat, [Rel, Idn, Id], 1, Temp, Loc)),
+   !.
+
+% 25 nome proprio si suppone nuovo
+prarg(SnX/NoFr,Testa,Def,Part,Quant,_,Card,-class,Num,Cat,F/Role,Mods,Id,Temp, Loc)
+   :-  
+   creatert(NoFr,name,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   class_props(NoFr, SnX, Cat, Id, fact, name, Testa, 1, univ, univ),
+   !.   
+
+% 28 nome comune apposizione
+prarg(SnX/NoFr,Testa,Def,Part,Quant,Card0,Card,+class,Num,Cat,ncomp/tema,Mods,Id,Temp, Loc)
+   :-  
+   trova_card(SnX,Num,Part, Quant, Card0,Card),
+           \+ ref(nil),
+   referente(SnX,Mods,Id,Testa,Num,Card),
+   default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+   !.   
+
+prarg(SnX/NoFr,Testa,Def,Part,Quant,_,Card,+class,plur,Cat,F/Role,Mods,Id,Temp, Loc)
+   :-  
+    (infer_prop_sempl(Ind,Testa)
+     ;
+     infer_prop_class(Ind,Testa)),
+     creatert(NoFr,class,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+     asserisci(NoFr, SnX, in(Ind, Id)),
+     class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc),
+     !.
+
+prarg(SnX/1,Testa,Def,Part,Quant,_,Card,+class,plur,Cat,F/Role,Mods,Id,Temp, Loc)
+   :-  
+     Card\=nil,
+     creatert(NoFr,set,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+     class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc),
+     !.
+
+prarg(SnX/NoFr,Testa,Def,Part,Quant,_,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-  
+     creatert(NoFr,class,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+     class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc),
+     !.
+
+quantif(Testa):-
+    quant(Testa,_,_,_,_).
+
+/*
+match_default_cats(Cats,DefCat):-
+   turn_up_wn(DefCat, SCats),
+   c_translwncats(SCats, CatSem, _),
+   controlla_cat1(Cats,CatSem),
+   !.
+*/
+
+/*  quantificatori, quantificatori universali */
+qarg(SnX/NoFr,exist,Def,Quant,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-
+   nodo(N0)::fcomp/R::F/Role::indice::SnX,
+   nodo(N0)::cat::presuppositivo,
+   nodo(N1)::F/Role::indice::SnX,
+   nodo(N1)::pred::Rel,
+   fact(_,Rel,[Role:Id, R2:_, R3:_],1,_,_),  
+   fact(_,name,[Tes,Id],1,_,_),  
+   fact(_,inst_of,[ind:Id, class:Te],1,_,_),  
+   !.
+
+qarg(SnX/NoFr,exist,Def,Quant,Card,Class,Num,Cat,Func/goal,Mods,Id,Temp, Loc):-
+   1<NoFr,
+   (Main=main;Main=secondary),
+   confer_topic(NoFrP, Main, Id, Cont, _),
+   referente(SnX,Mods,Id,Ref,Nu,1),
+   fact(_,inst_of,[ind:Id, class:Te],1,_,_),
+%   match_default_cats(Cats,Te),
+   !.
+
+qarg(SnX/NoFr,Testa,Def,Quant,Card,Class,Num,Cat,F/Role,Mods,Ind,Temp, Loc):-
+         Testa\=exist,
+          (
+           \+ ref(nil),
+           referente(SnX,Mods,Ind,Testa,Num,Card)
+           ;
+           infer_prop_sempl(Ind,Testa)),
+          creatert(NoFr,class,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+          asserisci(NoFr, SnX, in(Ind, Id)),
+          class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc)
+          ;
+          creatert(NoFr,class,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+          class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc),!.
+
+qarg(SnX/NoFr,Testa,Def,Quant,Card,Class,Num,Cat,ogg/Role,Mods,Id,Temp, Loc):-
+   1<NoFr,
+   Card=nil,
+   Testa\=exist,
+   nodo(N)::ogg/Role::indice::SnX,
+   nodo(N)::sogg/nil::controllore::Cont,
+   confer_topic(NoFr, _, Ind, Cont, _),
+   creatert(NoFr,class,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+   asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Testa],1,Temp, Loc)),
+   restrizioni(NoFr, N, SnX, Ind, Temp, Loc),
+   !.
+
+% 18 Quantificatore si arbitrario 
+qarg(SnX/NoFr,si,Def,Quant,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-
+   creatert(NoFr,class,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+   asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Pred],1,univ,univ)),
+   !.
+
+qarg(SnX/NoFr,Testa,Def,Quant,Car,Class,plur,Cat,F/Role,Mods,Id,Temp, Loc):-
+         Testa=altri,
+         !,
+         referente(SnX,[],Idx,Testa1,plur,Card1),
+         in(_,IdSubset,Idx),
+         referente(SnX,[],IdSubset,Testa1,_,CardSub),
+         Card is Card1-CardSub,
+         0<Card,
+         creatert(NoFr,set,Mods,SnX,Testa1,Card,Quant,Num,Id,Temp, Loc),         
+         asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Testa1],1,Temp, Loc)),
+         asserisci(NoFr, SnX, in(Id,Idx)),
+         !.
+
+% 19 Quantificatori esistenziali e arbitrari 
+qarg(SnX/NoFr,Testa,+def,Quant,Card,Class,plur,Cat,F/Role,Mods,Id,Temp, Loc):-
+   \+ integer(Card),
+   Testa\=exist,
+   creatertq(NoFr,set,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+   (quantif(Testa), Quan=Pred
+     ;
+    \+ quantif(Testa), Quan=Testa),
+    asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Quan],1,univ,univ)),
+   !.
+
+qarg(SnX/NoFr,Testa,Def,Quant,Card,Class,plur,Cat,F/Role,Mods,Id,Temp, Loc):-
+   Card=nil,
+   Testa\=exist,
+   creatertq(NoFr,class,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+   (quantif(Testa), Quan=Pred
+     ;
+    \+ quantif(Testa), Quan=Testa),
+    asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Quan],1,univ,univ)),
+   !.
+
+% 20 Quantificatori universali 
+qarg(SnX/NoFr,Testa,Def,Quant,Card,Class,sing,Cat,F/Role,Mods,Id,Temp, Loc):-
+   integer(Card),
+   Testa\=exist,
+   creatertq(NoFr,class,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+   (quantif(Testa), Quan=Pred,
+    asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Quan],1,univ,univ))
+     ;
+    \+ quantif(Testa), Quan=Testa),
+   infer_prop_sempl(Ind,Propp),
+   asserisci(NoFr, SnX, in(Ind, Id)),
+   !.
+
+% 26 nome comune indefinito quantificato si suppone nuovo
+qarg(SnX/NoFr,Testa,Def,Quant,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-
+   integer(Card),
+   1 < Card,
+   Class= +class,
+   creatert(NoFr,set,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc),
+   !. 
+
+qarg(SnX/NoFr,Testa,Def,Quant,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-
+         Testa=maggiore,
+         referente(SnX,[],Idx,Testa1,plur,Card1),
+         creatert(NoFr,ind,Mods,SnX,Testa1,Card, Quant,Num,Id,Temp, Loc),
+         asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Testa1],1,Temp, Loc)),
+         asserisci(NoFr, SnX, in(Id,Idx)),
+         asserisci(NoFr,SnX,fact(maggiore,[arg:Id,arg:Idx],1,Temp, Loc)),
+         !.
+
+qarg(SnX/NoFr,Testa,Def,Quant,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-
+   Card=nil,
+   Testa\=exist,
+   \+ quantif(Testa),
+   creatert(NoFr,class,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+   (on(neg,Cat), Pol=0;
+    Card=any, Pol=0;
+     Pol=1),
+   asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Pred],Pol,univ,univ)),
+   !.
+  
+qarg(SnX/NoFr,Testa,Def,Quant,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-
+   \+ integer(Card),
+   Testa\=exist,
+   (negq(Card),Pol=0;Pol=1),
+   (Num=sing, Type=ind; Num=plur, Type=set),
+   creatertq(NoFr,Type,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+   class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, Pol, Temp, Loc),
+   !. 
+
+memorizza_rels(NoFr, Lfs, Rels) :-
+   relations(Lfs, Rels),
+   genre_locations(NoFr, TimeId, LocId),
+   assert_rels(Rels, _, NoFr, TimeId, LocId, _, rels),
+   relassert_performatives(NoFr, Rels, TimeId, LocId),
+   !.
+
+memorizza_rels(_, _, _).
+
+/*
+genre_locations(NoFr, univ, univ):-
+   genre(legal),
+   !.
+*/
+
+genre_locations(NoFr, TimeId, LocId):-
+   genre_locationt(NoFr, TimeId),
+   genre_locations(NoFr, LocId),
+   !.
+
+genre_locationt(NoFr, TimeId):-
+   current_main_loc(NoFr, tempo, TimeInfo),
+   arg(1, TimeInfo, TimeId),!.
+genre_locationt(NoFr, univ).
+
+genre_locations(NoFr, LocId):-
+   current_main_loc(NoFr, luogo, LocInfo),
+   arg(1, LocInfo, LocId),!.
+genre_locations(NoFr, univ).
+
+assert_modality(NoFr, Rel, InfonId, Loc, Temp):-
+   nodo(Node)::supporto::Modal,
+   modality(Modal,Modality),
+   Infon=..[fact, InfonType, Modality, Arg, 1, Temp, Loc], 
+   gen_sym(infon, InfonType),
+   gen_sym(id, Ind),
+   Arg=[arg:Ind, Modality:InfonId], 
+   assert(Infon),   
+   assert(confer_infon(InfonType, NoFr, nil, nil, secondary)),
+   !.
+
+assert_modality(NoFr, Rel, InfonId, Loc, Temp):-!.
+
+assert_performative(NoFr, Rel, InfonId, Loc, Temp):-
+   nodo(Node)::perf::Perform,
+   Infon=..[fact, InfonType, perf, Arg, 1, Temp, Loc], 
+   gen_sym(infon, InfonType),
+   gen_sym(id, Ind),
+   Arg=[arg:Ind, Perform:InfonId], 
+   assert(Infon),   
+   assert(confer_infon(InfonType, NoFr, nil, nil, secondary)),
+   !.
+
+assert_performative(NoFr, Rel, InfonId, Loc, Temp):-!.
+
+
+/**************
+assert_rels(
+   Infon, FactType, NoFr, TimeId, LocId, Role, RelsType) 
+**************/
+/* 
+Relazione tra una main semplice e un aggiunto
+*/
+assert_rels(Infon, fact, NoFr, TimeId, LocId, Role, RelsType) 
+  :-
+  Infon=infon(Q,Inf,Rel,[Main, Adj], R, Pol),
+  Main=infon(_,_,main,[Sit1],_,_),
+  Adj=infon(_,_,adj,[Sit2],_,_),
+  Sit1 \= and(_),
+  Sit2 \= and(_),
+  NewInfon=infon(Q,Inf,Rel,[Sit1, Sit2], R, Pol),
+  assert_rels(NewInfon, fact, NoFr, TimeId, LocId, Role, RelsType).
+
+/* 
+Relazione tra un main coordinato e un aggiunto
+*/
+assert_rels(Infon, fact, NoFr, TimeId, LocId, Role, RelsType) 
+  :-
+  Infon=infon(Q,Inf,Rel,[Main, Adj], R, Pol),
+  Main=infon(_,_,main,[and([Sit1, Sit2])],_,_),
+  Adj=infon(_,_,adj,[AdjSit],_,_),
+  NewInfon1=infon(Q,Inf,Rel,[Sit1, AdjSit], R, Pol),
+  NewInfon2=infon(Q,Inf,Rel,[Sit2, AdjSit], R, Pol),
+  assert_rels(NewInfon1, fact, NoFr, TimeId, LocId, Role, RelsType),
+  assert_rels(NewInfon2, fact, NoFr, TimeId, LocId, Role, RelsType).
+
+/* 
+Relazione tra un main e un aggiunto coordinato
+*/
+assert_rels(Infon, fact, NoFr, TimeId, LocId, Role, RelsType) 
+  :-
+  Infon=infon(Q,Inf,Rel,[Main, Adj], R, Pol),
+  Main=infon(_,_,main,[MainSit],_,_),
+  Adj=infon(_,_,adj,[and([Sit1, Sit2])],_,_),
+  NewInfon1=infon(Q,Inf,Rel,[MainSit, Sit1], R, Pol),
+  NewInfon2=infon(Q,Inf,Rel,[MainSit, Sit2], R, Pol),
+  assert_rels(NewInfon1, fact, NoFr, TimeId, LocId, Role, RelsType),
+  assert_rels(NewInfon2, fact, NoFr, TimeId, LocId, Role, RelsType).
+
+/* 
+Aggiunto main coordinata
+*/
+assert_rels(Infon, fact, NoFr, TimeId, LocId, Role, RelsType) 
+  :-
+  Infon=infon(Q,Inf,Rel,[Adj], R, Pol),
+  Adj=infon(_,_,adj,[and([Sit1, Sit2])],_,_),
+  NewInfon1=infon(Q,Inf,Rel,[Sit1], R, Pol),
+  NewInfon2=infon(Q,Inf,Rel,[Sit2], R, Pol),
+  assert_rels(NewInfon1, fact, NoFr, TimeId, LocId, Role, RelsType),
+  assert_rels(NewInfon2, fact, NoFr, TimeId, LocId, Role, RelsType).
+
+/* 
+Aggiunto main semplice
+*/
+assert_rels(Infon, fact, NoFr, TimeId, LocId, Role, RelsType) 
+  :-
+  Infon=infon(Q,Inf,Rel,[Adj], R, Pol),
+  Adj=infon(_,_,adj,[Sit1],_,_),
+  NewInfon=infon(Q,Inf,Rel,[Sit1], R, Pol),
+  assert_rels(NewInfon, fact, NoFr, TimeId, LocId, Role, RelsType).
+
+assert_rels([], _, _, _, _, _, _) .
+
+/*
+assert_rels(
+   infon(att, Inf, time, Args, AttRestr, Pol),
+   Type, NoFr, TimeId, LocId, Role, ev_restr) 
+  :-
+  Args=[Ev, ind(TQuant, T, TRestr, Role)],
+  assert_quantifier
+  assert_rels(NewInfon, Type, NoFr, TimeId, LocId, Role, RelsType).
+*/
+
+assert_rels(
+   and([A | B]), Type, 
+   NoFr, Time, Loc, _, RelsType) 
+   :-
+   assert_rels(A, Type, NoFr, Time, Loc, _, RelsType),
+   assert_rels(and(B), Type, NoFr, Time, Loc, _, RelsType). 
+
+assert_rels(and([]), _, _, _, _, _, _) .
+
+assert_rels(
+   Infon, InfonType, NoFr, MainTime, Loc, Role, RelsType) 
+   :-
+   Infon=..[_, _, InfonId, Rel, Args, Restr, Pol],
+   infon_type(NoFr, InfonId, Role, InfonType),
+   get_inds(Args, Inds, NoFr, MainTime, Loc),
+   Infon1=..
+      [InfonType, InfonId, Rel, Inds, Pol, MainTime, Loc],
+   assert_infon_if_needed(Infon1, InfonId, NoFr, RelsType, RelTime),
+   assert_ev_restr(Restr, InfonType, NoFr, RelTime, Loc).
+
+
+infon_type(_, _, prop, InfonType) :-
+  nonvar(InfonType),
+  !.
+
+infon_type(NoFr, InfonId, Role, InfonType) :-
+  confer_ind(NoFr, SintInd, InfonId),
+  nodo(Node)::indice::SintInd,
+  !,
+  get_factivity(NoFr, Node, Role, Intens),
+  (
+  Intens=nonfactive
+  ->
+  InfonType=sit
+  ;
+  InfonType=fact
+  ).
+
+infon_type(NoFr, _, prop, fact) .
+
+get_factivity(NoFr, Node, Role, Intens) :-
+  info(NoFr, Node, _/Role, _, Intens, _, _, _, _, _, _, _, _),
+  !.
+
+/* dovrebbe essere calcolato da factivity */
+get_factivity(NoFr, Node, arg, nonfactive) :-
+  nodo(N)::adj::nodo(Node),
+  nodo(Node)::sem_mark::per,
+  !.
+
+/* dovrebbe essere calcolato da factivity 
+(andarono) a cercare */
+get_factivity(NoFr, Node, arg, nonfactive) :-
+   nodo(_)::ogg/prop::nodo(Node),
+   !.
+
+get_factivity(NoFr, Node, arg, nonfactive) :-
+   nodo(_)::vcomp/propint::nodo(Node),
+   !.
+
+get_factivity(NoFr, Node, Role, Intens) :-
+  nodo(N0)::vcomp/Role::coord::nodo(Node),
+  !,
+  nodo(N0)::pred::Pred,
+  info(NoFr, N0, main/prop, _, Intens, _, _, _, Pred, _, _, _, _).
+
+get_factivity(NoFr, Node, Role, Intens) :-
+   nodo(N0)::Fun/Role::nodo(Node),
+%   !,
+  nodo(N0)::pred::Pred,
+  info(NoFr, N0, main/prop, _, Intens, _, _, _, Pred, _, _, _, _).
+
+get_factivity(NoFr, Node, Role, Intens) :-
+   nodo(N0)::Fun/Role::nodo(Node),
+  info(NoFr, N0, _, _, Intens, _, _, _, _, _, _, _, _).
+
+get_factivity(NoFr, Node, Role, Intens) :-
+  info(NoFr, Node, Fun/Role, _, Intens, _, _, _, _, _, _, _, _).
+
+get_factivity(NoFr, Node, Role, factive) :-
+   nodo(N0)::vcomp/Role::nodo(Node), !.
+
+get_factivity(NoFr, Node, Role, factive) :-
+   nodo(Nodo)::ip_ell/prop::[],
+   nodo(Nodo)::adjs::avv::adj/Role::nodo(N),!.
+
+get_factivity(NoFr, Node, Role, factive) :-
+   nodo(Nodo)::ip_ell/prop::nodo(N),!.
+
+get_factivity(NoFr, Node, Role, factive).
+
+/**************
+assert_arg_restr(
+   and(+Restrictions), +NoFr, +Time, +Loc)
+**************/
+
+assert_arg_restr(and([]), _, _, _) :-
+   !.    
+
+/* NB: Nella forma logica sit indica una relativa */
+assert_arg_restr(and([Restr | Restrictions]), NoFr, Time, Loc) :-
+   (
+   Restr=(Type:Restriction)
+   ;
+   Restr=Restriction
+   ),
+   (
+   functor(Restriction, sit, _)
+   ->
+   InfonType=fact,
+   RelsType=rels
+   ; 
+   InfonType=fact,
+   RelsType=ind_restr
+   ),
+   assert_rels(
+      Restriction, InfonType, NoFr, Time, Loc, _, RelsType),
+   assert_arg_restr(and(Restrictions), NoFr, Time, Loc).    
+
+
+
+/****************************
+assert_ev_restr(
+   +Restrictions, +InfonType, +NoFr, +Time, +Loc)
+== asserts event restrictions
+*****************************/
+
+/* Special case: coincide */
+assert_ev_restr(
+  and([infon(Q1, Inf1, coincide, Args, _, Pol) | Restr]),
+  InfonType, NoFr, Time, Loc) 
+  :-
+  remove(
+    sit(Q2, Inf2, Rel, RelArgs, SitRestr, SitPol), 
+    Args, [IdEv]),
+  atomic(IdEv),
+  assert_rels(
+    sit(Q2, Inf2, Rel, RelArgs, SitRestr, SitPol),
+    InfonType, NoFr, Time, Loc,_, rels),
+  assert_rels(
+    infon(Q1, Inf1, coincide, [IdEv,Inf2] , [], Pol),
+    InfonType, NoFr, Time, Loc,_, rels),
+  assert_ev_restr(
+    and(Restr), 
+    InfonType, NoFr, Time, Loc),
+  !.
+
+/* Standard case */
+assert_ev_restr(
+  and([infon(Q, Inf, Rel, Args, _, Pol) | Restrs]),
+  InfonType, NoFr, Time, Loc) 
+  :-
+  assert_rels(
+    infon(Q, Inf, Rel, Args , [], Pol),
+    InfonType, NoFr, Time, Loc,_, rels),
+  assert_ev_restr(and(Restrs), InfonType, NoFr, Time, Loc),
+  !.
+
+/* If the infon has a Type:Infon structure, Type becomes the Role of the second individual of the relation */
+assert_ev_restr(
+  and([Type:Infon | Restrs]),
+  InfonType, NoFr, Time, Loc) 
+  :-
+  Infon=
+     infon(
+       Q, Inf, Rel, [Arg1, ind(Q1, V, R, _)], _, Pol),
+  Args=[Arg1, ind(Q1, V, R, Type)],
+  assert_rels(
+    infon(Q, Inf, Rel, Args , [], Pol),
+    InfonType, NoFr, Time, Loc,_, rels),
+  assert_ev_restr(and(Restrs), InfonType, NoFr, Time, Loc),
+  !.
+
+
+/*
+assert_ev_restr(
+  and([Restr | Restrs]),
+  InfonType, NoFr, Time, Loc) 
+  :-
+  (
+  Restr=
+    infon(Q, Inf, Rel, Args, _, Pol)
+  ;
+  Restr=
+    (
+    Type:infon(
+       Q, Inf, Rel, [Arg1, ind(Q1, V, R, _)], _, Pol)
+    ),
+  Args=[Arg1, ind(Q1, V, R, Type)]
+  ),
+  assert_rels(
+    infon(Q, Inf, Rel, Args , [], Pol),
+    InfonType, NoFr, Time, Loc,_, rels),
+  assert_ev_restr(and(Restrs), InfonType, NoFr, Time, Loc),
+  !.
+*/
+/* End of recursion */
+assert_ev_restr([], _, _, _, _) :-
+   !.
+
+/* A simple restriction is normalized to the and() form */
+assert_ev_restr(
+  infon(Q, Inf, Rel, Args, Restr, Pol),
+  InfonType, NoFr, Time, Loc) 
+  :-
+  assert_ev_restr(
+    and([infon(Q, Inf, Rel, Args, Restr, Pol)]),
+    InfonType, NoFr, Time, Loc),
+  !.
+
+/* End of recursion */
+assert_ev_restr(and([]), _, _, _, _) .
+
+
+/* Escape clause */
+assert_ev_restr(
+  and([_ | Restr]), InfonType, NoFr, Time, Loc)
+  :-
+  assert_ev_restr(and(Restr), InfonType, NoFr, Time, Loc).
+
+
+
+
+/*****************
+assert_infon_if_needed(+Infon, +InfonId, +NoFr)
+== Infon is asserted only if it is not already known.
+Before searching for a map in the Model DB the infon identifier is dummified.
+Notice that Infon has always role-qualified args, while in the asserted facts inds may be role-qualified or not. 
+If we already know that an infon is a fact it would be trivial to assert that it is a sit. So if an infon is a fact we search for a fact, if it is a sit we search for a sit or a fact.
+*****************/
+
+/*
+Individual Restriction.
+sit or fact is an individual restriction about individuals created by the memorizza procedure. The restriction is not asserted 
+*/
+
+assert_infon_if_needed(Infon, InfonId, NoFr, ind_restr, _) :-
+   Infon=..[fact, Ind, focus, Arg, Pol, Temp, Loc], 
+   assert(Infon),   
+   assert(confer_infon(InfonId, NoFr, nil, nil, secondary)),
+   !.
+
+assert_infon_if_needed(Infon, _, _, ind_restr, _) :-
+   Infon=..[fact, _, _, [_:Id | Args] | _], 
+   \+ new_ind(Id),
+   !.
+
+
+assert_infon_if_needed(Infon, _, _, _, _) :-
+   known_infon(Infon, AssertedInfon),
+   arg(1, Infon, InfId),
+   arg(1, AssertedInfon, AssInfId),
+   assert(eq_infon(InfId, AssInfId)),
+   !.
+
+/*
+Individual restriction.
+sit or fact isn't already known. The main temporal location is kept 
+*/
+assert_infon_if_needed(Infon, InfonId, NoFr, ind_restr, _) :-
+   Infon=..[fact, _, _, Args | _],      
+   assert(Infon),   
+   assert(confer_infon(InfonId, NoFr, nil, nil, secondary)). 
+
+assert_infon_if_needed(_, _, _, ind_restr, _).
+
+
+/* 
+Relations.
+The relation  has a tema_bound:_ and a prop:_ in the args list . The tema_bound is removed. If the prop is already known in a different form, it is retracted in the current form, and the identifier of the known form is given as prop:id argument. An identifier for the temporal relation is build, and asserted instead of the main temporal location
+*/
+assert_infon_if_needed(Infon, InfId, NoFr,  rels, Time) :-
+   Infon=..[A, InfId, Rel, Args, Pol, MainTemp, Loc],      
+   remove(tema_bound:Ind, Args, Args1),
+   remove(prop:PropId, Args1, Args2),
+   retract_if_needed(PropId, Rel, NewPropId),
+   append(Args2, [prop:NewPropId], NewArgs),
+   temp_loc(InfId, MainTemp, Time),
+   NewInfon=..[A, InfId, Rel, NewArgs, Pol, Time, Loc],
+   assert(NewInfon),   
+   assert(confer_infon(InfId, NoFr, nil, nil, main)),     
+   !.
+
+/* 
+Relations.
+sit or fact isn't already known. An identifier for the temporal location is built  
+*/
+assert_infon_if_needed(Infon, InfonId, NoFr, rels, Time) :-
+   Infon=..[A, InfId, C, Args, Pol, MainTemp, Loc],      
+   temp_loc(InfId, MainTemp, Time),
+   NewInfon=..[A, InfId, C, Args, Pol, Time, Loc],
+   assert(NewInfon),   
+   assert(confer_infon(InfonId, NoFr, nil, nil, main)). 
+
+
+assert_infon_if_needed(Infon, InfId, NoFr,  rels, Time) :-
+   Infon=..[A, InfId, Rel, OArgs, Pol, MainTemp, Loc],      
+   OArgs=[Arg1|Arg2],
+   extract_roles(Args2, Id, R),
+   remove(R:Id, Arg2, Narg2),
+   append([R:Id],[Arg1], Nar),
+   append(Nar, Narg2, NewArgs),
+   temp_loc(InfId, MainTemp, Time),
+   NewInfon=..[A, InfId, Rel, NewArgs, Pol, Time, Loc],
+   assert(NewInfon),   
+   assert(confer_infon(InfId, NoFr, nil, nil, main)),     
+   !.
+
+assert_infon_if_needed(Infon, InfonId, NoFr, rels, Time) :-
+   Infon=..[A, InfId, be, [], Pol, MainTemp, Loc],      
+   current_main_loc(NFrase, tempo, Ref),
+   Ref=..[ref_ex, Id | Args],
+   loc(LInfonId, Id, _),   
+   temp_loc(InfId, MainTemp, Time),
+   NewInfon=..[A, InfId, be, [tema_bound:LInfonId], Pol, Time, Loc],
+   assert(NewInfon),   
+   assert(confer_infon(InfonId, NoFr, nil, nil, main)). 
+
+/*
+create_ell_rel([InfonId]):-
+         frase_corrente(NoFr, File),
+         gen_sym(infon, InfonId),
+         gen_sym(id, EvId),
+         Infon=..[fact, EvId, be, [InfonId], 1, Tr1, Loc],
+         assert(Infon),
+         assert(confer_infon(EvId, NoFr, nil, nil, main)),
+         !.
+*/
+
+extract_roles(Args2, Id, R):-
+   on(R:Id,Arg2),
+   (R=agente;R=causer),!.
+
+
+retract_if_needed(InfonId, Rel, AssertedInfonId) :-
+   eq_infon(InfonId, AssertedInfonId),!.
+
+/* senza la Rel non può fare il retract!! */
+retract_if_needed(InfonId, Rel, AssertedInfonId) :-
+   member(Fun, [sit, fact]),
+   Infon=..[Fun, InfonId, _, _, _, _, _],
+   known_information(Infon, _, AssertedInfon),
+   !,
+   (retract(Infon) ; true),
+   arg(1, AssertedInfon, AssertedInfonId).
+
+retract_if_needed(InfonId, Rel, InfonId).
+   
+/***************
+temp_loc(+InfonId, +MainTempId, -TimeLocId)
+== Given an Infon Identifier, it gets the corresponding Sentence index ( (from the F-Structure), and it creates an identifier for the temporal location. If the mapping from the InfonId to the Sentence Index isn't available the identifier of the main temp loc is taken instead. Notice that temp_loc is called only for relations (=\= individual restrictions)
+***************/
+temp_loc(InfId, _, tes(TimeId)) :-
+   confer_ind(_, FrX, InfId),
+   rete(Rete),
+   concatena(FrX, Rete, TimeId),
+   !.
+temp_loc(_, InfId, InfId).
+
+
+
+known_information(Infon, Rel, AssertedInfon) :-
+   call(Infon),
+   Infon=..[Fun, InfId, Rel, [Arg] | Rest],
+   KnownInfon=..[Fun, AssInfId, role, [Rel, Arg, _] | Rest],
+   known_infon(KnownInfon, AssertedInfon),
+   !.   
+   
+known_information(Infon, Rel, AssertedInfon) :-
+   call(Infon),  %% ???
+   Infon=..[Fun, InfId, Rel, [Arg] | Rest],
+   KnownInfon=..[Fun, AssInfId, name, [Rel, Arg] | Rest],
+   known_infon(KnownInfon, AssertedInfon).   
+
+
+
+/* sit or fact is already known as a fact with role-qualified args. */
+known_infon(Infon,  AssertedInfon) :-
+   Infon=..[InfType, _ , Rel, Args| Rest],
+   (
+   InfType=sit
+   ->
+   on(AssertedInfType, [sit, fact])
+   ;
+   AssertedInfType=InfType
+   ), 
+   dummify_default_roles(Args, Args1),   
+   AssertedInfon=..[AssertedInfType, _, Rel, Args1 | Rest],      
+   call(AssertedInfon),
+   !.
+
+/* Abbreviated facts */
+known_infon(Infon,  AssertedInfon) :-
+   Infon=..[Pred, _ | Rest],
+   on(Pred, [ind, set, loc, card]),
+   AssertedInfon=..[Pred, _ | Rest],
+   call(AssertedInfon),
+   !.
+
+/* sit or fact is already known with non role-qualified arguments - this has been added for legal genre where no additional information is needed in case the same property restriction is present - clear_ind_id is used rather than clear_roles */
+known_infon(Infon, AssertedInfon) :-
+   genre(legal),
+   Infon=..[InfType, _, Rel, Inds | Rest],      
+   clear_ind_id(Inds, Inds1),
+   (
+   InfType=sit
+   ->
+   on(AssertedInfType, [sit, fact])
+   ;
+   AssertedInfType=InfType
+   ),      
+   AssertedInfon =.. 
+      [AssertedInfType, _, Rel, Inds1 | Rest],      
+   call(AssertedInfon).
+
+known_infon(Infon, AssertedInfon) :-
+   Infon=..[InfType, _, Rel, Inds | Rest],      
+   clear_roles(Inds, Inds1),
+   (
+   InfType=sit
+   ->
+   on(AssertedInfType, [sit, fact])
+   ;
+   AssertedInfType=InfType
+   ),      
+   AssertedInfon =.. 
+      [AssertedInfType, _, Rel, Inds1 | Rest],      
+   call(AssertedInfon).
+
+
+/*****************
+clear_roles(+IndsWithRoles, -IndsWithoutRoles)
+?- clear_roles([a:b,n], IWR)
+*****************/
+clear_ind_id([R:I | Inds], [_:_ | Inds1]) :-
+   !,
+   clear_indclass(Inds, Inds1).
+
+clear_ind_id([], []).
+
+clear_indclass([R:I | Inds], [_:I | Inds1]) :-
+   clear_indclass(Inds, Inds1).
+
+clear_indclass([], []).
+
+clear_roles([R:I | Inds], [I | Inds1]) :-
+   !,
+   clear_roles(Inds, Inds1).
+clear_roles([I | Inds], [I | Inds1]) :-
+   clear_roles(Inds, Inds1).
+clear_roles([], []) .
+
+dummify_default_roles([], []).
+dummify_default_roles([arg:Arg | Args], [_:Arg | DumArgs]) :-
+   !,
+   dummify_default_roles(Args,  DumArgs).
+
+dummify_default_roles([Role:Arg | Args], [Role:Arg | DumArgs]) :-
+   dummify_default_roles(Args,  DumArgs).
+
+/************************
+get_inds(+Args, -Inds, +NoFr, +Time, +Loc)
+
+ARGUMENTS.
+   Args : <list> of (<term> one_of [ind/4, infon/6, sit/6]) 
+        or <atom> 
+        : individuals in complex notation
+   Inds : <list> of (<term> = role:identifier)
+        : individuals in simple fact notations
+== As side effect all restrictions on individuals are asserted.
+*************************/
+
+get_inds([], [], _, _, _) :-
+			!.
+
+/* set : information is asserted about the individuals that are members of the set */
+
+get_inds(
+   [ind(set, IndSet, IndInSet, Role) | Args], 
+   [(Role:IndSet) | Inds], 
+   NoFr, Time, Loc) 
+   :-
+   !,
+   (nonvar(Role);var(Role), Role=arg),
+   assert_quantifier(set, IndSet, NoFr),
+   get_inds(IndInSet, IndInSet1, NoFr, Time, Loc),
+   assert_ind_in_set(IndInSet1, IndSet, NoFr),
+  	get_inds(Args, Inds, NoFr, Time, Loc).
+
+/* proper qualified individual */
+get_inds(
+   [ind(Quant, Ind, Restr, Role) | Args], 
+   [(Role:Ind) | Inds], 
+   NoFr, Time, Loc) 
+   :-
+   !,
+   (nonvar(Role);var(Role), Role=arg),
+   assert_quantifier(Quant, Ind, NoFr),
+   assert_arg_restr(Restr, NoFr, Time, Loc), 
+  	get_inds(Args, Inds, NoFr, Time, Loc).
+
+/* non qualified individual : simple identifier */
+get_inds(
+   [Ind | Args], 
+   [arg:Ind | Inds], 
+   NoFr, Time, Loc) 
+   :-
+   atomic(Ind),
+   !,
+  	get_inds(Args, Inds, NoFr, Time, Loc).
+
+/* prop individual :  */
+
+get_inds(
+   [Infon | Args], 
+   [Role:Ind | Inds], 
+   NoFr, Time, Loc) 
+   :-
+			!,
+			assert_rels(Infon, _, NoFr, Time, Loc, Role, rels),
+   arg(2, Infon, Ind),   
+			get_inds(Args, Inds, NoFr, Time, Loc).
+
+
+/* catch all */
+get_inds(
+   [Arg | Args], 
+   [Arg | Inds], 
+   NoFr, Time, Loc) 
+   :-
+			get_inds(Args, Inds, NoFr, Time, Loc).
+
+
+
+
+assert_quantifier(Quant, Ind, NoFr) :-
+   on(Quant, [set, plural]),
+   !,
+   gen_sym(infon, Infon),
+   assert_infon_if_needed(
+      set(Infon, Ind), 
+      Infon, NoFr, ind_restr, _).
+
+assert_quantifier(_, Ind, NoFr) :-
+   !,
+   gen_sym(infon, Infon),
+   assert_infon_if_needed(
+      ind(Infon, Ind), 
+      Infon, NoFr, ind_restr, _).
+
+assert_quantifier(_, _, _).
+
+
+assert_ind_in_set([_:Ind | Inds], IndSet, NoFr) :-
+   !,
+   gen_sym(infon, Infon),
+   assert_infon_if_needed(
+      in(Infon, Ind, IndSet), 
+      Infon, NoFr, ind_restr, _),
+   assert_ind_in_set(Inds, IndSet, NoFr).
+assert_ind_in_set([], _, _) .
+
+/******************
+switch_polarity(+Polarity, -SwitchedPolarity)
+******************/
+switch_polarity(0, 1).
+switch_polarity(1, 0).
+
+modality(potere, possible).
+modality(dovere, must).
+modality(volere, know).
+modality(Modal,believe).
+
+relassert_performatives(NoFr, Infon, TimeId, LocId):-
+  Infon=..[Con,Main],
+  list(Main),
+  Main=[A|Rest],
+  list_relassert_performative(NoFr, Main, TimeId, LocId),
+  !.
+
+relassert_performatives(NoFr, Infon, TimeId, LocId):-
+  relassert_performative(NoFr, Infon, TimeId, LocId),
+  !.
+
+relassert_performatives(NoFr, Infon, TimeId, LocId):-!.
+
+list_relassert_performative(NoFr, [], TimeId, LocId):-!.
+list_relassert_performative(NoFr, [First|Main], TimeId, LocId):-
+  relassert_performative(NoFr, First, TimeId, LocId),
+  list_relassert_performative(NoFr, Main, TimeId, LocId),
+  !.
+
+relassert_performative(NoFr, Infon, TimeId, LocId):-
+  Infon=..[I,Q,InfonId,Rel,Main, R, Pol],
+  assert_modality(NoFr, Rel, InfonId, LocId, TimeId),
+  assert_performative(NoFr, Rel, InfonId, LocId, TimeId),
+  !.
+relassert_performative(NoFr, Infon, TimeId, LocId).
+
+/**************
+memorizza(+noFrase, +location, +tempo, +args)
+**************/
+
+memorizza(NoFr, Loc, Temp, Args) :-
+   proposto(Top),
+   (Top\=nil, Type=expected,
+   mem_topic(Args, Type, Top, NoFr, Temp, Loc)
+   ;
+   Top=nil),
+   principale(Top1), 
+   (Top1\=nil, Type1=main,
+   mem_topic(Args, Type1, Top1, NoFr, Temp, Loc)
+    ;
+    Top1=nil),
+   secondario(Sec),
+   mem_secondary(Args, Sec, NoFr, Temp, Loc),
+   mem_others(Args, [Top,Top1,Sec],Altri, NoFr, Temp, Loc).
+
+memorizza(_, _, _, _) .
+
+
+mem_topic(Args, Type, Topic, NoFr, Temp, Loc) :-
+   legal_topic(Args, NoFr, Topic, SnX, TopicInfo),
+   crea_arg(TopicInfo, Ind, Temp, Loc),
+   !,
+   asserisci_topic(NoFr, Type, Ind, SnX).
+
+mem_topic(Args, main, Topic, NoFr, Temp, Loc) :-
+   legal_main_topic(Topic, Ind, SnX),
+   !,
+   asserisci_topic(NoFr, main, Ind, sn100).
+
+mem_topic(_, _, _, _, _, _).
+
+mem_secondary(Args, Sec, NoFr, Temp, Loc) :-
+   legal_topic(Args, NoFr, Sec, SnX, Sec1),
+   crea_arg(Sec1, SecInd, Temp, Loc),
+   !,
+   asserisci_topic(NoFr,secondary,SecInd,SnX).
+
+mem_secondary(Args, Sec, NoFr, Temp, Loc) :-
+   legal_sec_topic(NoFr, Sec, SecInd, SnX),
+   !,   
+   asserisci_topic(NoFr, secondary, SecInd, sn100).
+
+mem_secondary(_, _, _, _, _).
+
+mem_others(Args, [Top,Top1,Sec], Altri, NoFr, Temp, Loc) :-
+   (remove_alt(Top/P, Args, Args1)
+     ; Args1=Args),
+   (remove_alt(Top1/P, Args1, Args2)
+     ; Args2=Args1),
+   (remove_alt(Sec/P1, Args2, Args3)
+     ; Args3=Args2),
+    mem_other(Args3, Altri, NoFr, Temp, Loc),!.
+
+
+remove_alt(ref_ex(SnX,Top,Tab,_,Gen,Num,Cat,F/Role)/P, Args, Args1):-
+       nonvar(Top),
+       remove(ref_ex(SnX,Top,Tab,_,Gen,Num,Cat,F/Role)/P, Args, Args1),!.
+remove_alt(ref_ex(SnX,Top,Tab,_,Gen,Num,Cat,F/Role)/P, Args, Args):-!.
+
+mem_other(Args, Altri, NoFr, Temp, Loc) :-
+   altri(Altri, NoFr),
+   filtra_poten(Altri,NoFr),
+   legal_pot_topic(Args, NoFr, Altri, SnX, Altri1),
+   crea_arg(Altri1, AltriInd, Temp, Loc),
+   asserisci_topic(NoFr, potential, AltriInd, SnX),
+   fail.
+mem_other(_, _, _, _, _).
+
+
+/* stampa cose memorizzate */
+memor :- listing(ind),
+       listing(set),
+       listing(in),
+       listing(card),
+       listing(fact),
+       listing(class),
+       listing(topic).
+     
+ 
+
+/**************
+legal_topic(+Argomenti, +NumeroFrase, +ArgIn, -ArgOut)
+
+ARGUMENTS
+   Argomenti        : la lista delle ref_ex
+   NumeroFrase      :integer. Sentence identifier.
+   ArgIn            :term. ref_ex/8 or nil . 
+   ArgOut           :term. arg/6 or nil. 
+
+ref_ex/8 has_structure ref_ex(_,Testa,_,_,_,_,_,_) . 
+arg/6 has_structure arg(SnId/NoFrase, Testa, Def, Part, Class, Num). 
+
+== Recupera informazione su Topic da argomenti(NoFrase, Topics) e stabilisce se un certo topic è un individuo ammissibile
+**************/
+
+legal_topic(Args, NF, X, SnX, Arg):-  
+   X=..[ref_ex,SnX,Testa|_],
+  (nogen_member(ref_ex(SnX,Testa-sc,Tab,_,Gen,Num,Cat,F/Role)/P, Args), 
+      Testa1=Testa
+      ;
+   nogen_member(ref_ex(SnX,Testa,Tab,_,Gen,Num,Cat,F/Role)/P, Args), 
+      Testa1=Testa
+      ;
+    nogen_member(ref_ex(SnX,indefinite,Tab,_,Gen,Num,Cat,F/Role)/P, Args),
+      Testa1=indefinite),
+  ( Tab=[Ref, Def, Part, Card, _, _, Class];
+    Tab=[Ref, Def, Part, Card, _, _, Class, _]),
+   Ref = + ref,
+   Testa \= vbl,
+   F \= nil,
+   Role \= misura,
+   (F = ogg, Role = prop
+     ;
+    F \= ogg, Role \= prop
+     ;
+    F = ogg),
+   Role \= esplicativa,
+   nonvar(Cat),
+   notmembro(tempo, Cat),
+   notmembro(modo, Cat),
+   Arg=arg(SnX/NF, Testa1, Def, Part, Card, Class, Num, Cat, F/Role),
+   !.
+
+legal_main_topic(ref_ex(SnX,Testa,_,_,Gen,Num,Cat,F/Role), Id, SnX):-  
+        referente(SnX,Mods,Id,Testa,Num,_).
+
+/*
+legal_pot_topic(Args, NF, X, SnX, Arg):-  
+   X=..[ref_ex,SnX,Testa|_],
+   checkpots(Args, SnX-Testa),!.
+*/
+checkpots([], Aa-Bb):-!.
+checkpots([ref_ex(A,B,_,_,_,_,_,_/_)/_|Pairs], A-B):-
+        fail,!.
+checkpots([ref_ex(A,B,_,_,_,_,_,_/_)/_|Pairs], Aa-Bb):-
+        A\=Aa, B\=Bb,
+        checkpots(Pairs, Aa-Bb),!.
+
+legal_pot_topic(Args, NF, X, SnX, Arg):-  
+   X=..[ref_ex,SnX,Testa|_],
+   nogen_member(ref_ex(SnX,Testa,Tab,_,Gen,Num,Cat,F/Role)/P, Args), 
+     (Testa=Testa1-sc
+      ;
+      Testa1=Testa),
+   (nonvar(P),P<1600;true),
+   Tab=[Ref, Def, Part, Card, _, _, Class],
+   Ref = + ref,
+   Testa \= vbl,
+   F \= nil,
+   Role \= misura,
+   F/Role \= acomp/prop,
+   F/Role \= nadj/tema,
+   Role \= comparativa,
+   Role \= esplicativa,
+   (
+     nonvar(Cat),Cat\=[],Cat\=[_|_],
+     notmembro(tempo, Cat),
+     notmembro(temp, Cat),
+     notmembro(modo, Cat);
+     (var(Cat);Cat=[];Cat=[_|_])
+   ),
+   Arg=arg(SnX/NF, Testa1, Def, Part, Card, Class, Num, Cat, F/Role),
+   !.
+
+legal_sec_topic(_, Sec, Id, SnX) :-
+   Sec=ref_ex(SnX,Testa,Tab,_,Gen,Num,Cat,F/R),
+   referente(SnX,Mods,Id,Testa,Num,Card1).
+
+filtra_poten(Altri,NoFr) :-
+   Altri=ref_ex(SnX,Testa,Tab,_,Gen,Num,Cat,F/R),
+   !,
+   Tab=[Ref, Def, Part, Card, _, _, Class],
+   \+  
+      (
+      main_or_expect(NoFr, Ind),
+      nonvar(Ind),
+      fact(_,Testa, [Ind], 1, Temp, Loc) 
+      ).
+
+
+/* indefiniti e sn con definitezza zero */
+
+narg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,ncomp/prop,Mods,Id,Temp, Loc):-  
+         nodo(N)::ncomp/_::indice::SnX,
+         nodo(N)::ncomp/_::_/nil::controllore::An,
+         referente(An,Mods,Id,Testa,Num,1),
+         !.
+
+narg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-  
+         nodo(N0)::adjs::adj/R::F/Role::indice::SnX,
+         nodo(N0)::adjs::adj/R::F/Role::adjs::adj::sub/compar::pred::Pred,
+         referente(SnX,Mods,Id,Pred,Num,1),
+         fact(_,inst_of,[ind:Id, class:Testa],1,_,_),  
+         !.   
+
+/* come di una facile occasione*/
+/* cioè una specie di */
+narg(SnX/NoFr,Tes,Def,Part,Card,Class,Num,Cat,sub/compar,Mods,Id,Temp, Loc):-  
+         nodo(N0)::adjs::adj::sub/compar::F/R::pred::Testa,
+         nodo(N)::F1/R1::nodo(N0),
+         nodo(N)::F1/R1::pred::Test,
+         referente(SnX,[],Id,Test,Num,1),
+         (
+          (Tes=specie; Tes=tipo; Tes=kind; Tes=type),Rel=kind_of
+           ;
+           Rel=isa),
+         asserisci(NoFr,SnX,sit(Rel,[ind:Id,class:Testa],1,Temp, Loc)),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,sub/compar,Mods,Id,Temp, Loc):-  
+         nodo(n1)::adjs::adj::sub/compar::pred::Testa,
+         nodo(n1)::sogg/_::indice::SnI,
+         nodo(n1)::F1/R1::pred::Test,
+         (referente(SnI,_,Id,Test,Num,1)
+          ;
+           1<NoFr, risolto(NoFr, SnI, Test, Test1),
+           proprieta(Id,Test1)),  
+         creatert(NoFr,ind,Mods,SnX,Testa,Card,Quant,Num,Idx,Temp, Loc),
+         class_props(NoFr, SnX, Cat, Idx, fact, isa, Testa, 1, Temp, Loc),
+         asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Testa],1,Temp, Loc)),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,sub/compar,Mods,Id,Temp, Loc):-  
+         nodo(N0)::adjs::adj::sub/compar::_::nome_mod::pred::Tes,
+         (Tes=specie; Tes=tipo; Tes=kind; Tes=type),
+         creatert(NoFr,ind,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+         asserisci(NoFr,SnX,sit(kind_of,[ind:Id,class:Testa],1,Temp, Loc)),
+         default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card,Class,Num,Cat,sub/compar,Mods,Idx,Temp, Loc):-  
+         nodo(N0)::F1/R1::adjs::adj::sub/compar::indice::SnX,
+         nodo(N0)::F1/R1::pred::Test,
+         (referente(SnX,Mods,Id,Test,Num,1), Test1=Test
+          ;
+           1<NoFr, risolto(NoFr, SnY, Test, Test1)),
+         !,
+         fact(_,isa,[ind:Id, class:Test1],1,_,_),  
+         creatert(NoFr,ind,Mods,SnX,Testa,Card,Quant,Num,Idx,Temp, Loc),
+         class_props(NoFr, SnX, Cat, Idx, sit, isa, Testa, 1, Temp, Loc),
+         asserisci(NoFr,SnX,sit(isa,[ind:Id,class:Testa],1,Temp, Loc)),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,Num,Cat,_/compar,Mods,Id,Temp, Loc):-  
+         nodo(N0)::adjs::adj/R::F/compar::indice::SnX,
+         trova_card(SnX,Num,Part, Quant, Card0,Card),
+         creater(NoFr,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+         class_props(NoFr, SnX, Cat, Id, sit, isa, Testa, 1, Temp, Loc),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-  
+         nodo(N0)::fcomp/R::F/Role::indice::SnX,
+         nodo(N0)::cat::SemCat, 
+         (SemCat=presuppositivo;SemCat=soggettivo),
+         nodo(N1)::F/Role::indice::SnX,
+         nodo(N1)::pred::Rel,
+         1<NoFr,risolto(NoFr,SnY,Anaf,Tes), 
+         nodo(N1)::_/R3::pred::Anaf,
+         fact(_,Rel,[R1:_, R2:Id2, R3:Id3],1,_,_),  
+         fact(_,name,[Tes,Id3],1,_,_),  
+         fact(_,isa,[ind:Id2, class:Te],1,_,_),  
+         trova_card(SnX,Num,Part, Quant, Card0,Card),
+         creater(NoFr,Mods,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+         class_props(NoFr, SnX, Cat, Id, sit, isa, Testa, 1, Temp, Loc),
+         asserisci(NoFr,SnX,fact(isa,[Te,Id],1,Temp, Loc)),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,Num,Cat,F/tema_bound,Mods,Id,Temp, Loc):-  
+         nogen_member(attivita,Cat),
+         PrecNoFr is NoFr - 1,
+         topic(PrecNoFr,_,Id1),
+         ind(_,Id1),
+         fact(_,Rel,[R1:_, prop:Infon],1,_,_),
+         fact(Infon,Prop,[nil:Id1],1,_,_),
+         fact(_,role,[Prop,Idx,Id1],1,_,_),  
+         trova_card(SnX,Num,Part, Quant, Card0,Card),
+         creater(NoFr,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+         class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc),
+         asserisci(NoFr,SnX,fact(isa,[ind:Idx,class:Testa],1,Temp, Loc)),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,Num,Cat,F/R,Mods,Idy,Temp, Loc):-  
+   F\=sogg,
+   nodo(N0)::cat::soggettivo,
+   \+ nogen_member(relazionale,Cat), 
+   proprieta(Idy,Testa),
+   fact(_, poss, [Prop, Id, Idy], 1, _, _),
+   main_or_expect(NoFr, Id),
+   fact(_, isa,[ind:Idy,class:Testa],1,_,_),
+   restriz_sit(SnX, Idy, Temp, Loc),
+   !.
+ 
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-  
+         genre(legal),
+          (referente(SnX,Mods,Id,Testa,Num,Card)
+          ;
+          infer_prop_sempl(Ind,Testa),
+          creatert(NoFr,class,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+          asserisci(NoFr, SnX, in(Ind, Id)),
+          class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc)
+           ;
+          creatert(NoFr,class,Mods,SnX,Testa,Card, Quant,Num,Id,Temp, Loc),
+          class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc)
+          )
+										,!.
+
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,sing,Cat,F/Role,Mods,Ind,Temp, Loc):-  
+         trova_card(SnX,Num,Part, Quant, Card0,Card),
+         referente(SnX,[],Id,Testa,plur,Card1),
+         creatert(NoFr,ind,Mods,SnX,Testa,Card,Quant,Num,Ind,Temp, Loc),
+         class_props(NoFr, SnX, Cat, Ind, fact, isa, Testa, 1, Temp, Loc),
+         asserisci(NoFr, SnX, in(Ind, Id)),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,sing,Cat,F/Role,Mods,Id,Temp, Loc):-  
+         nonvar(Cat),
+         nogen_member(oggetto,Cat),
+         nogen_member(luogo,Cat),
+         current_main_loc(NoFr, luogo, LocInfo),
+         arg(1, LocInfo, Ind),
+         arg(2, LocInfo, Pred),
+         nodo(N0)::indice::SnX,
+         nodo(N)::_/locativo::pred::Pred1, 
+         N\=N0,  
+         nodo(N)::_/_::controllore::SnX, 
+         included(Pred1,Pred),
+         PrecNoFr is NoFr - 1,
+         topic(PrecNoFr,_,Idy),
+         ind(_,Idy),
+         fact(Infon,name,[Prop,Idy],1,_,_),  
+         trova_card(SnX,Num,Part, Quant, Card0,Card),
+         creater(NoFr,ind,SnX,Testa,Card,Quant,Num,Id,Temp, Loc),
+         class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc),
+         asserisci(NoFr,SnX,in(Id,Ind)),
+         create_infer_rel(NoFr, Idy,Id,Temp, Loc),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,Num,Cat,obl/Role,Mods,Id,Temp, Loc):-
+         (Role=locative;Role=locat
+         ;
+         nonvar(Cat),
+         nogen_member(luogo,Cat)),
+         current_main_loc(NoFr, luogo, LocInfo),
+         arg(1, LocInfo, Id),
+         arg(2, LocInfo, Pred),
+         Pred=Testa,
+         class_props(NoFr, SnX, Cat, Id, fact, isa, Testa, 1, Temp, Loc),
+         !.   
+
+narg(SnX/NoFr,Testa,Def,Part,Card0,Class,Num,Cat,F/Role,Mods,Id,Temp, Loc):-  
+        quant_scope(SnX,Num,F/Role,Num1), 
+        (var(Card),
+         trova_card(SnX,Num1,Part, Quant, Card0,Card)
+         ;
+         nonvar(Card)),
+         creater(NoFr,Mods,SnX,Testa,Card,Quant,Num1,Id,Temp, Loc),
+         ( 
+           nodo(N0)::F/R::indice::SnX,
+           F\=sogg,
+           nodo(N0)::cat::soggettivo, 
+          asserisci(NoFr,SnX,sit(isa,[ind:Id,class:Testa],1,Temp, Loc))
+          ;
+          nodo(N0)::F/R::nodo(N),
+          nodo(N)::mods::mod/predic::nodo(N1),
+          nodo(N1)::modo::cong,
+          asserisci(NoFr,SnX,sit(isa,[ind:Id,class:Testa],1,Temp, Loc))
+          ;
+          nodo(N2)::antecedente::SnX,
+          nodo(N2)::interpretazione::arbitraria,
+          asserisci(NoFr,SnX,sit(isa,[ind:Id,class:Testa],1,Temp, Loc))
+          ;
+          nodo(N4)::F/Role::indice::SnX,
+          nodo(N4)::adjs::neg::_,
+          Pol=0,
+          asserisci(NoFr,SnX,sit(isa,[ind:Id,class:Testa],0,Temp, Loc))
+          ;
+          ( nodo(N0)::vcomp/_::F/R::indice::SnX
+          ->
+          asserisci(NoFr,SnX,sit(isa,[ind:Id,class:Testa],1,Temp, Loc))
+          ;
+          asserisci(NoFr,SnX,fact(isa,[ind:Id,class:Testa],1,Temp, Loc))
+          )
+         ),
+         default_properties(NoFr, SnX, Cat, Pred, Id, Temp, Loc),
+         !.   
+
+
+create_infer_rel(NoFr, Agent,Location,Temp, Loc):-
+         gen_sym(id, EvId),
+         info(NoFr, Node, FunRole, View, Intens, Change, Rel, VerbCat, Verb,TempRel, DiscRel, DiscDom, SubjConsc),
+         TempRel=..[Relt,Tr1, Tr2],
+         gen_sym(f, Fr),
+         concat(Fr, '_', Tr),
+         concat(Tr, EvId, Tr3),
+         Infon=..[fact, EvId, sit, [actor:Agent,locat:Location], 1, tes(Tr3), Loc],
+         assert(Infon),
+         assert(confer_infon(EvId, NoFr, nil, nil, main)),
+         assert(after(tes(Tr3), Tr2)),
+         assert_time_infer(NoFr, EvId, tes(Tr3), Loc),
+         assert_tense_infer(NoFr,tes(Tr3), Loc),
+         write_inclusion(after, tes(Tr3), Tr2),
+         !.
+assert_time_infer(NoFr, EvId, T, L):-
+         gen_sym(infon, InfonId),
+         Infon=..[fact, InfonId, isa, [arg:EvId, arg:ev], 1, T, L],
+         assert(Infon),
+         assert(confer_infon(InfonId, NoFr, nil, nil, main)),!.
+
+assert_tense_infer(NoFr, T, L):-
+         gen_sym(infon, InfonId),
+         gen_sym(id, TenseId),
+         Infon=..[fact, InfonId, isa, [arg:TenseId, arg:tloc], 1, T, L],
+         assert(Infon),
+         gen_sym(infon, InfonId1),
+         Infon1=..[fact, InfonId1, isa, [arg:TenseId], 1, T, L],
+         assert(Infon1),
+         assert(confer_infon(InfonId, NoFr, nil, nil, main)),
+         assert(confer_infon(InfonId1, NoFr, nil, nil, main)),!.
+
+quant_scope(SnX,Num,F/R,Num1):-
+       (  nodo(N)::indice::SnX,
+          nodo(N)::qmark::Q1,
+        (
+          nodo(N4)::F/Role::indice::SnX,
+          nodo(N4)::adjs::neg::_,
+          Pol=0,
+          Num1=Num
+         ;
+          nodo(N1)::qmark::Q2,
+          Q2\=Q1,
+   /*ci sono due quants che devono essere uno nello scope dell'altro */
+         (nodo(N1)::spec::card::Card,
+          nodo(N)::interpretazione::quantificata,
+          nodo(_)::qops::Quants, on(Q2, Quants), on(Q1, Quants)
+          ;
+          nodo(N)::interpretazione::quantificata,
+          nodo(_)::qops::Quants, on(Q2, Quants), on(Q1, Quants),
+          Num1=nil
+          ;
+          nodo(N)::interpretazione::arbitraria,
+          Num1=nil
+          ;
+          nodo(N)::interpretazione::quantificata,
+          nodo(N1)::spec::quant::_,
+          nodo(N1)::sogg/nil::controllore::Contr,
+          individua_antecedente(Contr, Idx, _, Card),
+          (integer(Card),
+           Num1=plur
+           ;
+           Num1=sing)
+           ;
+           Num1=Num)
+         )
+         ;
+          nodo(N)::antecedente::SnX,
+          nodo(N)::interpretazione::arbitraria,
+          Num1=nil
+         ;
+          nodo(N0)::F/R::nodo(N),
+          nodo(N)::mods::mod/predic::nodo(N1),
+          nodo(N1)::modo::cong,
+          Num1=nil
+          ;
+          Num1=Num).
+
+/***************
+asserisci(+NoFr, +SnIndex, +Fact)
+== Asserisce fatti relativi a individui. In confer_infon/4 viene tenuta traccia della relazione tra un infon e la frase e nodo proposizionale da cui è stato estratto. 
+***************/
+asserisci(NoFr, SnX, Fact) :-
+   gen_sym(infon, Id),
+   frase_corrente(NoFr,_),
+   Fact=..[Pred | Args],
+   FactId=..[Pred, Id | Args],
+   nonvar(Pred),
+   assert(FactId),
+   sn_prop_node(SnX, PropNode),
+   assert(confer_infon(Id, NoFr, SnX, PropNode, secondary)).
+
+asserisci_topic(NoFr, Type, Ind, SnX) :-
+   nonvar(Ind), nonvar(SnX),
+   assert(topic(NoFr, Type, Ind)),
+   sn_prop_node(SnX, PropNode),
+   assert(confer_topic(NoFr, Type, Ind, SnX, PropNode)),
+   !.
+
+asserisci_topic(NoFr, Type, Ind, SnX) :-
+   nonvar(Ind), var(SnX),
+   assert(topic(NoFr, Type, Ind)),
+   assert(confer_topic(NoFr, Type, Ind, nil, PropNode)),
+   !.
+asserisci_topic(_, _, _, _) .
+
+main_or_expect(NoFr, Topic) :-
+   topic(NoFr, Type, Topic),
+   (Type=main; Type=expected; Type=secondary).
+
+write_rhet_structure(Win, NoFrase) :-
+   nl, nl, writenl('RHETORICAL STRUCTURE:'),
+   stato(NoFrase, Stato),
+   writenl(
+      stato(NoFrase, Stato)),
+   (
+   on(Type, [expected, main, secondary, potential]),
+   one(topic(NoFrase, Type, Ind)), 
+   writenl(topic(NoFrase, Type, Ind)),
+   fail 
+   ; 
+   true
+   ),
+   !.
+write_rhet_structure(_, _). 
+
+
+write_sentence_infons(Win, NoFr) :-
+   confer_infon(Id, NoFr, _, _, _),
+   infon(Id, Fact),
+   writenl(Fact), 
+   fail. 
+write_sentence_infons(_,_).
+    
+
+infon(Id, loc(Id,A,B)) :-
+   loc(Id,A,B),
+   !.
+
+infon(Id, ind(Id,A)) :-
+   ind(Id,A),
+   !.
+
+infon(Id, set(Id,A)) :-
+   set(Id,A),
+   !.
+
+infon(Id, ent(Id,A)) :-
+   ent(Id,A),
+   !.
+
+infon(Id, class(Id,A)) :-
+   class(Id,A),
+   !.
+
+infon(Id, in(Id,A,B)) :-
+   in(Id,A,B),
+   !.
+
+infon(Id, card(Id,A,B)) :-
+   card(Id,A,B),
+   !.
+
+infon(Id, fact(Id,B,C,D,E,F)) :-
+   fact(Id,B,C,D,E,F),
+   !.
+
+infon(Id, sit(Id,B,C,D,E,F)) :-
+   sit(Id,B,C,D,E,F),
+   !.

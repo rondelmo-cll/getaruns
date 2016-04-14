@@ -1,0 +1,851 @@
+﻿:- style_check(-singleton).
+
+
+write_model(Text,Core) :-
+      interp(part),
+%      wfront('Model'),
+      p_write_world(Text,Core),
+      !.
+
+write_model(Text,Core) :-
+      \+ interp(compl),
+%      wfront('Model'),
+      sh_write_world(Text,Core),
+      !.
+
+write_model(Text,Core) :-
+   write_world,
+   nl,nl,
+%   pwrite_charac,
+   p_write_world(Text,Core).
+%   told.
+
+
+asserisci_lista_res(NoFr, Type, N, Cat, [],_,_,_,_).
+asserisci_lista_res(NoFr, mod, N, Cat, [Rel|Altre], SnX, Ind, Temp, Loc) :-
+   (Type=isa, 
+   class_props(NoFr, SnX, Cat, Id, fact, isa, Rel, 1, Temp, Loc)
+   ;
+   (Rel=specie; Rel=tipo; Rel=kind; Rel=type) 
+   ;
+    (proprieta_sempl(Ind,Rel)
+      ->
+     fail, !;
+     true),
+   asserisci(NoFr, SnX, fact(Rel, [ind:Ind], 1, Temp, Loc))
+   ),
+   asserisci_lista_res(NoFr, mod, N, Cat, Altre, SnX, Ind, Temp, Loc).
+
+asserisci_lista_res(NoFr, Type, N, Cat, [Rel|Altre], SnX, Ind, Temp, Loc) :-
+    recover_description(Rel, Pred),
+    Pred\=Rel,
+    asserisci_lista_res(NoFr, mod, N, Cat, Pred, SnX, Ind, Temp, Loc),
+    asserisci_lista_res(NoFr, adj, N, Cat, Altre, SnX, Ind, Temp, Loc).
+
+asserisci_lista_ruoli(NoFr,[],_,_,_,_,_).
+asserisci_lista_ruoli(NoFr,[Rel|Altre], SnX, Ind, Loc, Temp, Id) :-
+   creatert(NoFr, ind, _, SnX, Rel, _, _, _, Id, Temp, Loc),
+   class_props(NoFr, SnX, Cat, Id, fact, isa, Rel, 1, Temp, Loc),
+   asserisci(NoFr, SnX, fact(role, [Rel,Ind,Id], 1, Temp, Loc)),
+   asserisci_lista_ruoli(NoFr,Altre, SnX, Ind, Loc, Temp, Id).
+
+
+p_assert_entities_relevance(Ents):-
+   findall(Ind-Type-NoFr, 
+               confer_topic(NoFr, Type, Ind, _, PropNode), Ents).
+
+p_write_world :-
+   p_assert_entities_relevance(Ents),
+   p_sorted_entities(Ents, SortedEnts),
+   pwrite_riass(SortedEnts, Sents).
+
+pwrite_charac:-
+   p_assert_entities_relevance(Ents),
+   p_sorted_entities(Ents, SortedEnts),
+   find_all_top_sents(SortedEnts, 0, Sents),
+   nl('user'),nl('user'),
+   write(user, '############'),
+   write(user, '   IMPORTANT CHARACTERS   '),
+   writenl(user, '############'),
+   read_model,
+   writecharacters(1,SortedEnts),
+   !.
+
+pwrite_riass(SortedEnts, Ents):-
+   find_all_top_sents(SortedEnts, 0, Ents),
+   dangling_sentences(Ents, Entss),
+   nl,nl,
+   write('user', '############'),
+%   write('user', '   SUMMARY   '),
+   writenl('user', '############'),
+   append([1],Entss,NEnts),
+   sort(NEnts,Nents),
+   !.
+%   writeriass('Display',Nents,1).
+
+p_sorted_entities(Ents, SortedEnts):-
+   sort(Ents, SortInds, [2], 1),
+   p_sorted_ents(SortInds, SortedEnts). 
+
+p_sorted_ents(SortInds, SortScoreInds):-
+   p_sortedents(SortInds, Ent, 0, ScoreInds),
+   sort(ScoreInds, SortScores),
+   reverse(SortScores, SortScoreInds),
+   !.
+
+p_sortedents([], Ent, Score, [Score-Ent]):-!.
+p_sortedents([Ent-Top-I|SortInds], Ent, Score, SortScoreInds):-
+    in_topic_score(Ent, Top, Sco),
+    Score1 is Score + Sco,
+    p_sortedents(SortInds, Ent, Score1, SortScoreInds),
+   !.
+
+p_sortedents([Ent-Top-I|SortInds], Ent1, Score, [Score-Ent1|SortScoreInds]):-
+   p_sortedents([Ent-Top-I|SortInds], Ent, 0, SortScoreInds),
+   !.
+
+
+dangling_sentences([], []):-!.
+dangling_sentences([Sent|Ents], [PSent,Sent|NEnts]):-
+   risolto(Sent,SnX,Anaf,Pred),
+   PSent is Sent - 1,
+   dangling_sentences(Ents, NEnts),
+   !.
+dangling_sentences([Sent|Ents], [Sent|NEnts]):-
+   dangling_sentences(Ents, NEnts),
+   !.    
+
+writecharacters(N,[]):-!.
+writecharacters(N,[Score-Ind|SortedEnts]):-
+    nl('Display'),nl('Display'),
+     N < 6,
+    findall(Prop, proprietam(Ind,Prop), Ps),
+    sort(Ps,Pss),
+    write_props(Ind,Pss),
+    N1 is N + 1,
+    writecharacters(N1,SortedEnts),
+    !.
+writecharacters(N,SortedEnts):-!.
+
+write_props(Ind,Pss):-
+    entity(Type,Ind,_,facts(Facts)),
+    on(fact(_,name,[Name,_],_,_,_),Facts), 
+    remove(Name,Pss,Rest), 
+    toupper(Name, Atom),
+    write('Display', Atom),
+    write('Display', '  '),
+    writeprops(Rest,Card,Num,Pro),
+     !.
+
+write_props(Ind,Pss):-
+    entity(Type,Ind,_,facts(Facts)),
+    (Type=ind, Num=sing, Card=1,
+      (
+        on(fact(_,name,_,_,_,_),Facts), Pro=1
+         ; Pro=0)
+      ;
+      Type=set, Num=plur,
+      on(card(_, Ind, Card), Facts)),
+      writeprops(Pss,Card,Num,Pro),
+     !.
+
+writeps(Ps):-
+    write('Display', Ps),
+    write('Display', '  '),
+    !.
+
+writeseq_gen_num_nom(sing, Gen, Ps):-
+    n(Ps,_, Gen),
+    writeps(Ps),
+    !.
+writeseq_gen_num_nom(sing, Gen, Ps):-
+    npro(Ps,_, Gen),
+    writeps(Ps),
+    !.
+writeseq_gen_num_nom(plur, Gen, Ps):-
+    n(Ps,Psf, Gen),
+    writeps(Psf),
+    !.
+writeseq_gen_num_nom(plur, Gen, Ps):-
+    npro(Ps,Psf, Gen),
+    writeps(Psf),
+    !.
+writeseq_gen_num_agg(sing, mas, Ps):-
+    a_rom(Ps, _, _, _),
+    writeps(Ps),
+    !.
+writeseq_gen_num_agg(sing, fem, Ps):-
+    a_rom(Ps, _, Psf, _),
+    writeps(Psf),
+    !.
+writeseq_gen_num_agg(plur, mas, Ps):-
+    a_rom(Ps, Psf, _, _),
+    writeps(Psf),
+    !.
+writeseq_gen_num_agg(plur, fem, Ps):-
+    a_rom(Ps, _, _, Psf),
+    writeps(Psf),
+    !.
+writeseq_gen_nums(Gen, Num, []):-!.
+writeseq_gen_nums(Gen, Num, [Ps|Pss]):-
+    writeseq_gen_num_nom(Num, Gen, Ps),
+    writeseq_gen_nums(Gen, Num, Pss),
+    !.
+writeseq_gen_nums(Gen, Num, [Ps|Pss]):-
+    writeseq_gen_nums(Gen, Num, Pss),
+    !.
+writeseq_gen_nums1(Gen, Num, []):-!.
+writeseq_gen_nums1(Gen, Num, [Ps|Pss]):-
+    writeseq_gen_num_agg(Num, Gen, Ps),
+    writeseq_gen_nums1(Gen, Num, Pss),
+    !.
+writeseq_gen_nums1(Gen, Num, [Ps|Pss]):-
+    writeseq_gen_nums1(Gen, Num, Pss),
+    !.
+vocale(a).
+vocale(e).
+vocale(o).
+vocale(i).
+vocale(u).
+select_art_tronc(Nome,N):-
+     stringof([F|_],Nome),
+     vocale(F),
+     (N=0,
+      write('Display', 'L´  ')
+      ;
+      N=1,write('Display', 'Gli  ')),
+      !.
+
+
+writeprops(Pss,Card,sing,Pro):-
+    on(Nome,Pss),
+    (n(Nome, _, Gen);npro(Nome,_,Gen)),
+    (Pro=1
+     ;
+     select_art_tronc(Nome,0)
+     ;
+     Gen=mas,
+     write('Display', 'Il  ')
+     ;
+     Gen=fem,
+     write('Display', 'La  ')
+    ),
+    writeseq_gen_nums(Gen, sing, Pss),
+    write('Display', ',  '),
+    writeseq_gen_nums1(Gen, sing, Pss),
+    !.
+
+writeprops(Pss,Card,plur,Pro):-
+    on(Nome,Pss),
+    (n(Nome, _, Gen);npro(Nome,_,Gen)),
+    (Pro=1
+     ;
+     select_art_tronc(Nome,1)
+     ;
+     Gen=mas,
+     write('Display', 'I  ')
+     ;
+     Gen=fem,
+     write('Display', 'Le  ')
+    ),
+    write_cardin(Card),
+    writeseq_gen_nums(Gen, plur, Pss),
+    write('Display', ',  '),
+    writeseq_gen_nums1(Gen, plur, Pss),
+    !.
+
+write_cardin(Card):-
+    cardin(Ps, Card, plur),
+    writeps(Ps).
+write_cardin(Card).
+
+find_all_top_sents(SortedEnts, N, NewFrs):-
+   findall_top_sents(SortedEnts, N, Frs),
+   Frs\=[],
+   appiattisci(Frs, Frss),
+   sort(Frss, Ents),
+   findall(Dr,discrelfor(Dr), Drs),
+   check_disc_str(Ents, Drs, NewFrs),
+   !.
+find_all_topsents(SortedEnts, N, NewFrs):-
+   findall_topsents(SortedEnts, N, Frs),
+   Frs\=[],
+   appiattisci(Frs, Frss),
+   sort(Frss, Ents),
+   findall(Dr,discrelfor(Dr), Drs),
+   check_disc_str(Ents, Drs, NewFrs),
+   !.
+
+check_disc_str(Frss, FDiscRel, NewFrs):-
+   findall(NoFr, (on(NoFr,Frss),disc_struc(At, NoFr-NoCl, Topics, SimpMainRel, Tint, TempRel, DiscRel, Strc, SimplDiscDom, Point), on(DiscRel,FDiscRel)), Ds),
+    sort(Ds,NewFrs),
+    NewFrs\=[],
+    !.
+/*
+check_disc_str(Frss, FDiscRel, NewFrs):-
+   discourse_structures(Sd),
+   findall(NoFr, (on(NoFr,Frss),on(ds(At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, Strc),Sd), on(DiscRel,FDiscRel)), Ds),
+    sort(Ds,NewFrs),
+    !.
+*/
+findall_top_sents([Score-Ind|SortedEnts], N, [Frs|Ents]):-
+   N < 10,
+   findall(NoFr, 
+               confer_topic(NoFr, Type, Ind, _, PropNode), Frs),
+   length(Frs, L),
+   Frs\=[],
+   L1 is N + L,
+   findall_top_sents(SortedEnts, L1, Ents),!.
+
+findall_top_sents(SortedEnts, L1, Ents).
+findall_topsents([Ind-_|SortedEnts], N, [Frs|Ents]):-
+   N < 10,
+   ctopic(Topics),
+   Topics\=[],
+   findall(NoFr, 
+               on(NoFr-Ind-Type, Topics), Frs),
+   length(Frs, L),
+   L1 is N + L,
+   findall_topsents(SortedEnts, L1, Ents),!.
+
+findall_topsents(SortedEnts, L1, Ents).
+
+in_topic_score(Ind, Top, TotalScore) :-
+   findall(
+      Score,
+      ind_topic_score(Ind, Top, Score),
+      AllScores
+   ),
+   sommatoria(AllScores,TotalScore,_).
+
+ind_topic_score(Ind, Top, Score) :-
+   topic_score(Top, Score).
+
+ind_topic_score(Ind, Top, Score) :-
+   in(_, Ind, Set),
+   cardinality(Ind, CardInd),
+   cardinality(Set, CardSet),
+   entity_relevance(Type, Set, Relevance),
+   Score is Relevance*CardInd/CardSet.
+
+read_model :-
+    abolish(entities_of_the_world/1),
+    abolish(discourse_structures/1),
+    dynamic(entities_of_the_world/1),
+    dynamic(discourse_structures/1),
+    consult('Model').
+    save_confer_infon.
+
+save_confer_infon:-
+   findall(NoFr-Ind-Type, 
+               confer_topic(NoFr, Type, Ind, _, PropNode), Frs),
+   assert(ctopic(Frs)),!.
+
+write_model :-
+   p_write_world,
+   write_world,
+   nl,nl,
+   write('discourse_structures'),
+   write('('),
+   writenl('['),
+   write_disc,
+   write(']'),
+   write(')'),
+   writenl('.'),
+   !.
+%   pwrite_charac.
+
+write_disc :-
+   findall(NoFr-NoCl-At-Topics-SimpMainRel-TempRel-DiscRel-Strc, disc_struc(At, NoFr-NoCl, Topics, SimpMainRel, Tint, TempRel, DiscRel, Strc, SimplDiscDom, Point), Ds),
+   writedss(Ds).
+
+writedss([]):- !.
+
+writedss([NoFr-NoCl-At-Topics-SimpMainRel-TempRel-DiscRel-Strc|Dss]):-
+   Dss=[],
+   write(ds(At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, Strc)),
+   writedss(Dss),
+   !.
+
+writedss([NoFr-NoCl-At-Topics-SimpMainRel-TempRel-DiscRel-Strc|Dss]):-
+   Dss\=[],
+   write(ds(At, NoFr-NoCl, Topics, SimpMainRel, TempRel, DiscRel, Strc)),
+   writenl(','),
+   writedss(Dss),
+   !.
+
+write_world :-
+   abolish(entity_relevance/3),
+   assert(entity_relevance(nil,nil,nil)),
+   assert_entities_relevance,
+   sorted_entities(SortedEnts),
+   write_sets(SortedEnts),
+   write_individuals(SortedEnts),
+   write_class(SortedEnts).
+
+assert_entities_relevance :-
+   entity(Type, Ind),
+   individual_relevance_score(Ind, Score),
+   assert(entity_relevance(Type, Ind, Score)),
+   fail.
+assert_entities_relevance.
+
+entity(set, Ind) :-
+   set(_,Ind).
+
+entity(ind, Ind) :-
+   ind(_,Ind).
+
+entity(ind, Ind) :-
+   ent(_,Ind).
+ 
+entity(ind, Ind) :-
+   loc(_,Ind,_).
+
+entity(class, Ind) :-
+%   genre(legal),
+   class(_,Ind).
+ 
+/*
+overlap(A,B).
+finished_by(A,B).
+before(A,B).
+after(A,B).
+contains(A,B).
+started_by(A,B).
+during(A,B).
+*/
+
+write_class([]) :- !.
+
+write_class(Entities) :-
+   remove(Score-Ind-class, Entities, SortedEnts),
+   SortedEnts=[],
+   class(Infon, Ind),
+   entity_write(class, Score, Ind),
+   write_class(SortedEnts).
+
+write_class(Entities) :-
+   remove(Score-Ind-class, Entities, SortedEnts),
+   SortedEnts\=[],
+   class(Infon, Ind),
+   entity_write(class, Score, Ind),
+%   writenl(','),
+   write_class(SortedEnts).
+
+write_class(_).
+
+/*
+write_class :-
+   class(_,Set),
+   Set\=nil,
+   write('entity('), 
+   write('class'),
+   write(','),
+   write(Set),
+   write(','),
+   write(Score),
+   write(','),
+   write('facts'),
+   write('('),
+   writenl('['),
+   find_facts(set, Ind),
+   fail.
+write_class.
+*/
+
+write_sets([]) :- !.
+
+write_sets(Entities) :-
+   remove(Score-Ind-set, Entities, SortedEnts),
+   SortedEnts=[],
+   set(Infon, Ind),
+   entity_write(set, Score, Ind),
+   write_sets(SortedEnts).
+
+write_sets(Entities) :-
+   remove(Score-Ind-set, Entities, SortedEnts),
+   SortedEnts\=[],
+   set(Infon, Set),
+   entity_write(set, Score, Ind),
+%   writenl(','),
+   write_sets(SortedEnts).
+
+write_sets(_).
+
+entity_write(Type, Score, nil):-!.
+entity_write(Type, Score, Ind):-
+   write('entity('), 
+   write(Type),
+   write(','),
+   write(Ind),
+   write(','),
+   write(Score),
+   write(','),
+   write('facts'),
+   write('('),
+   write('['),nl,
+   find_facts(Type, Ind).
+   
+write_individuals([]) :- !.
+
+write_individuals(Entities) :-
+   remove(Score-Ind-ind, Entities, SortedEnts),
+   SortedEnts=[],
+   entity_write(ind, Score, Ind),
+   write_individuals(SortedEnts).
+
+write_individuals(Entities) :-
+   remove(Score-Ind-ind, Entities, SortedEnts),
+   SortedEnts\=[],
+   entity_write(ind, Score, Ind),
+%   writenl(','),
+   write_individuals(SortedEnts).
+
+write_individuals(_).
+
+removenil(Facts, Nfacts):-
+   remove_all(0-nil-_, Facts, Nfact),
+   remove_all(nil-nil-_, Nfact, Nfacts).
+removenil(Facts, Nfacts):-
+   remove_all(0-nil-_, Facts, Nfact).
+removenil(Facts, Nfacts):-
+   remove_all(nil-nil-_, Nfact, Nfacts).
+
+removenil(Facts, Facts):-!.
+
+find_facts(ind, Ind) :-
+   findall(Fact, ind_in_infon(Ind, Fact), Facts),
+   write_facts(Facts).
+
+find_facts(set, Ind) :-
+   findall(Fact, set_in_infon(Ind, Fact), Facts),
+   write_facts(Facts).
+
+find_facts(class, Ind) :-
+   findall(Fact, set_in_infon(Ind, Fact), Facts),
+   write_facts(Facts).
+
+write_facts([]) :-!.
+
+write_facts([Fact|Facts]) :-
+   Facts=[],
+   writeq(Fact),
+   write(']'),
+   write(')'),
+   write(')'),
+   write(.),nl.
+   
+write_facts([Fact|Facts]) :-
+   Facts\=[],
+   writeq(Fact),
+   write(,),nl,
+   write_facts(Facts).
+
+sorted_entities(SortedScoreInds) :-
+   findall(
+      Relev-Indiv-Type,
+      entity_relevance(Type, Indiv, Relev),
+      ScoreInds
+   ),
+   removenil(ScoreInds, NScoreInds),
+   sort(NScoreInds, SortScoreInds, [2], 1), 
+   togli_doppi(SortScoreInds, SortedScoreInds).
+
+ind_in_infon(Ind, in(Infon,Ind,Set)) :-
+   in(Infon,Ind,Set).
+
+ind_in_infon(Ind, fact(Infon1, R, Args1, P, T, L)) :-
+   fact(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Ind, Args),
+   fact(Infon1, R, Args1, P, T, L),
+   Args1=[A],
+   ind_on(Rel, Args1).
+   
+ind_in_infon(Ind, fact(Infon2, Re, Args2, Po, Te, Lo)) :-
+   fact(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Ind, Args),
+   fact(infon1, R, Args1, P, T, L),
+   on(prop:Infon2,Args1),
+   fact(Infon2, Re, Args2, Po, Te, Lo),
+   ind_on(Rel, Args1).
+
+ind_in_infon(Ind, fact(Infon, Rel, Args, Pol, Temp, Loc)) :-
+   fact(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Ind, Args).
+
+ind_in_infon(Ind, sit(Infon, Rel, Args, Pol, Temp, Loc)) :-
+   sit(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Ind, Args).
+
+/*
+ind_in_infon(Ind, fact(Infon, Rel, Args, 1, Temp, Loc)) :-
+   loc(Infon,Ind,Facts),
+   Facts=[arg:Rel, arg:Arg],
+   Arg\=tes(_), Arg\=tr(_),
+   Args=[arg:Arg].
+
+ind_in_infon(Ind, fact(Infon, Rel, Args, 1, Temp, Loc)) :-
+   loc(Infon,Ind,Facts),
+   Facts=[arg:Rel, arg:Arg],
+   (Arg=tes(_);Arg=tr(_)), 
+   Temp=Arg.
+*/
+
+ind_in_infon(Ind, fact(Infon, Rel, Args, 1, Temp, Loc)) :-
+   loc(Infon,Ind,Facts),
+   Facts=[arg:Rel, arg:Arg],
+   (Rel=main_tloc, 
+    (Arg=tes(_);Arg=tr(_);Arg\=tr(_),Arg\=tes(_)), 
+     Temp=Arg,!
+    ;
+    Rel\=main_tloc,Temp=univ),!.
+
+ind_in_infon(Ind, fact(*, Rel, NewArgs, Pol, Temp, Loc)) :-
+   in(_,Ind,Set),
+   fact(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Set, Args),
+   replace_ind(Set, Ind, Args, NewArgs).
+
+ind_in_infon(Ind, sit(*(Infon), Rel, NewArgs, Pol, Temp, Loc)) :-
+   in(_,Ind,Set),
+   sit(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Set, Args),
+   replace_ind(Set, Ind, Args, NewArgs).
+
+
+
+set_in_infon(Set1, in(Infon,Set1,Set2)) :-
+   in(Infon,Set1,Set2).
+
+set_in_infon(Set, card(Infon, Set, Card)) :-
+   card(Infon, Set, Card).
+
+set_in_infon(Ind, fact(Infon1, R, Args1, P, T, L)) :-
+   fact(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Ind, Args),
+   fact(Infon1, R, Args1, P, T, L),
+   Args1=[A],
+   ind_on(Rel, Args1).
+   
+set_in_infon(Ind, fact(Infon2, Re, Args2, Po, Te, Lo)) :-
+   fact(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Ind, Args),
+   fact(infon1, R, Args1, P, T, L),
+   on(prop:Infon2,Args1),
+   fact(Infon2, Re, Args2, Po, Te, Lo),
+   ind_on(Rel, Args1).
+
+set_in_infon(Set, fact(Infon, Rel, Args, Pol, Temp, Loc)) :-
+   fact(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Set, Args).
+
+set_in_infon(Set, sit(Infon, Rel, Args, Pol, Temp, Loc)) :-
+   sit(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Set, Args).
+
+set_in_infon(Set, fact(*, Rel, NewArgs, Pol, Temp, Loc)) :-
+   in(_,Set,Set1),
+   fact(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Set1, Args),
+   replace_ind(Set1, Set, Args, NewArgs).
+
+set_in_infon(Set, sit(*(Infon), Rel, NewArgs, Pol, Temp, Loc)) :-
+   in(_,Set,Set1),
+   sit(Infon, Rel, Args, Pol, Temp, Loc),
+   ind_on(Set1, Args),
+   replace_ind(Set1, Set, Args, NewArgs).
+   
+replace_any(_, _, [], []):-
+   !.
+
+replace_any(El, El1, [El|List], [El1|RepList]):-
+   !,
+   replace_any(El, El1,List,RepList).
+
+replace_any(El, El1, [El2|List], [El2|RepList]):-
+   replace_any(El, El1,List,RepList).
+
+
+individual_relevance_score(Ind, TotalScore) :-
+   findall(
+      Score,
+      individual_score(Ind, _, Score),
+      AllScores
+   ),
+   sommatoria(AllScores,TotalScore,_).
+
+individual_score(Ind, NoFr, Score) :-
+   prop_relevance(Ind, NoFr, TopicType, PropRelevance),
+   relevance_score(PropRelevance, TopicType, Score).  
+
+individual_score(Ind, NoFr, Score) :-
+   in(_, Ind, Set),
+   cardinality(Ind, CardInd),
+   cardinality(Set, CardSet),
+   entity_relevance(Type, Set, Relevance),
+   Score is Relevance*CardInd/CardSet.
+
+cardinality(Ind, 1) :-
+   ind(_, Ind),
+   !.
+cardinality(Set, Card) :-
+   set(_, Set),
+   card(_, Set, Card),
+   integer(Card),
+   !.
+cardinality(_, 10).
+
+/*
+prop_relevance(Ind, NoFr, Type, Relevance) :-
+   confer_topic(NoFr, Type, Ind, _, PropNode),
+   info(NoFr, PropNode, _, _, _, _, Relevance, _, _, _, _, _, _).
+*/
+prop_relevance(Ind, NoFr, Type, undefined) :-
+   confer_topic(NoFr, Type, Ind, _, _).
+   
+
+
+%relevance_score(_, undefined, 0) :-!.
+relevance_score(foreground, TopicType, Score) :-
+   !,
+   topic_score(TopicType, Score1),
+   Score is Score1*2.
+
+relevance_score(_, TopicType, Score) :-
+   topic_score(TopicType, Score).
+
+topic_score(main, 6).
+topic_score(secondary, 3).
+topic_score(potential, 2).
+topic_score(expected, 4).
+
+ind_on(Ind, Args) :-
+   on(Ind, Args).
+ 
+ind_on(Ind, Args) :-
+   on(_:Ind, Args).
+ 
+replace_ind(Ind1, Ind2, [Ind | Inds1], Inds2) :-
+   atomic(Ind),
+   !,
+   replace_any(Ind1, Ind2, [Ind | Inds1], Inds2).
+
+replace_ind(Ind1, Ind2, Inds1, Inds2) :-
+   replace_any(Role:Ind1, Role:Ind2, Inds1, Inds2).
+
+save_model :-
+   new(File, 'Save data file', 'Model Name'),
+   tsave(File, ['conv']),
+   concat(File, '.txt', NFile),
+   tsave(NFile, ['Display']).
+
+   is_ax(ministro,soc_high).
+   is_ax(senatore,soc_high).
+   is_ax(autobus,veicolo).
+   is_ax(porcellino,pasto).
+   is_ax(pasto,porcellino).
+   is_ax(pranzo,pasto).
+   is_ax(pasto,pranzo).
+   is_ax(segretario,soc_low).
+   is_ax(commission,council).
+   is_ax(capanna,casa).
+
+
+included(corner,restaurant).   
+included(waiter,restaurant).   
+included(menu,restaurant).
+included(porta,casa).
+included(finestra,casa).
+included(chiavistello,porta).
+included(terra,campagna).
+
+
+cause_result(soffiare, accasciarsi).
+
+infer_trig(injured, [cause(damage, 0), has(protection, 1), liable(Id, 0)]).
+infer_trig(liable, [cause(damage, 1), has(liability, 1)]).
+
+infer_trig(scansafatiche, [avere(voglia,(faticare,1),0), piacere(_,(lavorare,1),0)]).
+infer_trig(bravo, [avere(voglia,(faticare,1),1), piacere(_,(lavorare,1),1)]).
+
+deriv(liable, liability).    
+deriv(liability, liable).    
+deriv(defective, defectiveness).    
+deriv(defectiveness, defective).    
+deriv(defect, defectiveness).    
+deriv(defect, defective).    
+deriv(defective, defect).    
+deriv(defectiveness, defect).    
+
+write_riass([Score-Ent|SortedEnts], Ents):-
+   findall(N, 
+            topps(Top, N, Ent, Ind), Ents),
+   nl('Display'),nl('Display'),
+   write('Display', '############'),
+   write('Display', '   RIASSUNTO   '),
+   writenl('Display', '############'),
+   append([1],Ents,NEnts),
+   sort(NEnts,Nents),
+   writeriass('Display',Nents,0).
+
+writeriass(W,[],N):-!.
+writeriass(W,[I|Ents],N):-
+   N =< 200,
+   check_sym(I,Sym),
+   fp(Sym, Frase),
+   length(Frase, L),
+   L1 is L - 1,
+   scrivi_riass(W,Frase),
+   Nn is N + L1,
+   writeriass(W,Ents,Nn).
+
+writeriass(W,[I|Ents],N):-
+   I=1,
+   fp(Sym, Frase),
+   scrivi_riass(W,Frase),
+   name(Sym,Num),
+   reverse(Num, [Nu|_]),
+   name(Nn,[Nu]),
+   writenriass(W,Nn,Ents,Nn).
+
+writeriass(W,Ents,Nn).
+writenriass(W,L,[],N):-!.
+writenriass(W,L,[L|Ents],N):-
+   N =< 200,
+   Ll is L + 1,
+   check_sym(Ll,Sym),
+   fp(Sym, Frase),
+   length(Frase, Le),
+   scrivi_riass(W,Frase),
+   L1 is Le - 1,
+   Nn is N + L1,
+   writenriass(W,Ll,Ents,Nn).
+
+writenriass(W,L,[I|Ents],N):-
+   N =< 200,
+   Ll is L + 1,
+   check_sym(Ll,Sym),
+   fp(Sym, Frase),
+   length(Frase, Le),
+   scrivi_riass(W,Frase),
+   L1 is Le - 1,
+   Nn is N + L1,
+   writenriass(W,Ll,Ents,Nn).
+
+writenriass(W,L,Ents,Nn).
+
+scrivi_riass(W,Frase):-
+    words_to_atom(Frase, Atomo),
+    wfront(W),
+    writenl(W, Atomo).
+
+check_sym(I,Symm):-
+    name(I,H),
+    length(H, L),
+    (L=1,
+     mcon('0',I,Sym);
+     1<L, Sym=I),
+    mcon(po, Sym, Symm),
+    !.
+    

@@ -1,0 +1,66 @@
+* notes from meeting [2016-04-14 Thu 13:09]
+
+  goal: have a GETARUNS interface on the website.
+
+input: something like sonnet32
+
+output: a sequence of windows showing the output to the user.
+
+normally the X interface has a bunch of Analyzer windows and one Model window.
+
+a single poem would decompose into a number of separate representations ... sonnet 32 by william shakespeare.
+
+each analysis focuses on a different aspect, like phonetics; poetic devices (rhymes, metrical feet, and acoustic length)
+
+
+all of these are done in XPCE.
+
+it would be nice to move this to the web.
+
+so we just need to translate XPCE widget calls to HTML5 or SVG widgets.
+
+
+goal: it would be nice to make it work in an interactive manner.
+but we have to set bounds on the use. we don't want users inputting entire folios of shakespeare.
+so we need to limit input. to maybe 4000 bytes.
+
+we need to impose a format as well:
+
+POEM      ::= TITLELINE BYLINE NEWLINE BODY
+TITLELINE ::= String  "\n"
+BYLINE    ::= String  "\n"
+NEWLINE   ::=         "\n"
+BODY      ::= String* "\n" BODY*
+
+
+** how it works
+
+under Desktop/sparsarcode/newstart
+
+mostly in ~inits~ or in newstart
+
+which starts with :-assert(rete(a1)).
+
+currently the interface loads a poem from a File specified at the command line.
+
+we should be able to compile a myexe which we can then run with
+./myexe sonnet32
+
+
+sometimes 7.2 has issues with unicode.
+
+
+
+
+
+
+** getaruns
+
+this stuff is working on the main server:
+
+http://project.cgm.unive.it/cgi-bin/venses/venses.pl
+
+so this an inspiration for the SPARSAR system. if we can make it interactive in the same way.
+
+so the user types in the poem. and gets back everything they would have gotten back in the XPCE environment.
+
