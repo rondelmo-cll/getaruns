@@ -1,6 +1,4 @@
-﻿
-
-:- style_check(-singleton).
+﻿:- style_check(-singleton).
 
 
 simpletokenizer(InFile,OutFile):-
